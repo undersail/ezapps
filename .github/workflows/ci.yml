@@ -9,17 +9,23 @@ on:
 jobs:
   test-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        # version 由 package.json 中的 packageManager 字段统一指定
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: pnpm }
 
-      - name: 安装依赖
-        run: pnpm install --frozen-lockfile
+      - name: 安装依赖（首次会生成 lockfile）
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "📦 使用 frozen lockfile"
+            pnpm install --frozen-lockfile
+          else
+            echo "📦 首次安装，生成 lockfile"
+            pnpm install
+          fi
 
       - name: Lint
         run: pnpm lint || true
@@ -29,3 +35,22 @@ jobs:
 
       - name: Build
         run: pnpm --filter web-app build
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-app-dist
+          path: apps/web-app/dist
+          retention-days: 7
+
+      - name: 提交 lockfile（如有更新）
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && \$GITHUB_TOKEN != "" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add pnpm-lock.yaml || true
+            if ! git diff --cached --quiet; then
+              git commit -m "chore(deps): update lockfile [skip ci]" || true
+              git push || true
+            fi
+          fi
