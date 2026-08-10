@@ -5,9 +5,13 @@
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "pnpm --filter web-app dev",
-    "build": "pnpm --filter web-app build",
+    "dev:webapp": "pnpm --filter web-app dev",
+    "dev:funphy": "pnpm --filter funphy dev",
+    "build:funphy": "pnpm --filter funphy build",
+    "build:webapp": "pnpm --filter web-app build",
+    "build": "pnpm build:webapp && pnpm build:funphy",
     "preview": "pnpm --filter web-app preview",
     "lint": "pnpm --filter web-app lint",
-    "type-check": "pnpm --filter web-app type-check"
+    "type-check": "pnpm -r --parallel type-check"
   }
 }

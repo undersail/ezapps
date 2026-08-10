@@ -1,45 +1,108 @@
 <script setup lang="ts">
-const title = import.meta.env.VITE_APP_TITLE ?? 'ezapps'
-const apiBase = import.meta.env.VITE_API_BASE ?? 'https://example.com'
+import { apps } from './apps.config'
+import AppCard from './components/AppCard.vue'
+import Hero from './components/Hero.vue'
+
 const buildTime = new Date().toISOString()
+const apiBase = import.meta.env.VITE_API_BASE ?? 'https://example.com'
 </script>
 
 <template>
-  <main class="wrap">
-    <h1>{{ title }}</h1>
-    <p class="lead">已部署到 Cloudflare Pages 🎉</p>
+  <div class="home">
+    <Hero :api-base="apiBase" :build-time="buildTime" />
 
-    <div class="info">
-      <div class="row">
-        <span class="label">VITE_API_BASE</span>
-        <code>{{ apiBase }}</code>
+    <section class="apps">
+      <header class="apps__head">
+        <h2>应用清单</h2>
+        <p>每一款都专注于一件事。点击卡片进入。</p>
+      </header>
+
+      <div v-if="apps.length === 0" class="empty">
+        <p>🛠 还在打磨中，敬请期待。</p>
       </div>
-      <div class="row">
-        <span class="label">构建时间</span>
-        <code>{{ buildTime }}</code>
+      <div v-else class="apps__grid">
+        <AppCard v-for="app in apps" :key="app.id" :app="app" />
       </div>
-      <div class="row">
-        <span class="label">仓库</span>
-        <a href="https://github.com/undersail/ezapps" target="_blank">undersail/ezapps</a>
-      </div>
-    </div>
-  </main>
+    </section>
+
+    <footer class="foot">
+      <p>
+        EZApps · {{ new Date().getFullYear() }} · by
+        <a href="https://github.com/undersail">@undersail</a>
+      </p>
+      <p class="foot__small">
+        添加新应用？只需在 <code>apps/&lt;name&gt;</code> 新建子项目并加一行 <code>apps.config.ts</code>。
+      </p>
+    </footer>
+  </div>
 </template>
 
 <style scoped>
-.wrap {
-  max-width: 720px;
-  margin: 4rem auto;
-  padding: 0 1.5rem;
+.home {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 1.5rem 4rem;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: #1a1a2e;
 }
-h1 { color: #1565c0; font-size: 2.5rem; margin: 0 0 0.5rem; }
-.lead { color: #546e7a; font-size: 1.1rem; margin: 0 0 2rem; }
-.info { display: grid; gap: 0.75rem; padding: 1.5rem; background: #fff; border: 1px solid #e0e6ed; border-radius: 12px; }
-.row { display: flex; align-items: center; gap: 1rem; }
-.label { flex-shrink: 0; width: 140px; color: #607d8b; font-weight: 500; }
-code { background: #f0f4f8; padding: 4px 10px; border-radius: 6px; font-size: 0.9em; color: #1565c0; }
-a { color: #1976d2; text-decoration: none; }
-a:hover { text-decoration: underline; }
+.apps {
+  margin-top: 3rem;
+}
+.apps__head {
+  margin-bottom: 2rem;
+}
+.apps__head h2 {
+  font-size: 1.75rem;
+  margin: 0 0 0.5rem;
+  color: #0f172a;
+  font-weight: 700;
+}
+.apps__head p {
+  color: #64748b;
+  margin: 0;
+}
+.apps__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+.empty {
+  padding: 3rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 1.1rem;
+}
+.foot {
+  margin-top: 6rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+.foot p {
+  margin: 0 0 0.5rem;
+}
+.foot a {
+  color: #1565c0;
+  text-decoration: none;
+  font-weight: 500;
+}
+.foot a:hover {
+  text-decoration: underline;
+}
+.foot__small {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+}
+.foot code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  background: rgba(21, 101, 192, 0.06);
+  color: #475569;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin: 0 2px;
+}
 </style>
