@@ -1,0 +1,34 @@
+# Node / pnpm
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+.nuxt/
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+
+# Coverage
+coverage/
+
+# Agent
+.openclaw/
+.hermes/
+__pycache__/
+.venv/
+*.pyc

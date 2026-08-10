@@ -1,0 +1,13 @@
+{
+  "name": "ezapps",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "pnpm --filter web-app dev",
+    "build": "pnpm --filter web-app build",
+    "preview": "pnpm --filter web-app preview",
+    "lint": "pnpm --filter web-app lint",
+    "type-check": "pnpm --filter web-app type-check"
+  }
+}
