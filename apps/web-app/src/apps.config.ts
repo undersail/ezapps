@@ -9,25 +9,32 @@ export interface AppEntry {
   tagline: string
   description: string
   tags: string[]
-  /** live / beta / coming-soon */
   status: 'live' | 'beta' | 'coming-soon'
-  /** 相对根路径的入口 */
   path: string
-  /** 卡片主色（CSS color） */
   accent: string
 }
 
 export const apps: AppEntry[] = [
   {
     id: 'funphy',
-    title: '物理实验室',
-    emoji: '⚛️',
-    tagline: 'Fun Physics Lab',
-    description:
-      '用互动小游戏理解物理概念。每款小游戏对应一个核心知识点——重力、光学、电磁、波动……在玩耍中把抽象变可玩。',
-    tags: ['物理', '教育', '游戏化', 'BETA'],
+    title: '飞飞历险记',
+    emoji: '🚀',
+    tagline: 'Flyphy Adventure',
+    description: '操控飞飞在物理空间里穿行，体验速度、惯性与阻力的平衡。简单到 5 秒上手。',
+    tags: ['物理', '游戏', 'BETA'],
     status: 'beta',
     path: '/funphy/',
     accent: '#9333ea',
+  },
+  {
+    id: 'grimphy',
+    title: '物理画廊',
+    emoji: '🖼️',
+    tagline: 'Grimphy · Card Gallery',
+    description: '物理小游戏的卡片网格 Demo，每个卡片是一个独立的可玩模块。',
+    tags: ['物理', 'Demo', '卡片'],
+    status: 'beta',
+    path: '/grimphy/',
+    accent: '#06b6d4',
   },
 ]
