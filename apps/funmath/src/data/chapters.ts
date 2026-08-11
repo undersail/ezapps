@@ -51,7 +51,7 @@ export const chapters: Chapter[] = [
       {
         id: '1-5',
         chapter: 1,
-        order: 4,
+        order: 5,
         title: '除法山谷',
         emoji: '⛰️',
         knowledge: '表内乘除法（含逆运算）',
@@ -64,7 +64,7 @@ export const chapters: Chapter[] = [
     boss: {
       id: '1-4-boss',
       chapter: 1,
-      order: 5,
+      order: 4,
       title: '九九乘法魔王',
       emoji: '👑',
       pool: [], // 特性 6 填充 81 句
@@ -121,7 +121,7 @@ export const chapters: Chapter[] = [
       {
         id: '2-5',
         chapter: 2,
-        order: 4,
+        order: 5,
         title: '数海',
         emoji: '🌌',
         knowledge: '大数运算 · 单位换算',
@@ -134,7 +134,7 @@ export const chapters: Chapter[] = [
     boss: {
       id: '2-4-boss',
       chapter: 2,
-      order: 5,
+      order: 4,
       title: '速算之王',
       emoji: '⏱️',
       pool: ['q-2-3-01', 'q-2-3-02', 'q-2-3-03', 'q-2-3-04', 'q-2-3-05', 'q-2-3-06', 'q-2-3-07', 'q-2-3-08', 'q-2-3-09', 'q-2-3-10',
