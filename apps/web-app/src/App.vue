@@ -27,7 +27,7 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
 
 <template>
   <div class="home">
-    <Hero :api-base="apiBase" :build-time="buildTime" />
+    <Hero />
 
     <!-- 置顶分组 -->
     <section v-if="pinnedApps.length > 0" class="apps apps--pinned">
@@ -83,13 +83,24 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
     </section>
 
     <footer class="foot">
-      <p>
+      <p class="foot__copy">
         EZAPPS · {{ new Date().getFullYear() }} · by
         <a href="https://github.com/undersail">@undersail</a>
       </p>
       <p class="foot__small">
         添加新应用？只需在 <code>apps/&lt;name&gt;</code> 新建子项目并加一行 <code>apps.config.ts</code>。
       </p>
+
+      <div class="foot__meta" aria-label="build metadata">
+        <span class="foot__meta-item">
+          <span class="foot__meta-label">VITE_API_BASE</span>
+          <code>{{ apiBase }}</code>
+        </span>
+        <span class="foot__meta-item">
+          <span class="foot__meta-label">构建时间</span>
+          <code>{{ buildTime }}</code>
+        </span>
+      </div>
     </footer>
   </div>
 </template>
@@ -153,14 +164,51 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
 }
 .foot {
   margin-top: 5rem;
-  padding-top: 2rem;
+  padding: 2.5rem 1rem 2rem;
   border-top: 1px solid #e2e8f0;
   text-align: center;
   color: #94a3b8;
   font-size: 0.9rem;
 }
-.foot p {
+.foot__copy {
   margin: 0 0 0.5rem;
+}
+.foot__small {
+  margin: 0 0 1.5rem;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+}
+
+/* footer 底部技术 meta：横排、灰阶 */
+.foot__meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem 1.5rem;
+  margin-top: 0.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed #e2e8f0;
+}
+.foot__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+}
+.foot__meta-label {
+  color: #94a3b8;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.foot__meta code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #eef2f6;
+  padding: 3px 10px;
+  border-radius: 6px;
 }
 .foot a {
   color: #1565c0;
@@ -174,14 +222,5 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
   margin-top: 0.75rem;
   font-size: 0.8rem;
   color: #cbd5e1;
-}
-.foot code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.85em;
-  background: rgba(21, 101, 192, 0.06);
-  color: #475569;
-  padding: 2px 6px;
-  border-radius: 3px;
-  margin: 0 2px;
 }
 </style>
