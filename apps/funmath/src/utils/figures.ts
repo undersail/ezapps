@@ -15,14 +15,14 @@ const WRAPPER = 'xmlns="http://www.w3.org/2000/svg"'
 
 export function renderFigureSvg(figure: FigureSpec): string {
   switch (figure.type) {
-    case 'rect':       return renderRect(figure.width, figure.height)
-    case 'square':     return renderSquare(figure.side)
-    case 'triangle':   return renderTriangle(figure.base, figure.height, figure.sides)
-    case 'parallelogram': return renderParallelogram(figure.base, figure.height)
-    case 'trapezoid':  return renderTrapezoid(figure.upperBase, figure.lowerBase, figure.height)
-    case 'circle':     return renderCircle(figure.radius, figure.diameter)
-    case 'cube':       return renderCube(figure.length, figure.width, figure.height)
-    case 'squareCube': return renderSquareCube(figure.side)
+    case 'rect':       return renderRect(figure.width, figure.height, figure.hide)
+    case 'square':     return renderSquare(figure.side, figure.hide)
+    case 'triangle':   return renderTriangle(figure.base, figure.height, figure.sides, figure.hide)
+    case 'parallelogram': return renderParallelogram(figure.base, figure.height, figure.hide)
+    case 'trapezoid':  return renderTrapezoid(figure.upperBase, figure.lowerBase, figure.height, figure.hide)
+    case 'circle':     return renderCircle(figure.radius, figure.diameter, figure.hideLabel)
+    case 'cube':       return renderCube(figure.length, figure.width, figure.height, figure.hide)
+    case 'squareCube': return renderSquareCube(figure.side, figure.hide)
   }
 }
 
@@ -238,5 +238,10 @@ function renderCube(L: number, W: number, H: number, hide?: ('length' | 'width' 
 }
 
 function renderSquareCube(side: number, hide?: ('side')[]): string {
-  return renderCube(side, side, side, hide as ('length' | 'width' | 'height')[] | undefined)
+  // 正方体的所有维度都是同一长度，hide 'side' 等同于隐藏全部 3 个维度
+  const cubeHide: ('length' | 'width' | 'height')[] | undefined =
+    hide?.includes('side')
+      ? ['length', 'width', 'height']
+      : (hide as ('length' | 'width' | 'height')[] | undefined)
+  return renderCube(side, side, side, cubeHide)
 }
