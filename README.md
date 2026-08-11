@@ -1,43 +1,114 @@
 # 🚀 ezapps
 
-Web 应用项目 · Cloudflare Pages 自动部署
+> **小工具游戏合集，简单但好玩儿好用。**
+>
+> 由 Jack（[@undersail](https://github.com/undersail)）单人维护的个人应用集合站。
+> 每款应用聚焦一个具体的痛点或好玩的想法，做得**足够小、足够好玩就好用**。
 
-## 本地开发
+---
+
+## 🌐 访问地址
+
+| 来源                         | 地址                                                  |
+| ---------------------------- | ----------------------------------------------------- |
+| 🇨🇳 **主站（推荐）**           | <https://ezapps.cc>                                    |
+| 🌍 Cloudflare Pages（备）     | <https://ezapps.pages.dev>                             |
+| 📦 GitHub（源码）             | <https://github.com/undersail/ezapps>                  |
+| 🪞 Gitee 镜像                 | <https://gitee.com/undersail/ezapps>                   |
+
+---
+
+## 🎮 应用清单
+
+每个 `apps/<name>/` 是一个独立的 Vite + Vue 3 子应用，构建产物落在 `apps/web-app/dist/<name>/`，通过子路径访问。
+
+| 子项目                                    | 简介                                  | 状态     |
+| ----------------------------------------- | ------------------------------------- | -------- |
+| 🚀 [飞飞历险记](/funphy/) · Funphy Adventure | WASD 控制的小飞飞物理小游戏            | 测试版   |
+| 🔬 [物理实验室](/grimphy/) · Grimphy Lab     | 趣味物理实验动画演示                   | 测试版   |
+| 📐 [曼曼闯天涯](/funmath/) · FunMath Adventure | 数学闯关答题游戏                       | 测试版   |
+
+### 添加新应用
+
+```bash
+# 1. 复制骨架
+mkdir apps/<your-name> && cp -r apps/funphy/* apps/<your-name>/
+
+# 2. 修改 vite.config.ts 的 outDir 为 ../web-app/dist/<your-name>，base 为 /<your-name>/
+
+# 3. 编辑 src/App.vue 实现你的功能
+
+# 4. 在 apps/web-app/src/apps.config.ts 的 apps[] 加一项，主页自动出现新卡片
+
+git add . && git commit -m "feat: add <your-name>" && git push origin main
+```
+
+→ 1-3 分钟内 Cloudflare Pages 自动部署。
+
+---
+
+## 🔧 本地开发
+
+需要 **Node.js 20+** 和 **pnpm 9+**。
 
 ```bash
 pnpm install
-pnpm --filter web-app dev
+pnpm dev            # 主页 dev（http://localhost:5173）
+pnpm dev:funphy     # funphy dev（5174）
+pnpm dev:grimphy    # grimphy dev（5175）
+pnpm dev:funmath    # funmath dev（5176）
+pnpm build          # 全量构建 → apps/web-app/dist/
+pnpm type-check     # TypeScript 检查
 ```
 
-打开 <http://localhost:5173>
+推送即触发 CI，CI 通过后 Cloudflare Pages 拉代码自动构建。
 
-## 构建
+---
 
-```bash
-pnpm --filter web-app build
-# 输出到 apps/web-app/dist/
-```
-
-## 部署
-
-Push 到 `main` 分支 → Cloudflare Pages 自动部署
-
-构建日志：Cloudflare Dashboard → Workers & Pages → ezapps → Deployments
-
-## 仓库结构
+## 🚀 部署架构
 
 ```
-ezapps/
-├── apps/
-│   └── web-app/                # 前端 (Vue 3 + Vite + TypeScript)
-│       ├── src/
-│       ├── index.html
-│       ├── vite.config.ts
-│       └── package.json
-├── .github/
-│   └── workflows/
-│       └── ci.yml              # GitHub Actions CI
-├── package.json                # pnpm workspace 根
-├── pnpm-workspace.yaml
-└── README.md
+本地开发机 (CVM)
+   ↓ git push
+GitHub (主仓)  ◀──── mirror ──── Gitee (镜像)
+   ↓ webhook                │
+Cloudflare Pages GitHub App  │  (国内访问加速备选)
+   ↓
+自动 pnpm build（webapp + funphy + grimphy + funmath）
+   ↓
+托管到 ezapps.pages.dev / ezapps.cc
 ```
+
+- **主仓**：`github.com/undersail/ezapps`（自动部署）
+- **Gitee 镜像**：`gitee.com/undersail/ezapps`（备份，国内 Clone 更快）
+- **构建**：Cloudflare Pages（接 GitHub）
+- **CDN**：Cloudflare 全球网络，国内访问走 CF 边缘节点
+
+---
+
+## 🛰 维护者与社区
+
+| 平台       | 入口                                                       |
+| ---------- | ---------------------------------------------------------- |
+| 🐙 GitHub  | [@undersail](https://github.com/undersail)                |
+| 🇨🇳 Gitee  | [@undersail](https://gitee.com/undersail)                  |
+| 📮 公众号  | **科普狮**（一人即团队 · AI 创作干货与科普内容分享 · 灵感电台出品）|
+| 🔗 文章   | [试试用AI写歌吧，你想不到成本有多低](https://mp.weixin.qq.com/s/ogyq8aBVKmC0JUyi6Jlw_A) |
+
+---
+
+## 📐 项目原则
+
+> **做得足够小、足够好玩就好用。**
+>
+> 每一款应用都专注于一个明确的任务，避免"大而全"；
+> 当有新想法时，新建 `apps/<name>/` 子项目即可——主页自动出现新卡片。
+
+---
+
+## 📋 项目状态
+
+- ⏰ 最后更新：2026-08
+- 👤 单人维护，欢迎 PR / Issue
+- 📜 许可证：MIT
+

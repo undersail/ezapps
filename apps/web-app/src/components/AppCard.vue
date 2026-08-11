@@ -31,9 +31,6 @@ function onPin(e: MouseEvent) {
     <a :href="app.path" class="card" :style="{ '--accent': app.accent }">
       <div class="card__header">
         <span class="card__emoji">{{ app.emoji }}</span>
-        <span class="card__status" :class="`card__status--${app.status}`">
-          {{ statusLabel(app.status) }}
-        </span>
       </div>
       <div class="card__body">
         <h3>{{ app.title }}</h3>
@@ -42,6 +39,13 @@ function onPin(e: MouseEvent) {
         <div class="tags">
           <span v-for="t in app.tags" :key="t" class="tag">{{ t }}</span>
         </div>
+      </div>
+
+      <!-- status badge：位于 body 与 footer 之间，左对齐（"文字左下角"） -->
+      <div class="card__status-bar">
+        <span class="card__status" :class="`card__status--${app.status}`">
+          {{ statusLabel(app.status) }}
+        </span>
       </div>
 
       <!-- footer：左下显式置顶按钮 + 右下"进入 →" -->
@@ -174,6 +178,13 @@ function onPin(e: MouseEvent) {
   color: var(--accent, #1565c0);
   font-weight: 500;
   font-size: 0.9rem;
+}
+
+/* status bar：放在 body 与 footer 之间，左对齐 */
+.card__status-bar {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0 1.25rem 0.85rem;
 }
 
 /* === 置顶按钮 === 左下角显式按钮 */
