@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import MapView from './pages/MapView.vue'
+import LevelPlay from './pages/LevelPlay.vue'
 
 // V0 保留：题库（特性 2 会迁移到 data/questions.ts）
 interface Question {
@@ -16,13 +17,24 @@ const questions: Question[] = [
   { q: '10 ÷ 2 = ?',  options: [3, 5, 8, 10], answer: 5 },
 ]
 
-// 阶段：lobby（大厅）/ map（关卡地图）/ play（答题）/ done（完成）
-const stage = ref<'lobby' | 'map' | 'play' | 'done'>('lobby')
+// 阶段：lobby / map / play（旧版保留）/ level（特性 2 新增）/ done
+const stage = ref<'lobby' | 'map' | 'play' | 'level' | 'done'>('lobby')
 const idx = ref(0)
 const score = ref(0)
 const picked = ref<number | null>(null)
 const showRight = ref(false)
 const current = ref(questions[0])
+
+// 特性 2：当前关卡 ID
+const currentLevelId = ref<string | null>(null)
+// 特性 2：关卡结果
+interface LevelResult {
+  levelId: string
+  score: number
+  total: number
+  stars: 0 | 1 | 2 | 3
+}
+const lastResult = ref<LevelResult | null>(null)
 
 function enterMap() {
   stage.value = 'map'
@@ -32,11 +44,35 @@ function backToLobby() {
   stage.value = 'lobby'
 }
 
-// 占位：特性 2 会实装
-function onEnterLevel(_levelId: string) {
-  // 暂不跳转，只提示
-  alert(`进入关卡 ${_levelId}（特性 2 实现）`)
+// 关卡答题
+function onEnterLevel(levelId: string) {
+  currentLevelId.value = levelId
+  idx.value = 0
+  score.value = 0
+  picked.value = null
+  showRight.value = false
+  stage.value = 'level'
 }
+
+function backToMap() {
+  stage.value = 'map'
+  currentLevelId.value = null
+}
+
+function onLevelComplete(result: { score: number; total: number; stars: 0 | 1 | 2 | 3; levelId: string }) {
+  lastResult.value = result
+  // 特性 3 替换：跳到 result 页
+  alert(
+    `🎉 关卡完成！\n` +
+    `答对 ${result.score} / ${result.total} 题\n` +
+    `获得 ${result.stars} ⭐\n` +
+    `（特性 3 将替换为结算页）`
+  )
+  stage.value = 'map'
+  currentLevelId.value = null
+}
+
+// 占位：特性 6 才实装
 function onEnterBoss(_bossId: string) {
   alert(`进入 Boss ${_bossId}（特性 6 实现）`)
 }
@@ -96,6 +132,14 @@ function retry() { stage.value = 'lobby' }
       @back="backToLobby"
       @enter-level="onEnterLevel"
       @enter-boss="onEnterBoss"
+    />
+
+    <!-- 关卡答题（特性 2） -->
+    <LevelPlay
+      v-else-if="stage === 'level' && currentLevelId"
+      :level-id="currentLevelId"
+      @back="backToMap"
+      @complete="onLevelComplete"
     />
 
     <!-- 答题 -->
