@@ -24,10 +24,10 @@ const experiments: ExperimentCard[] = [
   <div class="lab">
     <header class="hero">
       <div class="badge">Lab · Grimphy</div>
-      <h1>🔬 实验室</h1>
+      <h1>🔬 物理实验室</h1>
       <p class="tag">Grimphy Lab · 物理实验趣味动画演示</p>
       <p class="intro">
-        这里每个卡片都是一个<strong>独立的小实验</strong>。点进去看现象、学原理——不用记公式，看见就知道物理在发生什么。
+        每个卡片是一个<strong>独立的小实验</strong>。点进去看现象、学原理——不用记公式，看见就知道物理在发生什么。
       </p>
     </header>
 

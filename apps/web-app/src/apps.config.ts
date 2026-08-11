@@ -28,7 +28,7 @@ export const apps: AppEntry[] = [
   },
   {
     id: 'grimphy',
-    title: '实验室',
+    title: '物理实验室',
     emoji: '🔬',
     tagline: 'Grimphy Lab',
     description: '物理实验趣味动画演示。每个卡片是一个独立的小实验，看现象、学原理。',
