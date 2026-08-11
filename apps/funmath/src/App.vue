@@ -76,21 +76,29 @@ const currentBossInfo = computed(() => {
   return null
 })
 
-// 是否存在下一关（普通关）
-// 包括：1) 章节内下一关 2) 本章 Boss（如果 Boss 在当前关卡之后且未通关）
+// 是否存在下一关（普通关 / Boss / 下一章）
+// 包括：1) 中间普通关（order > 当前 && order < Boss.order）
+//       2) 本章 Boss（如果 Boss 未通关）
 const hasNextLevel = computed(() => {
   if (!currentLevelId.value) return false
   const cur = currentLevelInfo.value
   if (!cur) return false
 
-  // 本章有 Boss 且 Boss.order > 当前关卡 且 Boss 未通关 → "下一关"是 Boss
+  const bossOrder = cur.chapter.boss?.order ?? Infinity
+
+  // 中间普通关
+  const nextLv = cur.chapter.levels.find(
+    (l) => l.order > cur.level.order && l.order < bossOrder,
+  )
+  if (nextLv) return true
+
+  // Boss（未通关才视为"下一关"）
   const boss = cur.chapter.boss
   if (boss && boss.order > cur.level.order && !progress.isBossDefeated(boss.id)) {
     return true
   }
 
-  const nextLv = cur.chapter.levels.find((l) => l.order > cur.level.order)
-  return !!nextLv
+  return false
 })
 
 // Boss 完成后是否有下一关（普通关，如 1-5 / 2-5）
@@ -211,17 +219,26 @@ function onLevelNext() {
   const cur = currentLevelInfo.value
   if (!cur) return
 
-  // 本章有 Boss 且 Boss.order > 当前关卡 且 Boss 未通关 → 跳到 Boss
+  const bossOrder = cur.chapter.boss?.order ?? Infinity
+
+  // 1. 优先找中间普通关（order > 当前 && order < Boss.order）
+  const nextLv = cur.chapter.levels.find(
+    (l) => l.order > cur.level.order && l.order < bossOrder,
+  )
+  if (nextLv) {
+    onEnterLevel(nextLv.id)
+    return
+  }
+
+  // 2. 没有中间关，看 Boss（未通关则跳）
   const boss = cur.chapter.boss
   if (boss && boss.order > cur.level.order && !progress.isBossDefeated(boss.id)) {
     onEnterBoss(boss.id)
     return
   }
 
-  // 否则找下一关
-  const nextLv = cur.chapter.levels.find((l) => l.order > cur.level.order)
-  if (nextLv) onEnterLevel(nextLv.id)
-  else backToMap()
+  // 3. 都没了 → 返回地图
+  backToMap()
 }
 
 function onBossNext() {
