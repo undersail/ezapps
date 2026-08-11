@@ -10,6 +10,7 @@ import { ref, computed, onMounted } from 'vue'
 import type { Boss, Question } from '../types'
 import { chapters } from '../data/chapters'
 import { bossQuestions } from '../data/bossQuestions'
+import { withOptions } from '../utils/options'
 
 interface Props {
   bossId: string           // '1-4-boss'
@@ -32,7 +33,8 @@ const boss = computed<Boss | null>(() => {
 })
 
 // ==================== Boss 状态 ====================
-const sessionQuestions = ref<Question[]>([])
+type QuestionWithOptions = Question & { options: number[] }
+const sessionQuestions = ref<QuestionWithOptions[]>([])
 const idx = ref(0)                  // 当前第几道
 const retries = ref(0)              // 当前题重试次数
 const hp = ref(3)                   // 曼曼血量（错几次就掉血，0 = 失败）
@@ -51,7 +53,8 @@ const progress = computed(() => `${idx.value + 1} / ${total.value}`)
 function initSession() {
   const pool = [...bossQuestions]
   const shuffled = pool.sort(() => Math.random() - 0.5)
-  sessionQuestions.value = shuffled.slice(0, boss.value!.required)
+  // 给每道题补齐 options（运行时随机生成 + 洗牌）
+  sessionQuestions.value = withOptions(shuffled.slice(0, boss.value!.required))
   idx.value = 0
   retries.value = 0
   hp.value = 3

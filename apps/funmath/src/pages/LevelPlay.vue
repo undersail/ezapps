@@ -6,6 +6,7 @@ import { ref, computed, onMounted } from 'vue'
 import type { Level, Question } from '../types'
 import { chapters } from '../data/chapters'
 import { getQuestionsByIds } from '../data/questions'
+import { withOptions } from '../utils/options'
 
 interface Props {
   levelId: string           // '1-1' / '1-2' ...
@@ -28,10 +29,11 @@ const level = computed<Level | null>(() => {
   return null
 })
 
-// 该关卡的题库
-const levelQuestions = computed<Question[]>(() => {
+// 该关卡的题库（带随机生成的 options）
+type QuestionWithOptions = Question & { options: number[] }
+const levelQuestions = computed<QuestionWithOptions[]>(() => {
   if (!level.value) return []
-  return getQuestionsByIds(level.value.questionIds)
+  return withOptions(getQuestionsByIds(level.value.questionIds))
 })
 
 // ==================== 状态 ====================
