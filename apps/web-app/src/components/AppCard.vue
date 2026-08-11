@@ -29,23 +29,21 @@ function onPin(e: MouseEvent) {
 <template>
   <div class="card-wrap">
     <a :href="app.path" class="card" :style="{ '--accent': app.accent }">
+      <!-- 标题栏：emoji + 标题 + 状态 badge -->
       <div class="card__header">
         <span class="card__emoji">{{ app.emoji }}</span>
+        <h3 class="card__title">{{ app.title }}</h3>
+        <span class="card__status" :class="`card__status--${app.status}`">
+          {{ statusLabel(app.status) }}
+        </span>
       </div>
+
       <div class="card__body">
-        <h3>{{ app.title }}</h3>
         <p class="tagline">{{ app.tagline }}</p>
         <p class="desc">{{ app.description }}</p>
         <div class="tags">
           <span v-for="t in app.tags" :key="t" class="tag">{{ t }}</span>
         </div>
-      </div>
-
-      <!-- status badge：位于 body 与 footer 之间，左对齐（"文字左下角"） -->
-      <div class="card__status-bar">
-        <span class="card__status" :class="`card__status--${app.status}`">
-          {{ statusLabel(app.status) }}
-        </span>
       </div>
 
       <!-- footer：左下显式置顶按钮 + 右下"进入 →" -->
@@ -99,8 +97,8 @@ function onPin(e: MouseEvent) {
 
 .card__header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
   padding: 1.5rem 1.5rem 1rem;
   background: linear-gradient(
     135deg,
@@ -111,12 +109,25 @@ function onPin(e: MouseEvent) {
 .card__emoji {
   font-size: 2.5rem;
   line-height: 1;
+  flex-shrink: 0;
+}
+.card__title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #0f172a;
+  font-weight: 700;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .card__status {
   font-size: 0.75rem;
   padding: 3px 10px;
   border-radius: 999px;
   font-weight: 500;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .card__status--live {
   background: #dcfce7;
@@ -133,11 +144,6 @@ function onPin(e: MouseEvent) {
 .card__body {
   padding: 0 1.5rem 1rem;
   flex-grow: 1;
-}
-.card__body h3 {
-  margin: 0 0 0.25rem;
-  font-size: 1.25rem;
-  color: #0f172a;
 }
 .tagline {
   margin: 0 0 0.75rem;
@@ -180,13 +186,6 @@ function onPin(e: MouseEvent) {
   font-size: 0.9rem;
 }
 
-/* status bar：放在 body 与 footer 之间，左对齐 */
-.card__status-bar {
-  display: flex;
-  justify-content: flex-start;
-  padding: 0 1.25rem 0.85rem;
-}
-
 /* === 置顶按钮 === 左下角显式按钮 */
 .pin-btn {
   display: inline-flex;
@@ -223,5 +222,33 @@ function onPin(e: MouseEvent) {
 }
 .pin-btn__text {
   line-height: 1;
+}
+
+/* ===== 移动端适配 ===== */
+@media (max-width: 480px) {
+  .card__header {
+    padding: 1rem 1rem 0.75rem;
+    gap: 0.6rem;
+  }
+  .card__emoji {
+    font-size: 2rem;
+  }
+  .card__title {
+    font-size: 1.05rem;
+    line-height: 1.3;
+  }
+  .card__status {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+  }
+  .card__body {
+    padding: 0 1rem 0.85rem;
+  }
+  .desc {
+    font-size: 0.85rem;
+  }
+  .card__footer {
+    padding: 0.75rem 1rem;
+  }
 }
 </style>
