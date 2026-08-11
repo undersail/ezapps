@@ -49,7 +49,7 @@ export const chapters: Chapter[] = [
         story: '小精灵们在草原上算数。',
       },
       {
-        id: '1-5',
+        id: '1-4',
         chapter: 1,
         order: 4,
         title: '除法山谷',
@@ -62,7 +62,7 @@ export const chapters: Chapter[] = [
       },
     ],
     boss: {
-      id: '1-4-boss',
+      id: '1-5-boss',
       chapter: 1,
       order: 5,
       title: '九九乘法魔王',
@@ -129,7 +129,7 @@ export const chapters: Chapter[] = [
         story: '峡谷里的河流时而交汇、时而分开，算式也跟着变。',
       },
       {
-        id: '2-5',
+        id: '2-4',
         chapter: 2,
         order: 4,
         title: '数海',
@@ -142,7 +142,7 @@ export const chapters: Chapter[] = [
       },
     ],
     boss: {
-      id: '2-4-boss',
+      id: '2-5-boss',
       chapter: 2,
       order: 5,
       title: '速算之王',
