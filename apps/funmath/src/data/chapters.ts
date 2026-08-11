@@ -90,7 +90,7 @@ export const chapters: Chapter[] = [
     title: '数与运算',
     subtitle: '进阶篇',
     emoji: '🏯',
-    unlock: { boss: '1-4-boss' },
+    unlock: { boss: '1-5-boss' },
     levels: [
       {
         id: '2-1',
@@ -163,7 +163,7 @@ export const chapters: Chapter[] = [
     title: '代数思维',
     subtitle: '找规律 · 简单方程',
     emoji: '🧮',
-    unlock: { boss: '2-4-boss' },
+    unlock: { boss: '2-5-boss' },
     levels: [],
   },
   {
@@ -171,7 +171,7 @@ export const chapters: Chapter[] = [
     title: '几何图形',
     subtitle: '周长 · 面积 · 体积',
     emoji: '📐',
-    unlock: { boss: '3-?-boss' },
+    unlock: { boss: '3-5-boss' },
     levels: [],
   },
   {
@@ -179,7 +179,7 @@ export const chapters: Chapter[] = [
     title: '应用题',
     subtitle: '鸡兔同笼 · 植树 · 和差倍',
     emoji: '🌳',
-    unlock: { boss: '4-?-boss' },
+    unlock: { boss: '4-5-boss' },
     levels: [],
   },
   {
@@ -187,7 +187,7 @@ export const chapters: Chapter[] = [
     title: '奥数思维',
     subtitle: '数论 · 计数 · 推理',
     emoji: '🏆',
-    unlock: { boss: '5-?-boss' },
+    unlock: { boss: '5-5-boss' },
     levels: [],
   },
 ]
