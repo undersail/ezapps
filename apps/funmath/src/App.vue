@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
+import MapView from './pages/MapView.vue'
 
+// V0 保留：题库（特性 2 会迁移到 data/questions.ts）
 interface Question {
   q: string
   options: number[]
@@ -14,13 +16,30 @@ const questions: Question[] = [
   { q: '10 ÷ 2 = ?',  options: [3, 5, 8, 10], answer: 5 },
 ]
 
-const stage = ref<'lobby' | 'play' | 'done'>('lobby')
+// 阶段：lobby（大厅）/ map（关卡地图）/ play（答题）/ done（完成）
+const stage = ref<'lobby' | 'map' | 'play' | 'done'>('lobby')
 const idx = ref(0)
 const score = ref(0)
 const picked = ref<number | null>(null)
 const showRight = ref(false)
+const current = ref(questions[0])
 
-const current = computed(() => questions[idx.value])
+function enterMap() {
+  stage.value = 'map'
+}
+
+function backToLobby() {
+  stage.value = 'lobby'
+}
+
+// 占位：特性 2 会实装
+function onEnterLevel(_levelId: string) {
+  // 暂不跳转，只提示
+  alert(`进入关卡 ${_levelId}（特性 2 实现）`)
+}
+function onEnterBoss(_bossId: string) {
+  alert(`进入 Boss ${_bossId}（特性 6 实现）`)
+}
 
 function start() {
   stage.value = 'play'
@@ -28,6 +47,7 @@ function start() {
   score.value = 0
   picked.value = null
   showRight.value = false
+  current.value = questions[0]
 }
 
 function pick(o: number) {
@@ -41,6 +61,7 @@ function pick(o: number) {
       idx.value++
       picked.value = null
       showRight.value = false
+      current.value = questions[idx.value]
     } else {
       stage.value = 'done'
     }
@@ -65,9 +86,17 @@ function retry() { stage.value = 'lobby' }
         曼曼背着算盘，穿越数王国。每答对一题，曼曼向前一步；<br />
         答错会被「难题怪兽」呛一下。看曼曼能走多远？
       </p>
-      <button class="start-btn" @click="start">▶ 开始闯关</button>
+      <button class="start-btn" @click="enterMap">🗺️ 选关地图（V1 试看）</button>
       <p class="hint">{{ questions.length }} 道题 · 单选</p>
     </section>
+
+    <!-- 关卡地图（特性 1） -->
+    <MapView
+      v-else-if="stage === 'map'"
+      @back="backToLobby"
+      @enter-level="onEnterLevel"
+      @enter-boss="onEnterBoss"
+    />
 
     <!-- 答题 -->
     <section v-if="stage === 'play'" class="play">
