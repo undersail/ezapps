@@ -202,7 +202,7 @@ function retry() { stage.value = 'lobby' }
         曼曼背着算盘，穿越数王国。每答对一题，曼曼向前一步；<br />
         答错会被「难题怪兽」呛一下。看曼曼能走多远？
       </p>
-      <button class="start-btn" @click="enterMap">🗺️ 选关地图（V1 试看）</button>
+      <button class="start-btn" @click="enterMap">🗺️ 选关地图</button>
       <p class="hint">🍄 第一章 · 4 关卡 + 1 Boss</p>
     </section>
 
