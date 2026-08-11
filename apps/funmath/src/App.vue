@@ -44,7 +44,7 @@ interface LevelResult {
   stars: 0 | 1 | 2 | 3
 }
 const lastResult = ref<LevelResult | null>(null)
-const lastBossResult = ref<{ bossId: string; defeated: boolean } | null>(null)
+const lastBossResult = ref<{ bossId: string; defeated: boolean; score: number; total: number } | null>(null)
 
 // ================ 模式系统（故事模式 / 自由闯关）================
 const mode = ref<'story' | 'free'>('story')
@@ -269,7 +269,7 @@ function onEnterBoss(bossId: string) {
   stage.value = 'boss'
 }
 
-function onBossComplete(result: { bossId: string; defeated: boolean }) {
+function onBossComplete(result: { bossId: string; defeated: boolean; score: number; total: number }) {
   if (result.defeated) {
     progress.recordBossDefeat(result.bossId)
   } else {
@@ -432,13 +432,14 @@ function retry() { stage.value = 'lobby' }
       v-else-if="stage === 'bossResult' && lastBossResult && currentBossInfo"
       :result="{
         levelId: lastBossResult.bossId,
-        score: lastBossResult.defeated ? currentBossInfo.boss.required : 0,
-        total: currentBossInfo.boss.required,
+        score: lastBossResult.score,
+        total: lastBossResult.total,
         stars: lastBossResult.defeated ? 3 : 0,
       }"
       :level-title="currentBossInfo.boss.title"
       :level-emoji="currentBossInfo.boss.emoji"
       :has-next="hasNextAfterBoss && lastBossResult.defeated"
+      :required="currentBossInfo.boss.required"
       @retry="onBossRetry"
       @back="backToMap"
       @next="onBossNext"

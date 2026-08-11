@@ -14,6 +14,7 @@ interface Props {
   levelTitle: string
   levelEmoji: string
   hasNext?: boolean             // 是否有下一关（决定"下一关"按钮显隐）
+  required?: number             // 通过分数线（Boss 模式：答对 N 题通关）
 }
 
 defineProps<Props>()
@@ -59,7 +60,10 @@ defineEmits<{
     <p class="score">
       答对 <b>{{ result.score }}</b> / {{ result.total }} 题
     </p>
-    <p v-if="result.stars === 0" class="score-tip">
+    <p v-if="result.stars === 0 && required" class="score-tip">
+      （通关需答对 ≥ {{ required }} 题，再战一次！）
+    </p>
+    <p v-else-if="result.stars === 0" class="score-tip">
       （未达通关分数线，再来一次挑战吧）
     </p>
 

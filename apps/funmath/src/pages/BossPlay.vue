@@ -23,7 +23,7 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'complete', result: { bossId: string; defeated: boolean }): void
+  (e: 'complete', result: { bossId: string; defeated: boolean; score: number; total: number }): void
   (e: 'back'): void
 }
 
@@ -144,10 +144,11 @@ function pick(o: number) {
     return
   }
 
-  // standard 模式
+  // standard 模式：答对累加 score，答错走血量逻辑
   picked.value = o
   const right = o === current.value.answer
   if (right) {
+    timeScore.value++  // 累计答对数
     showRight.value = true
     setTimeout(nextQuestion, 700)
   } else {
@@ -177,7 +178,12 @@ function nextQuestion() {
 
 function finish(defeated: boolean) {
   stopTimer()
-  emit('complete', { bossId: props.bossId, defeated })
+  emit('complete', {
+    bossId: props.bossId,
+    defeated,
+    score: timeScore.value,
+    total: boss.value?.required ?? 0,
+  })
 }
 
 function giveUp() {
