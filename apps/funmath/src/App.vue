@@ -77,11 +77,28 @@ const currentBossInfo = computed(() => {
 })
 
 // 是否存在下一关（普通关）
+// 包括：1) 章节内下一关 2) 本章 Boss（如果 Boss 在当前关卡之后且未通关）
 const hasNextLevel = computed(() => {
   if (!currentLevelId.value) return false
   const cur = currentLevelInfo.value
   if (!cur) return false
+
+  // 本章有 Boss 且 Boss.order > 当前关卡 且 Boss 未通关 → "下一关"是 Boss
+  const boss = cur.chapter.boss
+  if (boss && boss.order > cur.level.order && !progress.isBossDefeated(boss.id)) {
+    return true
+  }
+
   const nextLv = cur.chapter.levels.find((l) => l.order > cur.level.order)
+  return !!nextLv
+})
+
+// Boss 完成后是否有下一关（普通关，如 1-5 / 2-5）
+const hasNextAfterBoss = computed(() => {
+  if (!currentBossId.value) return false
+  const cur = currentBossInfo.value
+  if (!cur) return false
+  const nextLv = cur.chapter.levels.find((l) => l.order > cur.boss.order)
   return !!nextLv
 })
 
@@ -193,7 +210,26 @@ function onLevelNext() {
   if (!currentLevelId.value) return
   const cur = currentLevelInfo.value
   if (!cur) return
+
+  // 本章有 Boss 且 Boss.order > 当前关卡 且 Boss 未通关 → 跳到 Boss
+  const boss = cur.chapter.boss
+  if (boss && boss.order > cur.level.order && !progress.isBossDefeated(boss.id)) {
+    onEnterBoss(boss.id)
+    return
+  }
+
+  // 否则找下一关
   const nextLv = cur.chapter.levels.find((l) => l.order > cur.level.order)
+  if (nextLv) onEnterLevel(nextLv.id)
+  else backToMap()
+}
+
+function onBossNext() {
+  if (!currentBossId.value) return
+  const cur = currentBossInfo.value
+  if (!cur) return
+  // Boss 完成后找 order > Boss.order 的关卡（奖励关）
+  const nextLv = cur.chapter.levels.find((l) => l.order > cur.boss.order)
   if (nextLv) onEnterLevel(nextLv.id)
   else backToMap()
 }
@@ -385,8 +421,10 @@ function retry() { stage.value = 'lobby' }
       }"
       :level-title="currentBossInfo.boss.title"
       :level-emoji="currentBossInfo.boss.emoji"
+      :has-next="hasNextAfterBoss && lastBossResult.defeated"
       @retry="onBossRetry"
       @back="backToMap"
+      @next="onBossNext"
     />
 
     <!-- 故事模式过场（特性 8） -->

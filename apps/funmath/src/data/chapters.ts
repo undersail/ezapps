@@ -67,7 +67,17 @@ export const chapters: Chapter[] = [
       order: 5,
       title: '九九乘法魔王',
       emoji: '👑',
-      pool: [], // 特性 6 填充 81 句
+      pool: [
+        'boss-1-4-1x1', 'boss-1-4-1x2', 'boss-1-4-1x3', 'boss-1-4-1x4', 'boss-1-4-1x5', 'boss-1-4-1x6', 'boss-1-4-1x7', 'boss-1-4-1x8', 'boss-1-4-1x9',
+        'boss-1-4-2x1', 'boss-1-4-2x2', 'boss-1-4-2x3', 'boss-1-4-2x4', 'boss-1-4-2x5', 'boss-1-4-2x6', 'boss-1-4-2x7', 'boss-1-4-2x8', 'boss-1-4-2x9',
+        'boss-1-4-3x1', 'boss-1-4-3x2', 'boss-1-4-3x3', 'boss-1-4-3x4', 'boss-1-4-3x5', 'boss-1-4-3x6', 'boss-1-4-3x7', 'boss-1-4-3x8', 'boss-1-4-3x9',
+        'boss-1-4-4x1', 'boss-1-4-4x2', 'boss-1-4-4x3', 'boss-1-4-4x4', 'boss-1-4-4x5', 'boss-1-4-4x6', 'boss-1-4-4x7', 'boss-1-4-4x8', 'boss-1-4-4x9',
+        'boss-1-4-5x1', 'boss-1-4-5x2', 'boss-1-4-5x3', 'boss-1-4-5x4', 'boss-1-4-5x5', 'boss-1-4-5x6', 'boss-1-4-5x7', 'boss-1-4-5x8', 'boss-1-4-5x9',
+        'boss-1-4-6x1', 'boss-1-4-6x2', 'boss-1-4-6x3', 'boss-1-4-6x4', 'boss-1-4-6x5', 'boss-1-4-6x6', 'boss-1-4-6x7', 'boss-1-4-6x8', 'boss-1-4-6x9',
+        'boss-1-4-7x1', 'boss-1-4-7x2', 'boss-1-4-7x3', 'boss-1-4-7x4', 'boss-1-4-7x5', 'boss-1-4-7x6', 'boss-1-4-7x7', 'boss-1-4-7x8', 'boss-1-4-7x9',
+        'boss-1-4-8x1', 'boss-1-4-8x2', 'boss-1-4-8x3', 'boss-1-4-8x4', 'boss-1-4-8x5', 'boss-1-4-8x6', 'boss-1-4-8x7', 'boss-1-4-8x8', 'boss-1-4-8x9',
+        'boss-1-4-9x1', 'boss-1-4-9x2', 'boss-1-4-9x3', 'boss-1-4-9x4', 'boss-1-4-9x5', 'boss-1-4-9x6', 'boss-1-4-9x7', 'boss-1-4-9x8', 'boss-1-4-9x9',
+      ],
       required: 20,
       maxRetries: 3,
       story: '九九真言之主，要掌握所有口诀才能击败。',
