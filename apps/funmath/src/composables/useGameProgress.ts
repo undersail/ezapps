@@ -4,6 +4,9 @@
 import { ref, watch } from 'vue'
 
 const STORAGE_KEY = 'funmath:progress:v1'
+const SCHEMA_VERSION_KEY = 'funmath:schemaVersion'
+/** 数据 schema 版本号：升级时 bump，自动清理旧版本数据 */
+const SCHEMA_VERSION = 1
 
 export interface LevelProgress {
   /** 历史最高星级 */
@@ -45,6 +48,14 @@ function emptyProgress(): GameProgress {
 function load(): GameProgress {
   if (typeof window === 'undefined') return emptyProgress()
   try {
+    // Schema 版本检查：版本不匹配时清旧数据，防止数据结构升级引发错误
+    const storedVersion = window.localStorage.getItem(SCHEMA_VERSION_KEY)
+    if (storedVersion !== String(SCHEMA_VERSION)) {
+      window.localStorage.removeItem(STORAGE_KEY)
+      window.localStorage.setItem(SCHEMA_VERSION_KEY, String(SCHEMA_VERSION))
+      return emptyProgress()
+    }
+
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as GameProgress

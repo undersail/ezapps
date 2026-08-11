@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onErrorCaptured } from 'vue'
 import MapView from './pages/MapView.vue'
 import LevelPlay from './pages/LevelPlay.vue'
 import LevelResult from './pages/LevelResult.vue'
 import BossPlay from './pages/BossPlay.vue'
 import StoryTransition from './components/StoryTransition.vue'
+import ErrorFallback from './components/ErrorFallback.vue'
 import { useGameProgress } from './composables/useGameProgress'
 import { chapters } from './data/chapters'
 
@@ -330,10 +331,25 @@ function pick(o: number) {
 }
 
 function retry() { stage.value = 'lobby' }
+
+// 子组件错误捕获（防止单个组件崩溃导致整个 App 白屏）
+const childError = ref<Error | null>(null)
+onErrorCaptured((err) => {
+  console.error('[App onErrorCaptured]', err)
+  childError.value = err as Error
+  ;(window as any).__funmathLastError = err
+  try {
+    localStorage.setItem('funmath:lastError', String((err as Error)?.message ?? err))
+    setTimeout(() => localStorage.removeItem('funmath:lastError'), 6000)
+  } catch {}
+  return false
+})
 </script>
 
 <template>
-  <main class="math">
+  <!-- 错误降级 UI：子组件崩溃时显示 -->
+  <ErrorFallback v-if="childError" />
+  <main v-else class="math">
     <header class="hero">
       <div class="badge">BETA · FunMath Adventure</div>
       <h1>📐 曼曼闯天涯</h1>
