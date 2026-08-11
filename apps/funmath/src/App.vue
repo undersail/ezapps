@@ -7,6 +7,7 @@ import BossPlay from './pages/BossPlay.vue'
 import StoryTransition from './components/StoryTransition.vue'
 import ErrorFallback from './components/ErrorFallback.vue'
 import { useGameProgress } from './composables/useGameProgress'
+import { useSound } from './composables/useSound'
 import { chapters } from './data/chapters'
 
 // V0 保留：题库（演示用，可走旧 stage）
@@ -58,6 +59,7 @@ const storyEmoji = ref('✨')
 
 // 进度管理
 const progress = useGameProgress()
+const sound = useSound()
 
 // 计算关卡信息
 const currentLevelInfo = computed(() => {
@@ -279,7 +281,7 @@ function onBossComplete(result: { bossId: string; defeated: boolean; score: numb
   lastBossResult.value = result
   stage.value = 'bossResult'
 
-  // 故事模式：Boss 通关后显示胜利剧情
+  // 故事模式：Boss 通关后显示胜利剧情 + 章节解锁音效
   if (result.defeated && mode.value === 'story') {
     setTimeout(() => {
       const bossInfo = currentBossInfo.value
@@ -290,7 +292,12 @@ function onBossComplete(result: { bossId: string; defeated: boolean; score: numb
           `曼曼战胜了「${bossInfo.boss.title}」，获得了新的力量！`
         )
       }
+      // 章节解锁音效
+      sound.play('unlock')
     }, 200)
+  } else if (result.defeated) {
+    // 非故事模式：Boss 通关时也播放 unlock 提示（章节解锁）
+    sound.play('unlock')
   }
 }
 
@@ -404,6 +411,17 @@ onErrorCaptured((err) => {
           <span class="stat__label">章节</span>
         </div>
       </div>
+
+      <!-- 音效开关 -->
+      <button
+        class="sound-toggle"
+        :class="{ 'sound-toggle--off': !sound.enabled }"
+        :aria-label="sound.enabled ? '关闭音效' : '开启音效'"
+        @click="sound.toggle"
+      >
+        <span class="sound-toggle__icon">{{ sound.enabled ? '🔊' : '🔇' }}</span>
+        <span class="sound-toggle__label">{{ sound.enabled ? '音效开' : '音效关' }}</span>
+      </button>
     </section>
 
     <!-- 关卡地图（特性 1 + 5） -->
@@ -700,6 +718,39 @@ onErrorCaptured((err) => {
   .stat__icon { font-size: 1.2rem; }
   .stat__num { font-size: 1rem; }
   .stat__label { font-size: 0.65rem; }
+}
+
+/* ===== 音效开关 ===== */
+.sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  margin: 1rem auto 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: #475569;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+.sound-toggle:hover {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+.sound-toggle--off {
+  opacity: 0.7;
+  background: #f8fafc;
+}
+.sound-toggle__icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.sound-toggle__label {
+  font-weight: 500;
 }
 
 .start-btn {

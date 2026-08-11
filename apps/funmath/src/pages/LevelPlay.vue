@@ -8,6 +8,7 @@ import { chapters } from '../data/chapters'
 import { getQuestionsByIds } from '../data/questions'
 import { withOptions } from '../utils/options'
 import { renderFigureSvg } from '../utils/figures'
+import { playSound } from '../utils/sound'
 
 interface Props {
   levelId: string           // '1-1' / '1-2' ...
@@ -58,12 +59,18 @@ function pick(o: number) {
   if (showRight.value || !current.value) return
   picked.value = o
   const right = o === current.value.answer
-  if (right) score.value++
+  if (right) {
+    score.value++
+    playSound('correct')
+  } else {
+    playSound('wrong')
+  }
   showRight.value = true
   // 特性 7：答错显示讲解卡 1.2 秒
   if (!right && current.value.hint) {
     setTimeout(() => {
       showHint.value = true
+      playSound('hint')
     }, 400)
   }
   setTimeout(next, right ? 900 : 1900)
@@ -94,6 +101,8 @@ function finish() {
   else if (correct >= tot * 0.8) stars = 2
   else if (correct >= level.value.passScore) stars = 1
   else stars = 0
+  // 音效：通关时播放（1星及以上算通过）
+  if (stars > 0) playSound('complete')
   emit('complete', { score: score.value, total: tot, stars, levelId: props.levelId })
 }
 

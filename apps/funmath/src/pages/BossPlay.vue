@@ -17,6 +17,7 @@ import { chapters } from '../data/chapters'
 import { bossQuestions } from '../data/bossQuestions'
 import { questionMap } from '../data/questions'
 import { withOptions } from '../utils/options'
+import { playSound } from '../utils/sound'
 
 interface Props {
   bossId: string           // '1-4-boss' | '2-4-boss'
@@ -130,6 +131,9 @@ function pick(o: number) {
     const right = o === current.value.answer
     if (right) {
       timeScore.value++
+      playSound('correct')
+    } else {
+      playSound('wrong')
     }
     // 直接进入下一题（不显示对错）
     setTimeout(() => {
@@ -150,10 +154,12 @@ function pick(o: number) {
   if (right) {
     timeScore.value++  // 累计答对数
     showRight.value = true
+    playSound('correct')
     setTimeout(nextQuestion, 700)
   } else {
     wrongFlash.value = true
     retries.value++
+    playSound('wrong')
     setTimeout(() => {
       if (retries.value >= (boss.value?.maxRetries ?? 3)) {
         finish(false)
@@ -178,6 +184,7 @@ function nextQuestion() {
 
 function finish(defeated: boolean) {
   stopTimer()
+  playSound(defeated ? 'boss-defeat' : 'boss-fail')
   emit('complete', {
     bossId: props.bossId,
     defeated,
