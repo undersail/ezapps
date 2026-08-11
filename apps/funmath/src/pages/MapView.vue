@@ -60,64 +60,39 @@ function getChapterStatus(chapter: Chapter): 'unlocked' | 'locked' {
 
 /**
  * 关卡解锁状态
- * 规则：
- *   1. 章节锁定 → 关卡锁定
- *   2. 已通关 → passed（显示星级）
- *   3. order=1 → 默认解锁
- *   4. 最后一个普通关（maxOrder）→ 需 Boss 通关（这是 Boss 后的"奖励关"）
- *   5. 其余关 → order-1 的关卡通关即可
- *   兜底：order 跳号（如 Boss 占位）→ 找 order 最大且 < 自身的关卡
- *
- * Boss 自身由 getBossStatus 处理。
+ * - 章节锁定 → 关卡锁定
+ * - 已通过 → passed（显示星级）
+ * - order=1 → 默认解锁
+ * - 其余关 → 同章节内 order 最接近的前一关通过即可
+ * Boss 是独立支线，不影响普通关解锁
  */
 function getLevelStatus(level: Level, chapterStatus: 'unlocked' | 'locked'): LevelStatus {
   if (chapterStatus === 'locked') return 'locked'
   if (progress.isLevelPassed(level.id)) return 'passed'
+  if (level.order === 1) return 'unlocked'
 
+  // 在同章节内找 order 最大且 < 当前 order 的关卡（处理 Boss 跳号场景）
   const chapter = chapters.find((c) => c.id === level.chapter)
   if (!chapter) return 'unlocked'
 
-  // order=1 默认解锁
-  if (level.order === 1) return 'unlocked'
-
-  // 最后一个普通关（order 最大）需要 Boss 通关
-  const maxLevelOrder = Math.max(...chapter.levels.map((l) => l.order))
-  if (level.order === maxLevelOrder && chapter.boss) {
-    return progress.isBossDefeated(chapter.boss.id) ? 'unlocked' : 'locked'
-  }
-
-  // 其余关：前一关通关即可（order-1）
-  const prevLevel = chapter.levels.find((l) => l.order === level.order - 1)
-  if (prevLevel) {
-    return progress.isLevelPassed(prevLevel.id) ? 'unlocked' : 'locked'
-  }
-
-  // 兜底：order 跳号（如 Boss 占位导致 1-5 的 order=4 但 1-4 是 Boss）
-  // 找 order 最大且 < current 的关卡
-  const fallback = chapter.levels
-    .filter((l) => l.order < level.order)
-    .sort((a, b) => b.order - a.order)[0]
-  if (!fallback) return 'unlocked'
-  return progress.isLevelPassed(fallback.id) ? 'unlocked' : 'locked'
-}
-
-/**
- * Boss 解锁状态
- * 规则：Boss 解锁 = 同章节内 order < Boss.order 的关卡中 order 最大的那个通关
- *      （即 Boss 的"前一关"，通常是最后一个基础关）
- */
-function getBossStatus(chapter: Chapter, chapterStatus: 'unlocked' | 'locked'): LevelStatus {
-  if (chapterStatus === 'locked' || !chapter.boss) return 'locked'
-  if (progress.isBossDefeated(chapter.boss.id)) return 'passed'
-
-  const bossOrder = chapter.boss.order
   const prevCandidates = chapter.levels
-    .filter((l) => l.order < bossOrder)
+    .filter((l) => l.order < level.order)
     .sort((a, b) => b.order - a.order)
 
   if (prevCandidates.length === 0) return 'unlocked'
   const prev = prevCandidates[0]
   return progress.isLevelPassed(prev.id) ? 'unlocked' : 'locked'
+}
+
+function getBossStatus(chapter: Chapter, chapterStatus: 'unlocked' | 'locked'): LevelStatus {
+  if (chapterStatus === 'locked' || !chapter.boss) return 'locked'
+  if (progress.isBossDefeated(chapter.boss.id)) return 'passed'
+  // Boss 解锁条件：本章最后一个普通关通关
+  const lastLevel = chapter.levels
+    .slice()
+    .sort((a, b) => b.order - a.order)[0]
+  if (!lastLevel) return 'unlocked'
+  return progress.isLevelPassed(lastLevel.id) ? 'unlocked' : 'locked'
 }
 
 // 总星星统计（响应式）
