@@ -7,6 +7,7 @@ import type { Level, Question } from '../types'
 import { chapters } from '../data/chapters'
 import { getQuestionsByIds } from '../data/questions'
 import { withOptions } from '../utils/options'
+import { renderFigureSvg } from '../utils/figures'
 
 interface Props {
   levelId: string           // '1-1' / '1-2' ...
@@ -46,6 +47,11 @@ const showHint = ref(false)   // 特性 7：讲解卡显隐
 const current = computed(() => levelQuestions.value[idx.value])
 const total = computed(() => levelQuestions.value.length)
 const isLast = computed(() => idx.value === total.value - 1)
+
+// 当前题目的 SVG 插图（仅第四章几何题有）
+const currentFigureSvg = computed(() =>
+  current.value?.figure ? renderFigureSvg(current.value.figure) : '',
+)
 
 // ==================== 行为 ====================
 function pick(o: number) {
@@ -143,6 +149,9 @@ const difficultyStars = computed(() => '⭐'.repeat(level.value?.difficulty ?? 0
 
     <!-- 题目 -->
     <div class="q">{{ current.prompt }}</div>
+
+    <!-- 几何插图（仅第四章几何题） -->
+    <div v-if="currentFigureSvg" class="figure-box" v-html="currentFigureSvg"></div>
 
     <!-- 选项 -->
     <div class="options">
@@ -292,9 +301,22 @@ const difficultyStars = computed(() => '⭐'.repeat(level.value?.difficulty ?? 0
 .q {
   font-size: 2.4rem;
   font-weight: 700;
-  margin: 1.5rem 0 1.5rem;
+  margin: 1.5rem 0 1rem;
   color: #064e3b;
   letter-spacing: -0.02em;
+}
+
+/* ===== 几何插图 ===== */
+.figure-box {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  padding: 0.5rem;
+}
+.figure-box :deep(svg) {
+  width: 100%;
+  max-width: 240px;
+  height: auto;
 }
 
 /* ===== 选项 ===== */

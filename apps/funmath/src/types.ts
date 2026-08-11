@@ -19,7 +19,22 @@ export interface Question {
   hint?: string
   knowledge: string[]
   story?: string
+  /** 几何图形插图（仅第四章几何题使用） */
+  figure?: FigureSpec
 }
+
+/**
+ * 几何图形描述（结构化，由 utils/figures.ts 渲染为 SVG）
+ */
+export type FigureSpec =
+  | { type: 'rect'; width: number; height: number }
+  | { type: 'square'; side: number }
+  | { type: 'triangle'; base: number; height: number; sides?: number[] }  // sides: 三边长度（用于显示周长题）
+  | { type: 'parallelogram'; base: number; height: number }
+  | { type: 'trapezoid'; upperBase: number; lowerBase: number; height: number }
+  | { type: 'circle'; radius?: number; diameter?: number }
+  | { type: 'cube'; length: number; width: number; height: number }
+  | { type: 'squareCube'; side: number }
 
 /** 普通关卡 */
 export interface Level {
