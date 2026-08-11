@@ -29,17 +29,19 @@ function onPin(e: MouseEvent) {
 <template>
   <div class="card-wrap">
     <a :href="app.path" class="card" :style="{ '--accent': app.accent }">
-      <!-- 标题栏：emoji + 标题 + 状态 badge -->
+      <!-- 标题栏：emoji + 中英文标题 + 状态 badge -->
       <div class="card__header">
         <span class="card__emoji">{{ app.emoji }}</span>
-        <h3 class="card__title">{{ app.title }}</h3>
+        <div class="card__titles">
+          <h3 class="card__title">{{ app.title }}</h3>
+          <p class="card__tagline">{{ app.tagline }}</p>
+        </div>
         <span class="card__status" :class="`card__status--${app.status}`">
           {{ statusLabel(app.status) }}
         </span>
       </div>
 
       <div class="card__body">
-        <p class="tagline">{{ app.tagline }}</p>
         <p class="desc">{{ app.description }}</p>
         <div class="tags">
           <span v-for="t in app.tags" :key="t" class="tag">{{ t }}</span>
@@ -111,15 +113,30 @@ function onPin(e: MouseEvent) {
   line-height: 1;
   flex-shrink: 0;
 }
+.card__titles {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
 .card__title {
   margin: 0;
   font-size: 1.25rem;
   color: #0f172a;
   font-weight: 700;
-  flex: 1;
-  min-width: 0;
   overflow-wrap: break-word;
   word-break: break-word;
+  line-height: 1.3;
+}
+.card__tagline {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--accent, #1565c0);
+  font-weight: 500;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.3;
 }
 .card__status {
   font-size: 0.75rem;
@@ -144,12 +161,6 @@ function onPin(e: MouseEvent) {
 .card__body {
   padding: 0 1.5rem 1rem;
   flex-grow: 1;
-}
-.tagline {
-  margin: 0 0 0.75rem;
-  font-size: 0.85rem;
-  color: var(--accent, #1565c0);
-  font-weight: 500;
 }
 .desc {
   margin: 0 0 1rem;
@@ -235,7 +246,9 @@ function onPin(e: MouseEvent) {
   }
   .card__title {
     font-size: 1.05rem;
-    line-height: 1.3;
+  }
+  .card__tagline {
+    font-size: 0.7rem;
   }
   .card__status {
     font-size: 0.65rem;
