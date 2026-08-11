@@ -1,0 +1,23 @@
+name: Sync to Gitee Mirror
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to Gitee mirror
+        uses: wearerequired/git-mirror-action@v1
+        with:
+          source-repo: "https://github.com/undersail/ezapps.git"
+          destination-repo: "https://gitee.com/undersail/ezapps.git"
+          destination-token: ${{ secrets.GITEE_DEPLOY_KEY }}
