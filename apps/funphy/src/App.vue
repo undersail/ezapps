@@ -57,7 +57,7 @@ onUnmounted(() => {
     <header class="hero">
       <div class="badge">BETA · v0.1</div>
       <h1>🚀 飞飞历险记</h1>
-      <p class="tag">Flyphy Adventure · 一个简单的物理冒险游戏</p>
+      <p class="tag">Funphy Adventure · 一个简单的物理冒险游戏</p>
       <p class="intro">
         操控飞飞在空间中穿行，体验<strong>速度、惯性、阻力</strong>的平衡。撞墙会反弹，离开太久会停下。
       </p>
