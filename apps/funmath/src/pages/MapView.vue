@@ -1,12 +1,21 @@
 <script setup lang="ts">
 // 关卡地图视图
 // 展示所有章节、关卡、Boss，呈现解锁/通关状态
+// mode = 'story' | 'free' 控制展示策略
 
 import { computed } from 'vue'
 import { chapters } from '../data/chapters'
 import type { Chapter, Level, LevelStatus } from '../types'
 import LevelCard from '../components/LevelCard.vue'
 import { useGameProgress, isChapterUnlocked } from '../composables/useGameProgress'
+
+interface Props {
+  mode?: 'story' | 'free'   // 默认 'story'
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  mode: 'story',
+})
 
 defineEmits<{
   (e: 'enter-level', levelId: string): void
@@ -16,6 +25,29 @@ defineEmits<{
 
 // 使用进度管理（localStorage 持久化）
 const progress = useGameProgress()
+
+/**
+ * 当前章节（故事模式）：
+ * - 最大已解锁章节
+ * - 第一次玩默认第一章
+ */
+const currentChapterId = computed(() => {
+  // 从大到小遍历章节，找第一个已解锁的
+  for (let i = chapters.length - 1; i >= 0; i--) {
+    if (isChapterUnlocked(chapters[i].unlock, progress.isBossDefeated)) {
+      return chapters[i].id
+    }
+  }
+  return 1
+})
+
+/**
+ * 章节是否被折叠（仅故事模式折叠非当前章节）
+ */
+function isChapterCollapsed(chapter: Chapter): boolean {
+  if (props.mode !== 'story') return false
+  return chapter.id !== currentChapterId.value
+}
 
 /**
  * 章节解锁状态
@@ -79,8 +111,9 @@ const maxStars = computed(() => {
     <header class="map__head">
       <button class="back-btn" @click="$emit('back')" aria-label="返回大厅">←</button>
       <div class="map__title">
-        <span class="map__emoji">🗺️</span>
-        <h2>关卡地图</h2>
+        <span class="map__emoji">{{ props.mode === 'story' ? '📖' : '🗺️' }}</span>
+        <h2>{{ props.mode === 'story' ? '故事模式' : '自由闯关' }}</h2>
+        <span v-if="props.mode === 'story'" class="mode-badge">第 {{ currentChapterId }} 章</span>
       </div>
       <div class="map__hud">
         <span class="stars-icon">⭐</span>
@@ -94,19 +127,23 @@ const maxStars = computed(() => {
         v-for="chapter in chapters"
         :key="chapter.id"
         class="chapter"
-        :class="{ 'chapter--locked': getChapterStatus(chapter) === 'locked' }"
+        :class="{
+          'chapter--locked': getChapterStatus(chapter) === 'locked',
+          'chapter--current': props.mode === 'story' && chapter.id === currentChapterId,
+        }"
       >
-        <header class="chapter__head">
+        <header class="chapter__head" @click="props.mode === 'story' && chapter.id !== currentChapterId && getChapterStatus(chapter) !== 'locked' ? null : null">
           <span class="chapter__emoji">{{ chapter.emoji }}</span>
           <div class="chapter__title">
             <h3>第 {{ chapter.id }} 章 · {{ chapter.title }}</h3>
             <p>{{ chapter.subtitle }}</p>
           </div>
           <span v-if="getChapterStatus(chapter) === 'locked'" class="chapter__lock">🔒</span>
+          <span v-else-if="props.mode === 'story' && isChapterCollapsed(chapter)" class="chapter__toggle">▸</span>
         </header>
 
-        <!-- 已解锁章节：展示关卡 -->
-        <div v-if="getChapterStatus(chapter) === 'unlocked'" class="levels">
+        <!-- 已解锁章节 + 未折叠 → 展示关卡 -->
+        <div v-if="getChapterStatus(chapter) === 'unlocked' && !isChapterCollapsed(chapter)" class="levels">
           <LevelCard
             v-for="level in chapter.levels"
             :key="level.id"
@@ -135,6 +172,16 @@ const maxStars = computed(() => {
             is-boss
             @click="(id) => $emit('enter-boss', id)"
           />
+        </div>
+
+        <!-- 已解锁章节 + 折叠（故事模式下） → 显示通关进度摘要 -->
+        <div
+          v-else-if="getChapterStatus(chapter) === 'unlocked' && isChapterCollapsed(chapter)"
+          class="levels--collapsed"
+        >
+          <p class="collapsed-hint">
+            ✅ 已通关 · 当前正在 <b>第 {{ currentChapterId }} 章</b>
+          </p>
         </div>
 
         <!-- 锁定章节占位 -->
@@ -191,6 +238,16 @@ const maxStars = computed(() => {
 }
 .map__emoji { font-size: 1.5rem; }
 
+.mode-badge {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-left: 0.5rem;
+}
+
 .map__hud {
   display: flex;
   align-items: center;
@@ -218,6 +275,12 @@ const maxStars = computed(() => {
   padding: 1.25rem;
   border: 1px solid #e2e8f0;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+.chapter--current {
+  border-color: #10b981;
+  border-width: 2px;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
 }
 
 .chapter--locked {
@@ -257,6 +320,27 @@ const maxStars = computed(() => {
 .chapter__lock {
   font-size: 1.25rem;
   opacity: 0.6;
+}
+
+.chapter__toggle {
+  font-size: 1.25rem;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+/* 折叠摘要 */
+.levels--collapsed {
+  padding: 1rem 0.5rem;
+  text-align: center;
+}
+.collapsed-hint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #047857;
+}
+.collapsed-hint b {
+  color: #064e3b;
+  font-weight: 700;
 }
 
 /* ===== 关卡网格 ===== */

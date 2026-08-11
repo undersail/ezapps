@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import MapView from './pages/MapView.vue'
 import LevelPlay from './pages/LevelPlay.vue'
 import LevelResult from './pages/LevelResult.vue'
 import BossPlay from './pages/BossPlay.vue'
+import StoryTransition from './components/StoryTransition.vue'
 import { useGameProgress } from './composables/useGameProgress'
 import { chapters } from './data/chapters'
 
@@ -21,10 +22,7 @@ const questions: Question[] = [
   { q: '10 ÷ 2 = ?',  options: [3, 5, 8, 10], answer: 5 },
 ]
 
-// 阶段机：
-// lobby → map → level → levelResult → map
-//                → boss  → bossResult  → map
-// play/done 保留作 V0 demo 入口
+// 阶段机：lobby(模式选择) / map / level / levelResult / boss / bossResult / play/done
 const stage = ref<'lobby' | 'map' | 'play' | 'done' | 'level' | 'levelResult' | 'boss' | 'bossResult'>('lobby')
 
 // V0 demo state
@@ -46,8 +44,16 @@ interface LevelResult {
   stars: 0 | 1 | 2 | 3
 }
 const lastResult = ref<LevelResult | null>(null)
-
 const lastBossResult = ref<{ bossId: string; defeated: boolean } | null>(null)
+
+// ================ 模式系统（故事模式 / 自由闯关）================
+const mode = ref<'story' | 'free'>('story')
+
+// 故事模式过场
+const storyShow = ref(false)
+const storyTitle = ref('')
+const storyText = ref('')
+const storyEmoji = ref('✨')
 
 // 进度管理
 const progress = useGameProgress()
@@ -75,13 +81,13 @@ const hasNextLevel = computed(() => {
   if (!currentLevelId.value) return false
   const cur = currentLevelInfo.value
   if (!cur) return false
-  // 在同一 chapter 内找 order 大于当前的下一个 level
   const nextLv = cur.chapter.levels.find((l) => l.order > cur.level.order)
   return !!nextLv
 })
 
-// ==================== 路由跳转 ====================
-function enterMap() {
+// ==================== 模式选择 ====================
+function enterMode(m: 'story' | 'free') {
+  mode.value = m
   stage.value = 'map'
 }
 
@@ -104,7 +110,26 @@ function onEnterLevel(levelId: string) {
   score.value = 0
   picked.value = null
   showRight.value = false
+
+  // 故事模式：进入关卡前显示剧情过场
+  if (mode.value === 'story') {
+    const lv = currentLevelInfo.value?.level
+    if (lv) {
+      showStory(lv.emoji, lv.title, lv.story || `曼曼来到「${lv.title}」，展开新的冒险……`)
+    }
+  }
   stage.value = 'level'
+}
+
+function showStory(emoji: string, title: string, text: string) {
+  storyEmoji.value = emoji
+  storyTitle.value = title
+  storyText.value = text
+  storyShow.value = true
+}
+
+function onStoryDone() {
+  storyShow.value = false
 }
 
 function onLevelComplete(result: { score: number; total: number; stars: 0 | 1 | 2 | 3; levelId: string }) {
@@ -115,11 +140,9 @@ function onLevelComplete(result: { score: number; total: number; stars: 0 | 1 | 
 
 function onLevelRetry() {
   if (!currentLevelId.value) return
-  // 重新进入同一关
   const id = currentLevelId.value
   currentLevelId.value = null
   lastResult.value = null
-  // 触发 onEnterLevel 的同款逻辑
   onEnterLevel(id)
 }
 
@@ -135,6 +158,18 @@ function onLevelNext() {
 // ==================== Boss 关卡 ====================
 function onEnterBoss(bossId: string) {
   currentBossId.value = bossId
+
+  // 故事模式：进入 Boss 前显示剧情
+  if (mode.value === 'story') {
+    const bossInfo = currentBossInfo.value
+    if (bossInfo) {
+      showStory(
+        bossInfo.boss.emoji,
+        bossInfo.boss.title,
+        bossInfo.boss.story || `曼曼面前站着强大的「${bossInfo.boss.title}」……`
+      )
+    }
+  }
   stage.value = 'boss'
 }
 
@@ -146,6 +181,20 @@ function onBossComplete(result: { bossId: string; defeated: boolean }) {
   }
   lastBossResult.value = result
   stage.value = 'bossResult'
+
+  // 故事模式：Boss 通关后显示胜利剧情
+  if (result.defeated && mode.value === 'story') {
+    setTimeout(() => {
+      const bossInfo = currentBossInfo.value
+      if (bossInfo) {
+        showStory(
+          '🌟',
+          '恭喜胜利！',
+          `曼曼战胜了「${bossInfo.boss.title}」，获得了新的力量！`
+        )
+      }
+    }, 200)
+  }
 }
 
 function onBossRetry() {
@@ -195,20 +244,35 @@ function retry() { stage.value = 'lobby' }
       <p class="tag">曼曼在数学王国里闯关，答对一题前进一格。</p>
     </header>
 
-    <!-- 大厅 -->
+    <!-- 大厅：模式选择（特性 8） -->
     <section v-if="stage === 'lobby'" class="lobby">
       <div class="lobby__portrait">🧝‍♀️</div>
       <p class="lobby__intro">
         曼曼背着算盘，穿越数王国。每答对一题，曼曼向前一步；<br />
         答错会被「难题怪兽」呛一下。看曼曼能走多远？
       </p>
-      <button class="start-btn" @click="enterMap">🗺️ 选关地图</button>
+
+      <div class="mode-cards">
+        <button class="mode-card mode-card--story" @click="enterMode('story')">
+          <span class="mode-card__emoji">📖</span>
+          <h3 class="mode-card__title">故事模式</h3>
+          <p class="mode-card__desc">跟着曼曼的冒险剧情<br />逐步解锁章节与 Boss</p>
+        </button>
+
+        <button class="mode-card mode-card--free" @click="enterMode('free')">
+          <span class="mode-card__emoji">🗺️</span>
+          <h3 class="mode-card__title">自由闯关</h3>
+          <p class="mode-card__desc">选择已解锁的任意关卡<br />自由练习、刷分、复习</p>
+        </button>
+      </div>
+
       <p class="hint">🍄 第一章 · 4 关卡 + 1 Boss</p>
     </section>
 
-    <!-- 关卡地图（特性 1） -->
+    <!-- 关卡地图（特性 1 + 5） -->
     <MapView
       v-else-if="stage === 'map'"
+      :mode="mode"
       @back="backToLobby"
       @enter-level="onEnterLevel"
       @enter-boss="onEnterBoss"
@@ -255,6 +319,15 @@ function retry() { stage.value = 'lobby' }
       :level-emoji="currentBossInfo.boss.emoji"
       @retry="onBossRetry"
       @back="backToMap"
+    />
+
+    <!-- 故事模式过场（特性 8） -->
+    <StoryTransition
+      :show="storyShow"
+      :title="storyTitle"
+      :text="storyText"
+      :emoji="storyEmoji"
+      @done="onStoryDone"
     />
 
     <!-- 答题 -->
@@ -354,6 +427,69 @@ function retry() { stage.value = 'lobby' }
   max-width: 480px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* ===== 模式选择卡片 ===== */
+.mode-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  max-width: 560px;
+  margin: 0 auto 1.5rem;
+}
+
+.mode-card {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  color: #1e293b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mode-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+.mode-card--story:hover { border-color: #10b981; }
+.mode-card--free:hover { border-color: #3b82f6; }
+
+.mode-card__emoji {
+  font-size: 2.5rem;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.mode-card__title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.mode-card--story .mode-card__title { color: #047857; }
+.mode-card--free .mode-card__title { color: #1d4ed8; }
+
+.mode-card__desc {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .mode-cards {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
 }
 
 .start-btn {
