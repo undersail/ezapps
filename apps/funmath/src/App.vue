@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import MapView from './pages/MapView.vue'
 import LevelPlay from './pages/LevelPlay.vue'
+import LevelResult from './pages/LevelResult.vue'
+import BossPlay from './pages/BossPlay.vue'
+import { useGameProgress } from './composables/useGameProgress'
+import { chapters } from './data/chapters'
 
-// V0 保留：题库（特性 2 会迁移到 data/questions.ts）
+// V0 保留：题库（演示用，可走旧 stage）
 interface Question {
   q: string
   options: number[]
@@ -17,17 +21,24 @@ const questions: Question[] = [
   { q: '10 ÷ 2 = ?',  options: [3, 5, 8, 10], answer: 5 },
 ]
 
-// 阶段：lobby / map / play（旧版保留）/ level（特性 2 新增）/ done
-const stage = ref<'lobby' | 'map' | 'play' | 'level' | 'done'>('lobby')
+// 阶段机：
+// lobby → map → level → levelResult → map
+//                → boss  → bossResult  → map
+// play/done 保留作 V0 demo 入口
+const stage = ref<'lobby' | 'map' | 'play' | 'done' | 'level' | 'levelResult' | 'boss' | 'bossResult'>('lobby')
+
+// V0 demo state
 const idx = ref(0)
 const score = ref(0)
 const picked = ref<number | null>(null)
 const showRight = ref(false)
 const current = ref(questions[0])
 
-// 特性 2：当前关卡 ID
+// 当前关卡 / Boss
 const currentLevelId = ref<string | null>(null)
-// 特性 2：关卡结果
+const currentBossId = ref<string | null>(null)
+
+// 结算结果
 interface LevelResult {
   levelId: string
   score: number
@@ -36,6 +47,40 @@ interface LevelResult {
 }
 const lastResult = ref<LevelResult | null>(null)
 
+const lastBossResult = ref<{ bossId: string; defeated: boolean } | null>(null)
+
+// 进度管理
+const progress = useGameProgress()
+
+// 计算关卡信息
+const currentLevelInfo = computed(() => {
+  if (!currentLevelId.value) return null
+  for (const ch of chapters) {
+    const lv = ch.levels.find((l) => l.id === currentLevelId.value)
+    if (lv) return { level: lv, chapter: ch }
+  }
+  return null
+})
+
+const currentBossInfo = computed(() => {
+  if (!currentBossId.value) return null
+  for (const ch of chapters) {
+    if (ch.boss?.id === currentBossId.value) return { boss: ch.boss, chapter: ch }
+  }
+  return null
+})
+
+// 是否存在下一关（普通关）
+const hasNextLevel = computed(() => {
+  if (!currentLevelId.value) return false
+  const cur = currentLevelInfo.value
+  if (!cur) return false
+  // 在同一 chapter 内找 order 大于当前的下一个 level
+  const nextLv = cur.chapter.levels.find((l) => l.order > cur.level.order)
+  return !!nextLv
+})
+
+// ==================== 路由跳转 ====================
 function enterMap() {
   stage.value = 'map'
 }
@@ -44,7 +89,15 @@ function backToLobby() {
   stage.value = 'lobby'
 }
 
-// 关卡答题
+function backToMap() {
+  stage.value = 'map'
+  currentLevelId.value = null
+  currentBossId.value = null
+  lastResult.value = null
+  lastBossResult.value = null
+}
+
+// ==================== 普通关卡 ====================
 function onEnterLevel(levelId: string) {
   currentLevelId.value = levelId
   idx.value = 0
@@ -54,29 +107,56 @@ function onEnterLevel(levelId: string) {
   stage.value = 'level'
 }
 
-function backToMap() {
-  stage.value = 'map'
-  currentLevelId.value = null
-}
-
 function onLevelComplete(result: { score: number; total: number; stars: 0 | 1 | 2 | 3; levelId: string }) {
+  progress.recordLevelComplete(result.levelId, result.score, result.total, result.stars)
   lastResult.value = result
-  // 特性 3 替换：跳到 result 页
-  alert(
-    `🎉 关卡完成！\n` +
-    `答对 ${result.score} / ${result.total} 题\n` +
-    `获得 ${result.stars} ⭐\n` +
-    `（特性 3 将替换为结算页）`
-  )
-  stage.value = 'map'
+  stage.value = 'levelResult'
+}
+
+function onLevelRetry() {
+  if (!currentLevelId.value) return
+  // 重新进入同一关
+  const id = currentLevelId.value
   currentLevelId.value = null
+  lastResult.value = null
+  // 触发 onEnterLevel 的同款逻辑
+  onEnterLevel(id)
 }
 
-// 占位：特性 6 才实装
-function onEnterBoss(_bossId: string) {
-  alert(`进入 Boss ${_bossId}（特性 6 实现）`)
+function onLevelNext() {
+  if (!currentLevelId.value) return
+  const cur = currentLevelInfo.value
+  if (!cur) return
+  const nextLv = cur.chapter.levels.find((l) => l.order > cur.level.order)
+  if (nextLv) onEnterLevel(nextLv.id)
+  else backToMap()
 }
 
+// ==================== Boss 关卡 ====================
+function onEnterBoss(bossId: string) {
+  currentBossId.value = bossId
+  stage.value = 'boss'
+}
+
+function onBossComplete(result: { bossId: string; defeated: boolean }) {
+  if (result.defeated) {
+    progress.recordBossDefeat(result.bossId)
+  } else {
+    progress.recordBossAttempt(result.bossId)
+  }
+  lastBossResult.value = result
+  stage.value = 'bossResult'
+}
+
+function onBossRetry() {
+  if (!currentBossId.value) return
+  const id = currentBossId.value
+  currentBossId.value = null
+  lastBossResult.value = null
+  onEnterBoss(id)
+}
+
+// ==================== V0 demo 旧入口（保留） ====================
 function start() {
   stage.value = 'play'
   idx.value = 0
@@ -140,6 +220,41 @@ function retry() { stage.value = 'lobby' }
       :level-id="currentLevelId"
       @back="backToMap"
       @complete="onLevelComplete"
+    />
+
+    <!-- 关卡结算（特性 3） -->
+    <LevelResult
+      v-else-if="stage === 'levelResult' && lastResult && currentLevelInfo"
+      :result="lastResult"
+      :level-title="currentLevelInfo.level.title"
+      :level-emoji="currentLevelInfo.level.emoji"
+      :has-next="hasNextLevel && lastResult.stars > 0"
+      @retry="onLevelRetry"
+      @back="backToMap"
+      @next="onLevelNext"
+    />
+
+    <!-- Boss 答题（特性 6） -->
+    <BossPlay
+      v-else-if="stage === 'boss' && currentBossId"
+      :boss-id="currentBossId"
+      @back="backToMap"
+      @complete="onBossComplete"
+    />
+
+    <!-- Boss 结算（特性 6 复用 LevelResult） -->
+    <LevelResult
+      v-else-if="stage === 'bossResult' && lastBossResult && currentBossInfo"
+      :result="{
+        levelId: lastBossResult.bossId,
+        score: lastBossResult.defeated ? currentBossInfo.boss.required : 0,
+        total: currentBossInfo.boss.required,
+        stars: lastBossResult.defeated ? 3 : 0,
+      }"
+      :level-title="currentBossInfo.boss.title"
+      :level-emoji="currentBossInfo.boss.emoji"
+      @retry="onBossRetry"
+      @back="backToMap"
     />
 
     <!-- 答题 -->

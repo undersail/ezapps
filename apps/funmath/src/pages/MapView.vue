@@ -6,6 +6,7 @@ import { computed } from 'vue'
 import { chapters } from '../data/chapters'
 import type { Chapter, Level, LevelStatus } from '../types'
 import LevelCard from '../components/LevelCard.vue'
+import { useGameProgress, isChapterUnlocked } from '../composables/useGameProgress'
 
 defineEmits<{
   (e: 'enter-level', levelId: string): void
@@ -13,87 +14,63 @@ defineEmits<{
   (e: 'back'): void
 }>()
 
-/**
- * 计算每个关卡的进度状态（mock 阶段：硬编码）
- * 真实进度后续从 useGameProgress 获取
- */
-const mockStars: Record<string, 0 | 1 | 2 | 3> = {
-  '1-1': 3,        // 3 星通关
-  '1-2': 2,        // 2 星通关
-  '1-3': 1,        // 1 星通关
-  '1-4-boss': 0,   // Boss 未通关
-  '1-5': 0,        // 未解锁
-}
-
-function getStars(id: string): 0 | 1 | 2 | 3 {
-  return mockStars[id] ?? 0
-}
-
-function isPassed(id: string): boolean {
-  return mockStars[id] > 0
-}
+// 使用进度管理（localStorage 持久化）
+const progress = useGameProgress()
 
 /**
- * 关卡解锁判定
- * 第一章普通关：默认全部解锁（mock 阶段）
- * 章节解锁：默认仅第一章解锁
+ * 章节解锁状态
+ * 第一章：unlock = 'free' → 默认解锁
+ * 其它章节：需击败前一章 Boss
  */
 function getChapterStatus(chapter: Chapter): 'unlocked' | 'locked' {
-  if (chapter.unlock === 'free') return 'unlocked'
-  // mock 阶段：只有第一章解锁
-  return chapter.id === 1 ? 'unlocked' : 'locked'
+  return isChapterUnlocked(chapter.unlock, progress.isBossDefeated) ? 'unlocked' : 'locked'
 }
 
+/**
+ * 关卡解锁状态
+ * - 章节锁定 → 关卡锁定
+ * - 已通过 → passed（显示星级）
+ * - order=1 → 默认解锁
+ * - 其余关 → 同章节内 order 最接近的前一关通过即可
+ * Boss 是独立支线，不影响普通关解锁
+ */
 function getLevelStatus(level: Level, chapterStatus: 'unlocked' | 'locked'): LevelStatus {
   if (chapterStatus === 'locked') return 'locked'
-  const stars = getStars(level.id)
-  if (stars > 0) return 'passed'
-  // 解锁规则（章节内）：
-  //   order=1 默认解锁
-  //   其余关 = 同章节内 order 小于自身的关卡中最接近的那个通过即可
-  // 例：1-1 解锁 → 1-2；1-2 通 → 1-3 解锁；1-3 通 → 1-5 解锁（Boss 不影响 1-5）
+  if (progress.isLevelPassed(level.id)) return 'passed'
   if (level.order === 1) return 'unlocked'
-  const prevLevelId = `${level.chapter}-${level.order - 1}`
-  // 兜底：order 跳号（如 1-5 的 order=4 但 1-4 是 Boss），
-  //       找不到上一关时，取当前章节 order 最大且小于自己的 level
-  let effectivePrevId = prevLevelId
-  if (getStars(prevLevelId) === 0) {
-    // 在同章节找 order 最大且 < current.order 的关卡
-    const chapter = chapters.find((c) => c.id === level.chapter)
-    if (chapter) {
-      const prevCandidates = chapter.levels
-        .filter((l) => l.order < level.order)
-        .sort((a, b) => b.order - a.order)
-      if (prevCandidates.length > 0) effectivePrevId = prevCandidates[0].id
-    }
-  }
-  return getStars(effectivePrevId) > 0 ? 'unlocked' : 'locked'
+
+  // 在同章节内找 order 最大且 < 当前 order 的关卡（处理 Boss 跳号场景）
+  const chapter = chapters.find((c) => c.id === level.chapter)
+  if (!chapter) return 'unlocked'
+
+  const prevCandidates = chapter.levels
+    .filter((l) => l.order < level.order)
+    .sort((a, b) => b.order - a.order)
+
+  if (prevCandidates.length === 0) return 'unlocked'
+  const prev = prevCandidates[0]
+  return progress.isLevelPassed(prev.id) ? 'unlocked' : 'locked'
 }
 
 function getBossStatus(chapter: Chapter, chapterStatus: 'unlocked' | 'locked'): LevelStatus {
   if (chapterStatus === 'locked' || !chapter.boss) return 'locked'
-  const stars = getStars(chapter.boss.id)
-  if (stars > 0) return 'passed'
-  // Boss 解锁条件：前一关通关（这里 mock：1-3 通关就解锁）
-  return 'unlocked'
+  if (progress.isBossDefeated(chapter.boss.id)) return 'passed'
+  // Boss 解锁条件：本章最后一个普通关通关
+  const lastLevel = chapter.levels
+    .slice()
+    .sort((a, b) => b.order - a.order)[0]
+  if (!lastLevel) return 'unlocked'
+  return progress.isLevelPassed(lastLevel.id) ? 'unlocked' : 'locked'
 }
 
-// 总星星统计
-const totalStars = computed(() => {
-  let sum = 0
-  Object.values(mockStars).forEach((s) => (sum += s))
-  return sum
-})
+// 总星星统计（响应式）
+const totalStars = computed(() => progress.state.value.totalStars)
 
+// 第一章最大星 = 4 关 × 3 星 = 12（不含 Boss）
 const maxStars = computed(() => {
-  // 第一章：4 关 × 3 星 + 1 Boss（不算星级）
+  // 简化：第一章可玩部分 4 关 × 3 = 12
   return 12
 })
-
-// Boss 是否需要在关卡列表里特殊位置展示
-function bossAsCard(chapter: Chapter) {
-  return chapter.boss
-}
 </script>
 
 <template>
@@ -135,26 +112,26 @@ function bossAsCard(chapter: Chapter) {
             :key="level.id"
             :level="level"
             :status="getLevelStatus(level, 'unlocked')"
-            :stars="getStars(level.id)"
+            :stars="progress.getLevelStars(level.id)"
             @click="(id) => $emit('enter-level', id)"
           />
 
           <!-- Boss 关卡（特殊位置） -->
           <LevelCard
-            v-if="bossAsCard(chapter)"
+            v-if="chapter.boss"
             :level="{
-              id: chapter.boss!.id,
+              id: chapter.boss.id,
               chapter: chapter.id,
-              order: chapter.boss!.order,
-              title: chapter.boss!.title,
-              emoji: chapter.boss!.emoji,
-              knowledge: `需掌握 ${chapter.boss!.required} 道`,
+              order: chapter.boss.order,
+              title: chapter.boss.title,
+              emoji: chapter.boss.emoji,
+              knowledge: `需掌握 ${chapter.boss.required} 道`,
               difficulty: 3,
-              questionIds: chapter.boss!.pool,
-              passScore: chapter.boss!.required,
+              questionIds: chapter.boss.pool,
+              passScore: chapter.boss.required,
             }"
             :status="getBossStatus(chapter, 'unlocked')"
-            :stars="getStars(chapter.boss!.id)"
+            :stars="progress.getLevelStars(chapter.boss.id)"
             is-boss
             @click="(id) => $emit('enter-boss', id)"
           />
