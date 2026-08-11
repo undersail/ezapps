@@ -43,42 +43,32 @@ function onPin(e: MouseEvent) {
           <span v-for="t in app.tags" :key="t" class="tag">{{ t }}</span>
         </div>
       </div>
+
+      <!-- footer：左下显式置顶按钮 + 右下"进入 →" -->
       <div class="card__footer">
+        <button
+          class="pin-btn"
+          :class="{ 'pin-btn--active': pinned }"
+          :title="pinned ? '取消置顶' : '置顶'"
+          :aria-label="pinned ? '取消置顶' : '置顶'"
+          :aria-pressed="pinned"
+          @click="onPin"
+        >
+          <!-- 通用 SVG 图标，颜色由 CSS 控制 -->
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none"
+               stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2v8" />
+            <path d="M9 6l3-3 3 3" />
+            <path d="M12 10v8" />
+            <path d="M9 14h6l-1 4h-4z" />
+            <path d="M12 22v-4" />
+          </svg>
+          <span class="pin-btn__text">{{ pinned ? '已置顶' : '置顶' }}</span>
+        </button>
         <span class="enter">进入 →</span>
       </div>
     </a>
-
-    <button
-      class="pin-btn"
-      :class="{ 'pin-btn--active': pinned }"
-      :title="pinned ? '取消置顶' : '置顶'"
-      :aria-label="pinned ? '取消置顶' : '置顶'"
-      :aria-pressed="pinned"
-      @click="onPin"
-    >
-      <!-- 📌 未置顶时灰白半透明 / 置顶后金色高亮 -->
-      <svg
-        viewBox="0 0 24 24"
-        width="16"
-        height="16"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M12 2v8" />
-        <path d="M9 6l3-3 3 3" />
-        <path d="M12 10v8" />
-        <path d="M9 14h6l-1 4h-4z" />
-        <path d="M12 22v-4" />
-      </svg>
-    </button>
-
-    <div v-if="pinned" class="pin-mark" aria-hidden="true">
-      <span>已置顶</span>
-    </div>
   </div>
 </template>
 
@@ -101,10 +91,6 @@ function onPin(e: MouseEvent) {
   border-color: var(--accent, #1565c0);
   transform: translateY(-3px);
   box-shadow: 0 14px 38px rgba(0, 0, 0, 0.08);
-}
-.card-wrap:hover .pin-btn:not(.pin-btn--active) {
-  opacity: 0.85;
-  transform: scale(1);
 }
 
 .card__header {
@@ -174,10 +160,15 @@ function onPin(e: MouseEvent) {
   border-radius: 4px;
   font-weight: 500;
 }
+
+/* footer：左下置顶 + 右下进入 */
 .card__footer {
-  padding: 0.85rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
   border-top: 1px solid #f1f5f9;
-  text-align: right;
 }
 .enter {
   color: var(--accent, #1565c0);
@@ -185,61 +176,41 @@ function onPin(e: MouseEvent) {
   font-size: 0.9rem;
 }
 
-/* === 置顶按钮 === */
+/* === 置顶按钮 === 左下角显式按钮 */
 .pin-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 32px;
-  height: 32px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 50%;
-  color: #94a3b8;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
   cursor: pointer;
-  opacity: 0;
-  transform: scale(0.85);
-  transition: opacity 0.2s ease, transform 0.15s ease,
-    background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-  z-index: 2;
-  padding: 0;
+  transition: all 0.15s ease;
+  user-select: none;
 }
 .pin-btn:hover {
-  opacity: 1;
-  background: #fff;
-  color: #475569;
-  transform: scale(1.05);
+  background: #e2e8f0;
+  color: #0f172a;
+}
+.pin-btn:active {
+  transform: scale(0.96);
 }
 .pin-btn--active {
-  opacity: 1;
-  transform: scale(1);
   background: #fef3c7;
-  border-color: #fbbf24;
-  color: #b45309;
+  color: #92400e;
+  border-color: #fcd34d;
 }
 .pin-btn--active:hover {
   background: #fde68a;
-  border-color: #d97706;
-  color: #92400e;
-}
-
-/* === "已置顶" 角标（左下角） === */
-.pin-mark {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  background: #fbbf24;
   color: #78350f;
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 999px;
-  letter-spacing: 0.05em;
-  pointer-events: none;
-  z-index: 1;
+  border-color: #f59e0b;
+}
+.pin-btn__text {
+  line-height: 1;
 }
 </style>
