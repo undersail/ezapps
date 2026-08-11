@@ -28,7 +28,7 @@ export function renderFigureSvg(figure: FigureSpec): string {
 
 // ==================== 2D 图形 ====================
 
-function renderRect(w: number, h: number): string {
+function renderRect(w: number, h: number, hide?: ('width' | 'height')[]): string {
   const pad = 24
   const maxW = VIEW_W - pad * 2
   const maxH = VIEW_H - pad * 2
@@ -38,34 +38,37 @@ function renderRect(w: number, h: number): string {
   const x = (VIEW_W - rw) / 2
   const y = (VIEW_H - rh) / 2
 
+  const showW = !hide?.includes('width')
+  const showH = !hide?.includes('height')
+
   return `
     <svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" ${WRAPPER}>
       <rect x="${x}" y="${y}" width="${rw}" height="${rh}"
             fill="${ACCENT_LIGHT}" stroke="${ACCENT}" stroke-width="2" rx="2"/>
-      <text x="${x + rw + 4}" y="${y + rh / 2 + 4}" font-size="11" fill="${LABEL_COLOR}" font-weight="600">${w}cm</text>
-      <text x="${x + rw / 2}" y="${y - 4}" font-size="11" fill="${LABEL_COLOR}" font-weight="600" text-anchor="middle">${h}cm</text>
+      ${showH ? `<text x="${x + rw + 4}" y="${y + rh / 2 + 4}" font-size="11" fill="${LABEL_COLOR}" font-weight="600">${h}cm</text>` : ''}
+      ${showW ? `<text x="${x + rw / 2}" y="${y - 4}" font-size="11" fill="${LABEL_COLOR}" font-weight="600" text-anchor="middle">${w}cm</text>` : `<text x="${x + rw / 2}" y="${y - 4}" font-size="11" fill="#94a3b8" font-style="italic" text-anchor="middle">长 ?cm</text>`}
     </svg>
   `
 }
 
-function renderSquare(side: number): string {
+function renderSquare(side: number, hide?: ('side')[]): string {
   const pad = 24
   const max = VIEW_H - pad * 2
   const s = Math.min(max, VIEW_W - pad * 2)
   const x = (VIEW_W - s) / 2
   const y = (VIEW_H - s) / 2
+  const showSide = !hide?.includes('side')
 
   return `
     <svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" ${WRAPPER}>
       <rect x="${x}" y="${y}" width="${s}" height="${s}"
             fill="${ACCENT_LIGHT}" stroke="${ACCENT}" stroke-width="2" rx="2"/>
-      <text x="${x + s / 2}" y="${y - 4}" font-size="11" fill="${LABEL_COLOR}" font-weight="600" text-anchor="middle">${side}cm</text>
+      ${showSide ? `<text x="${x + s / 2}" y="${y - 4}" font-size="11" fill="${LABEL_COLOR}" font-weight="600" text-anchor="middle">${side}cm</text>` : `<text x="${x + s / 2}" y="${y - 4}" font-size="11" fill="#94a3b8" font-style="italic" text-anchor="middle">边长 ?cm</text>`}
     </svg>
   `
 }
 
-function renderTriangle(base: number, height: number, sides?: number[]): string {
-  // 等高三角形：顶点在上方
+function renderTriangle(base: number, height: number, sides?: number[], hide?: ('base' | 'height')[]): string {
   const pad = 24
   const maxW = VIEW_W - pad * 2
   const maxH = VIEW_H - pad * 2
@@ -73,28 +76,35 @@ function renderTriangle(base: number, height: number, sides?: number[]): string 
   const bw = base * ratio
   const bh = height * ratio
   const x0 = (VIEW_W - bw) / 2
-  const y0 = (VIEW_H - bh) / 2 + bh  // 底边 y
+  const y0 = (VIEW_H - bh) / 2 + bh
   const apexX = x0 + bw / 2
   const apexY = y0 - bh
 
-  const sidesLabels = sides
+  const showBase = !hide?.includes('base')
+  const showHeight = !hide?.includes('height')
+
+  const sidesLabels = sides && showBase
     ? `<text x="${x0 + bw + 4}" y="${y0 + 4}" font-size="10" fill="${LABEL_COLOR}">${sides[0]}cm</text>`
-    : `<text x="${x0 + bw + 4}" y="${y0 + 4}" font-size="10" fill="${LABEL_COLOR}">底 ${base}cm</text>`
+    : (sides
+      ? `<text x="${x0 + bw + 4}" y="${y0 + 4}" font-size="10" fill="#94a3b8" font-style="italic">底 ?cm</text>`
+      : showBase
+        ? `<text x="${x0 + bw + 4}" y="${y0 + 4}" font-size="10" fill="${LABEL_COLOR}">底 ${base}cm</text>`
+        : `<text x="${x0 + bw + 4}" y="${y0 + 4}" font-size="10" fill="#94a3b8" font-style="italic">底 ?cm</text>`)
 
   return `
     <svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" ${WRAPPER}>
       <polygon points="${apexX},${apexY} ${x0},${y0} ${x0 + bw},${y0}"
                fill="${ACCENT_LIGHT}" stroke="${ACCENT}" stroke-width="2"
                stroke-linejoin="round"/>
-      <line x1="${apexX}" y1="${apexY}" x2="${apexX}" y2="${y0}"
-            stroke="${LABEL_COLOR}" stroke-width="1" stroke-dasharray="2,2" opacity="0.5"/>
-      <text x="${apexX + 4}" y="${(apexY + y0) / 2}" font-size="10" fill="${LABEL_COLOR}">高 ${height}cm</text>
+      ${showHeight ? `<line x1="${apexX}" y1="${apexY}" x2="${apexX}" y2="${y0}"
+            stroke="${LABEL_COLOR}" stroke-width="1" stroke-dasharray="2,2" opacity="0.5"/>` : ''}
+      ${showHeight ? `<text x="${apexX + 4}" y="${(apexY + y0) / 2}" font-size="10" fill="${LABEL_COLOR}">高 ${height}cm</text>` : `<text x="${apexX + 4}" y="${(apexY + y0) / 2}" font-size="10" fill="#94a3b8" font-style="italic">高 ?cm</text>`}
       ${sidesLabels}
     </svg>
   `
 }
 
-function renderParallelogram(base: number, height: number): string {
+function renderParallelogram(base: number, height: number, hide?: ('base' | 'height')[]): string {
   const pad = 24
   const maxW = VIEW_W - pad * 2
   const maxH = VIEW_H - pad * 2
@@ -107,18 +117,21 @@ function renderParallelogram(base: number, height: number): string {
   const x1 = x0 + offset
   const y1 = y0 - bh
 
+  const showBase = !hide?.includes('base')
+  const showHeight = !hide?.includes('height')
+
   return `
     <svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" ${WRAPPER}>
       <polygon points="${x1},${y1} ${x0 + bw + offset},${y1} ${x0 + bw},${y0} ${x0},${y0}"
                fill="${ACCENT_LIGHT}" stroke="${ACCENT}" stroke-width="2"
                stroke-linejoin="round"/>
-      <text x="${x0 + bw / 2}" y="${y0 + 12}" font-size="11" fill="${LABEL_COLOR}" font-weight="600" text-anchor="middle">底 ${base}cm</text>
-      <text x="${x1 - 6}" y="${(y1 + y0) / 2 + 4}" font-size="10" fill="${LABEL_COLOR}" text-anchor="end">高 ${height}cm</text>
+      ${showBase ? `<text x="${x0 + bw / 2}" y="${y0 + 12}" font-size="11" fill="${LABEL_COLOR}" font-weight="600" text-anchor="middle">底 ${base}cm</text>` : `<text x="${x0 + bw / 2}" y="${y0 + 12}" font-size="11" fill="#94a3b8" font-style="italic" text-anchor="middle">底 ?cm</text>`}
+      ${showHeight ? `<text x="${x1 - 6}" y="${(y1 + y0) / 2 + 4}" font-size="10" fill="${LABEL_COLOR}" text-anchor="end">高 ${height}cm</text>` : `<text x="${x1 - 6}" y="${(y1 + y0) / 2 + 4}" font-size="10" fill="#94a3b8" font-style="italic" text-anchor="end">高 ?cm</text>`}
     </svg>
   `
 }
 
-function renderTrapezoid(upper: number, lower: number, height: number): string {
+function renderTrapezoid(upper: number, lower: number, height: number, hide?: ('upper' | 'lower' | 'height')[]): string {
   const pad = 24
   const maxW = VIEW_W - pad * 2
   const maxH = VIEW_H - pad * 2
@@ -134,25 +147,28 @@ function renderTrapezoid(upper: number, lower: number, height: number): string {
   const x3 = cx + ub / 2
   const x4 = cx - ub / 2
 
+  const showUpper = !hide?.includes('upper')
+  const showLower = !hide?.includes('lower')
+  const showHeight = !hide?.includes('height')
+
   return `
     <svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" ${WRAPPER}>
       <polygon points="${x4},${cy0 - bh} ${x3},${cy0 - bh} ${x2},${cy0} ${x1},${cy0}"
                fill="${ACCENT_LIGHT}" stroke="${ACCENT}" stroke-width="2"
                stroke-linejoin="round"/>
-      <text x="${(x1 + x2) / 2}" y="${cy0 + 12}" font-size="10" fill="${LABEL_COLOR}" text-anchor="middle">下 ${lower}cm</text>
-      <text x="${(x3 + x4) / 2}" y="${cy0 - bh - 4}" font-size="10" fill="${LABEL_COLOR}" text-anchor="middle">上 ${upper}cm</text>
-      <text x="${x1 - 4}" y="${(cy0 + (cy0 - bh)) / 2 + 4}" font-size="10" fill="${LABEL_COLOR}" text-anchor="end">高 ${height}cm</text>
+      ${showLower ? `<text x="${(x1 + x2) / 2}" y="${cy0 + 12}" font-size="10" fill="${LABEL_COLOR}" text-anchor="middle">下 ${lower}cm</text>` : `<text x="${(x1 + x2) / 2}" y="${cy0 + 12}" font-size="10" fill="#94a3b8" font-style="italic" text-anchor="middle">下 ?cm</text>`}
+      ${showUpper ? `<text x="${(x3 + x4) / 2}" y="${cy0 - bh - 4}" font-size="10" fill="${LABEL_COLOR}" text-anchor="middle">上 ${upper}cm</text>` : `<text x="${(x3 + x4) / 2}" y="${cy0 - bh - 4}" font-size="10" fill="#94a3b8" font-style="italic" text-anchor="middle">上 ?cm</text>`}
+      ${showHeight ? `<text x="${x1 - 4}" y="${(cy0 + (cy0 - bh)) / 2 + 4}" font-size="10" fill="${LABEL_COLOR}" text-anchor="end">高 ${height}cm</text>` : `<text x="${x1 - 4}" y="${(cy0 + (cy0 - bh)) / 2 + 4}" font-size="10" fill="#94a3b8" font-style="italic" text-anchor="end">高 ?cm</text>`}
     </svg>
   `
 }
 
-function renderCircle(radius?: number, diameter?: number): string {
+function renderCircle(radius?: number, diameter?: number, hideLabel?: boolean): string {
   const pad = 24
   const r = radius ?? (diameter ? diameter / 2 : 30)
   const cx = VIEW_W / 2
   const cy = VIEW_H / 2
   const svgR = Math.min(VIEW_W, VIEW_H) / 2 - pad
-  // 统一缩放，使所有圆看起来大小一致
   const scale = svgR / r
   const drawR = r * scale
   const label = radius ? 'r' : 'd'
@@ -168,21 +184,19 @@ function renderCircle(radius?: number, diameter?: number): string {
       <line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}"
             stroke="${LABEL_COLOR}" stroke-width="1" stroke-dasharray="2,2" opacity="0.6"/>
       <circle cx="${cx}" cy="${cy}" r="2" fill="${LABEL_COLOR}"/>
-      <text x="${(cx + x2) / 2}" y="${cy - 4}" font-size="11" fill="${LABEL_COLOR}" font-weight="600" text-anchor="middle">${label} = ${label === 'r' ? radius : diameter}cm</text>
+      ${hideLabel ? `<text x="${(cx + x2) / 2}" y="${cy - 4}" font-size="11" fill="#94a3b8" font-style="italic" text-anchor="middle">? cm</text>` : `<text x="${(cx + x2) / 2}" y="${cy - 4}" font-size="11" fill="${LABEL_COLOR}" font-weight="600" text-anchor="middle">${label} = ${label === 'r' ? radius : diameter}cm</text>`}
     </svg>
   `
 }
 
 // ==================== 3D 图形 ====================
 
-function renderCube(L: number, W: number, H: number): string {
+function renderCube(L: number, W: number, H: number, hide?: ('length' | 'width' | 'height')[]): string {
   const pad = 20
   const cx = VIEW_W / 2
   const cy = VIEW_H / 2
 
-  // 等角投影：30 度倾斜
-  const skew = 0.4  // 深度偏移比例
-  // 用最大边作为缩放基准
+  const skew = 0.4
   const maxDim = Math.max(L, W, H)
   const baseScale = (Math.min(VIEW_W, VIEW_H) / 2 - pad) / maxDim
   const lw = L * baseScale
@@ -190,17 +204,19 @@ function renderCube(L: number, W: number, H: number): string {
   const hw = H * baseScale
   const depth = ww * skew
 
-  // 前面 4 个角
   const fx0 = cx - lw / 2
   const fy0 = cy + hw / 2 - depth / 2
   const fx1 = cx + lw / 2
   const fy1 = fy0
 
-  // 后面 4 个角（向上、向右偏移）
   const bx0 = fx0 + depth
   const by0 = fy0 - depth
   const bx1 = fx1 + depth
   const by1 = fy1 - depth
+
+  const showL = !hide?.includes('length')
+  const showW = !hide?.includes('width')
+  const showH = !hide?.includes('height')
 
   return `
     <svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" ${WRAPPER}>
@@ -214,13 +230,13 @@ function renderCube(L: number, W: number, H: number): string {
       <polygon points="${fx0},${fy0} ${fx1},${fy1} ${fx1},${fy1 + hw} ${fx0},${fy0 + hw}"
                fill="${ACCENT_LIGHT}" stroke="${ACCENT}" stroke-width="2"/>
       <!-- 标签 -->
-      <text x="${(fx0 + fx1) / 2}" y="${fy1 + hw + 12}" font-size="10" fill="${LABEL_COLOR}" text-anchor="middle">长 ${L}</text>
-      <text x="${fx1 + (bx1 - fx1) / 2}" y="${fy1 + hw / 2 + 4}" font-size="10" fill="${LABEL_COLOR}" text-anchor="middle">宽 ${W}</text>
-      <text x="${fx0 - 4}" y="${(fy0 + fy0 + hw) / 2 + 4}" font-size="10" fill="${LABEL_COLOR}" text-anchor="end">高 ${H}</text>
+      ${showL ? `<text x="${(fx0 + fx1) / 2}" y="${fy1 + hw + 12}" font-size="10" fill="${LABEL_COLOR}" text-anchor="middle">长 ${L}</text>` : `<text x="${(fx0 + fx1) / 2}" y="${fy1 + hw + 12}" font-size="10" fill="#94a3b8" font-style="italic" text-anchor="middle">长 ?</text>`}
+      ${showW ? `<text x="${fx1 + (bx1 - fx1) / 2}" y="${fy1 + hw / 2 + 4}" font-size="10" fill="${LABEL_COLOR}" text-anchor="middle">宽 ${W}</text>` : `<text x="${fx1 + (bx1 - fx1) / 2}" y="${fy1 + hw / 2 + 4}" font-size="10" fill="#94a3b8" font-style="italic" text-anchor="middle">宽 ?</text>`}
+      ${showH ? `<text x="${fx0 - 4}" y="${(fy0 + fy0 + hw) / 2 + 4}" font-size="10" fill="${LABEL_COLOR}" text-anchor="end">高 ${H}</text>` : `<text x="${fx0 - 4}" y="${(fy0 + fy0 + hw) / 2 + 4}" font-size="10" fill="#94a3b8" font-style="italic" text-anchor="end">高 ?</text>`}
     </svg>
   `
 }
 
-function renderSquareCube(side: number): string {
-  return renderCube(side, side, side)
+function renderSquareCube(side: number, hide?: ('side')[]): string {
+  return renderCube(side, side, side, hide as ('length' | 'width' | 'height')[] | undefined)
 }

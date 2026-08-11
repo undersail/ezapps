@@ -25,16 +25,17 @@ export interface Question {
 
 /**
  * 几何图形描述（结构化，由 utils/figures.ts 渲染为 SVG）
+ * hide 字段：反推题用，指定哪些维度不显示标注（避免图形直接暴露答案）
  */
 export type FigureSpec =
-  | { type: 'rect'; width: number; height: number }
-  | { type: 'square'; side: number }
-  | { type: 'triangle'; base: number; height: number; sides?: number[] }  // sides: 三边长度（用于显示周长题）
-  | { type: 'parallelogram'; base: number; height: number }
-  | { type: 'trapezoid'; upperBase: number; lowerBase: number; height: number }
-  | { type: 'circle'; radius?: number; diameter?: number }
-  | { type: 'cube'; length: number; width: number; height: number }
-  | { type: 'squareCube'; side: number }
+  | { type: 'rect'; width: number; height: number; hide?: ('width' | 'height')[] }
+  | { type: 'square'; side: number; hide?: ('side')[] }
+  | { type: 'triangle'; base: number; height: number; sides?: number[]; hide?: ('base' | 'height')[] }
+  | { type: 'parallelogram'; base: number; height: number; hide?: ('base' | 'height')[] }
+  | { type: 'trapezoid'; upperBase: number; lowerBase: number; height: number; hide?: ('upper' | 'lower' | 'height')[] }
+  | { type: 'circle'; radius?: number; diameter?: number; hideLabel?: boolean }
+  | { type: 'cube'; length: number; width: number; height: number; hide?: ('length' | 'width' | 'height')[] }
+  | { type: 'squareCube'; side: number; hide?: ('side')[] }
 
 /** 普通关卡 */
 export interface Level {
