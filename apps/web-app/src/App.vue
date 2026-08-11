@@ -58,11 +58,14 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
         <p>
           点击左下角
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
                style="display:inline-block;vertical-align:-2px;color:#94a3b8"
                aria-hidden="true">
-            <path d="M12 22v-8" /><path d="M9 18l3 3 3-3" />
-            <path d="M12 14V2" /><path d="M9 6h6l-1-4h-4z" /><path d="M12 2v4" />
+            <path d="M12 2v8" />
+            <path d="M9 6l3-3 3 3" />
+            <path d="M12 10v8" />
+            <path d="M9 14h6l-1 4h-4z" />
+            <path d="M12 22v-4" />
           </svg>
           可置顶（最多 {{ MAX }} 个，超出时自动覆盖最早置顶的）。
         </p>
