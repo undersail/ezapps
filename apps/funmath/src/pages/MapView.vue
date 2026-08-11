@@ -46,12 +46,28 @@ function getChapterStatus(chapter: Chapter): 'unlocked' | 'locked' {
 
 function getLevelStatus(level: Level, chapterStatus: 'unlocked' | 'locked'): LevelStatus {
   if (chapterStatus === 'locked') return 'locked'
-  // 第一章 mock：1-1/1-2/1-3 已通关（解锁），Boss 之后的 1-5 锁定
   const stars = getStars(level.id)
   if (stars > 0) return 'passed'
-  // Boss 后的关卡锁定：1-5 在 1-4-boss 通关前锁定
-  if (level.id === '1-5' && mockStars['1-4-boss'] === 0) return 'locked'
-  return 'unlocked'
+  // 解锁规则（章节内）：
+  //   order=1 默认解锁
+  //   其余关 = 同章节内 order 小于自身的关卡中最接近的那个通过即可
+  // 例：1-1 解锁 → 1-2；1-2 通 → 1-3 解锁；1-3 通 → 1-5 解锁（Boss 不影响 1-5）
+  if (level.order === 1) return 'unlocked'
+  const prevLevelId = `${level.chapter}-${level.order - 1}`
+  // 兜底：order 跳号（如 1-5 的 order=4 但 1-4 是 Boss），
+  //       找不到上一关时，取当前章节 order 最大且小于自己的 level
+  let effectivePrevId = prevLevelId
+  if (getStars(prevLevelId) === 0) {
+    // 在同章节找 order 最大且 < current.order 的关卡
+    const chapter = chapters.find((c) => c.id === level.chapter)
+    if (chapter) {
+      const prevCandidates = chapter.levels
+        .filter((l) => l.order < level.order)
+        .sort((a, b) => b.order - a.order)
+      if (prevCandidates.length > 0) effectivePrevId = prevCandidates[0].id
+    }
+  }
+  return getStars(effectivePrevId) > 0 ? 'unlocked' : 'locked'
 }
 
 function getBossStatus(chapter: Chapter, chapterStatus: 'unlocked' | 'locked'): LevelStatus {

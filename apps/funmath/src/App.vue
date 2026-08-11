@@ -123,7 +123,7 @@ function retry() { stage.value = 'lobby' }
         答错会被「难题怪兽」呛一下。看曼曼能走多远？
       </p>
       <button class="start-btn" @click="enterMap">🗺️ 选关地图（V1 试看）</button>
-      <p class="hint">{{ questions.length }} 道题 · 单选</p>
+      <p class="hint">🍄 第一章 · 4 关卡 + 1 Boss</p>
     </section>
 
     <!-- 关卡地图（特性 1） -->
