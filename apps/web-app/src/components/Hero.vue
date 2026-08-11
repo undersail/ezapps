@@ -9,7 +9,7 @@ defineProps<{
   <header class="hero">
     <div class="hero__mark">EZ</div>
     <h1>EZAPPS</h1>
-    <p class="tag">由 Jack 持续打磨的小工具合集，每一款都做得足够小、足够好用。</p>
+    <p class="tag">由 Jack 持续打磨的工具游戏合集，简单但好玩儿好用。</p>
     <div class="meta">
       <span><b>VITE_API_BASE</b> <code>{{ apiBase }}</code></span>
       <span><b>构建时间</b> <code>{{ buildTime }}</code></span>

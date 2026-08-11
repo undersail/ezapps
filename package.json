@@ -8,10 +8,12 @@
     "dev:webapp": "pnpm --filter web-app dev",
     "dev:funphy": "pnpm --filter funphy dev",
     "dev:grimphy": "pnpm --filter grimphy dev",
+    "dev:funmath": "pnpm --filter funmath dev",
     "build:webapp": "pnpm --filter web-app build",
     "build:funphy": "pnpm --filter funphy build",
     "build:grimphy": "pnpm --filter grimphy build",
-    "build": "pnpm build:webapp && pnpm build:funphy && pnpm build:grimphy",
+    "build:funmath": "pnpm --filter funmath build",
+    "build": "pnpm build:webapp && pnpm build:funphy && pnpm build:grimphy && pnpm build:funmath",
     "preview": "pnpm --filter web-app preview",
     "lint": "pnpm --filter web-app lint",
     "type-check": "pnpm -r --parallel type-check"
