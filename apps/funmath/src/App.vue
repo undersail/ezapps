@@ -85,6 +85,49 @@ const hasNextLevel = computed(() => {
   return !!nextLv
 })
 
+// ================ 大厅进度统计 ================
+/** 已通关关卡数（含所有章节） */
+const passedLevelCount = computed(() => {
+  let count = 0
+  for (const ch of chapters) {
+    for (const lv of ch.levels) {
+      if (progress.isLevelPassed(lv.id)) count++
+    }
+  }
+  return count
+})
+
+/** 总关卡数（含所有已实现章节，普通关） */
+const totalLevelCount = computed(() => {
+  let count = 0
+  for (const ch of chapters) {
+    count += ch.levels.length
+  }
+  return count
+})
+
+/** 已击败 Boss 数 */
+const defeatedBossCount = computed(() => {
+  let count = 0
+  for (const ch of chapters) {
+    if (ch.boss && progress.isBossDefeated(ch.boss.id)) count++
+  }
+  return count
+})
+
+/** 已解锁章节数 */
+const unlockedChapterCount = computed(() => {
+  let count = 0
+  for (const ch of chapters) {
+    if (ch.unlock === 'free' || progress.isBossDefeated(
+      typeof ch.unlock === 'object' ? ch.unlock.boss : ''
+    )) {
+      count++
+    }
+  }
+  return count
+})
+
 // ==================== 模式选择 ====================
 function enterMode(m: 'story' | 'free') {
   mode.value = m
@@ -248,8 +291,8 @@ function retry() { stage.value = 'lobby' }
     <section v-if="stage === 'lobby'" class="lobby">
       <div class="lobby__portrait">🧝‍♀️</div>
       <p class="lobby__intro">
-        曼曼背着算盘，穿越数王国。每答对一题，曼曼向前一步；<br />
-        答错会被「难题怪兽」呛一下。看曼曼能走多远？
+        曼曼又要出发啦！这次她将翻越高山、穿越数海，<br />
+        一路打败九九魔王、速算之王。准备好一起冒险了吗？
       </p>
 
       <div class="mode-cards">
@@ -266,7 +309,32 @@ function retry() { stage.value = 'lobby' }
         </button>
       </div>
 
-      <p class="hint">🍄 第一章 · 4 关卡 + 1 Boss</p>
+      <!-- 进度统计 -->
+      <div class="progress-stats">
+        <div class="stat">
+          <span class="stat__icon">⭐</span>
+          <span class="stat__num">{{ progress.state.value.totalStars }}</span>
+          <span class="stat__label">总星数</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat__icon">📚</span>
+          <span class="stat__num">{{ passedLevelCount }} / {{ totalLevelCount }}</span>
+          <span class="stat__label">关卡</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat__icon">👑</span>
+          <span class="stat__num">{{ defeatedBossCount }}</span>
+          <span class="stat__label">Boss</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat__icon">🏰</span>
+          <span class="stat__num">{{ unlockedChapterCount }} / 6</span>
+          <span class="stat__label">章节</span>
+        </div>
+      </div>
     </section>
 
     <!-- 关卡地图（特性 1 + 5） -->
@@ -403,19 +471,29 @@ function retry() { stage.value = 'lobby' }
   color: #1a1a2e;
   text-align: center;
 }
-.hero { margin-bottom: 2.5rem; }
+.hero { margin-bottom: 1.5rem; }
 .badge {
   display: inline-block;
   font-size: 0.75rem;
-  background: #10b981;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   padding: 4px 12px;
   border-radius: 999px;
   letter-spacing: 0.1em;
   margin-bottom: 1rem;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
-.hero h1 { font-size: 2.6rem; margin: 0 0 0.5rem; letter-spacing: -0.03em; }
-.tag { font-size: 1.05rem; color: #059669; margin: 0 0 1rem; font-weight: 500; }
+.hero h1 {
+  font-size: 2.8rem;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  background: linear-gradient(135deg, #064e3b 0%, #047857 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.tag { font-size: 1rem; color: #059669; margin: 0 0 0.5rem; font-weight: 500; }
 
 .lobby__portrait { font-size: 4.5rem; margin: 1.5rem 0; animation: bob 2s ease-in-out infinite; }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
@@ -490,6 +568,66 @@ function retry() { stage.value = 'lobby' }
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
+}
+
+/* ===== 进度统计 ===== */
+.progress-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  max-width: 560px;
+  margin: 1.5rem auto 0;
+  padding: 1rem 1.25rem;
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.stat__icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.stat__num {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  font-family: ui-monospace, monospace;
+  line-height: 1;
+  margin-top: 0.25rem;
+}
+
+.stat__label {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  letter-spacing: 0.1em;
+  margin-top: 0.15rem;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 32px;
+  background: #e2e8f0;
+}
+
+@media (max-width: 480px) {
+  .progress-stats {
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+  .stat__icon { font-size: 1.2rem; }
+  .stat__num { font-size: 1rem; }
+  .stat__label { font-size: 0.65rem; }
 }
 
 .start-btn {

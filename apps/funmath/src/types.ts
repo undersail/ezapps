@@ -44,8 +44,12 @@ export interface Boss {
   emoji: string
   pool: string[]       // 出题池 Question.id[]
   required: number     // 需答对题数
-  maxRetries: number   // 单题最大重试
+  maxRetries: number   // 单题最大重试（standard 模式）
   story?: string
+  /** 限时模式（秒）：> 0 则启用倒计时，答错直接跳过 */
+  timeLimit?: number
+  /** Boss 模式：standard=标准（同题重出）/ time=限时（答错跳过） */
+  mode?: 'standard' | 'time'
 }
 
 /** 章节 */
