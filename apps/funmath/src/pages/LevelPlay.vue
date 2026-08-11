@@ -39,6 +39,7 @@ const idx = ref(0)
 const score = ref(0)
 const picked = ref<number | null>(null)
 const showRight = ref(false)
+const showHint = ref(false)   // 特性 7：讲解卡显隐
 
 const current = computed(() => levelQuestions.value[idx.value])
 const total = computed(() => levelQuestions.value.length)
@@ -51,10 +52,21 @@ function pick(o: number) {
   const right = o === current.value.answer
   if (right) score.value++
   showRight.value = true
-  setTimeout(next, 900)
+  // 特性 7：答错显示讲解卡 1.2 秒
+  if (!right && current.value.hint) {
+    setTimeout(() => {
+      showHint.value = true
+    }, 400)
+  }
+  setTimeout(next, right ? 900 : 1900)
+}
+
+function closeHint() {
+  showHint.value = false
 }
 
 function next() {
+  showHint.value = false
   if (!isLast.value) {
     idx.value++
     picked.value = null
@@ -149,6 +161,18 @@ const difficultyStars = computed(() => '⭐'.repeat(level.value?.difficulty ?? 0
     </div>
 
     <p class="hint">点击选答案</p>
+
+    <!-- 特性 7：讲解卡弹窗 -->
+    <transition name="hint-pop">
+      <div v-if="showHint && current.hint" class="hint-card" @click="closeHint">
+        <div class="hint-card__icon">💡</div>
+        <div class="hint-card__content">
+          <div class="hint-card__label">讲解卡</div>
+          <div class="hint-card__text">{{ current.hint }}</div>
+        </div>
+        <div class="hint-card__close">轻点关闭</div>
+      </div>
+    </transition>
   </div>
 
   <!-- 关卡未找到 -->
@@ -304,6 +328,64 @@ const difficultyStars = computed(() => '⭐'.repeat(level.value?.difficulty ?? 0
   margin-top: 1rem;
   color: #94a3b8;
   font-size: 0.85rem;
+}
+
+/* ===== 讲解卡 ===== */
+.hint-card {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 2px solid #fbbf24;
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 480px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 12px 32px rgba(245, 158, 11, 0.25);
+  cursor: pointer;
+  z-index: 100;
+}
+
+.hint-card__icon {
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+
+.hint-card__content {
+  flex: 1;
+  text-align: left;
+}
+
+.hint-card__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #d97706;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.15rem;
+}
+
+.hint-card__text {
+  font-size: 0.95rem;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.hint-card__close {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.hint-pop-enter-active, .hint-pop-leave-active {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hint-pop-enter-from, .hint-pop-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
 }
 
 /* ===== 关卡未找到 ===== */
