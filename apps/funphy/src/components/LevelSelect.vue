@@ -45,34 +45,34 @@ function getChapterMaxStars(chapter: ChapterDef) {
 }
 
 // === 折线图节点位置计算 ===
-const SVG_WIDTH = 300
-const NODE_H = 58  // 每个节点垂直间距
-const MILESTONE_H = 72  // 里程碑间距
-const PAD_TOP = 20
-const PAD_X = 40
+const SVG_W = 340
+const CX = SVG_W / 2
+const ZIGZAG_DX = 60      // 锯齿水平偏移量
+const LEVEL_V_GAP = 38    // 小关垂直间距（密集）
+const MILESTONE_R = 30    // 里程碑半径
+const LEVEL_R = 9         // 小关半径
+const BOSS_R = 13         // Boss半径
+const PAD_TOP = 60        // 顶部留白（防止截断）
+const PAD_BOTTOM = 80     // 底部留白（防止截断）
+const MS_TO_FIRST = 48    // 里程碑到第一个小关的间距
+const LAST_TO_NEXT = 56   // 最后一个小关到下一个里程碑的间距
 
-// 蛇形路径：每个小关的x坐标左右交替
-function getNodeX(levelIndex: number): number {
-  // 0=左, 1=右, 2=左, 3=右, 4(中/boss)=中
-  if (levelIndex === 4) return SVG_WIDTH / 2  // Boss居中
-  return levelIndex % 2 === 0 ? PAD_X + 50 : SVG_WIDTH - PAD_X - 50
-}
-
-// 计算所有节点的SVG坐标
+// 节点类型
 interface MapNode {
   type: 'milestone' | 'level' | 'boss'
   x: number
   y: number
-  level: LevelDef
+  level: LevelDef | null
   chapter: ChapterDef
   chapterIndex: number
   status: 'locked' | 'available' | 'completed'
   stars: number
 }
 
+// 计算所有节点坐标
 const allNodes = computed(() => {
   const nodes: MapNode[] = []
-  let currentY = PAD_TOP
+  let curY = PAD_TOP
 
   for (let ci = 0; ci < chapters.length; ci++) {
     const chapter = chapters[ci]
@@ -81,37 +81,48 @@ const allNodes = computed(() => {
     // 里程碑节点
     nodes.push({
       type: 'milestone',
-      x: SVG_WIDTH / 2,
-      y: currentY,
-      level: chapter.levels[0],  // placeholder
+      x: CX,
+      y: curY,
+      level: null,
       chapter,
       chapterIndex: ci,
       status: unlocked ? 'completed' : 'locked',
       stars: 0,
     })
-    currentY += MILESTONE_H
 
-    // 小关节点
+    // 小关节点：锯齿布局（左右交替）
     if (unlocked) {
       const levels = getChapterLevels(chapter)
       for (let li = 0; li < levels.length; li++) {
         const level = levels[li]
         const status = getLevelStatus(level, ci)
+        const isBoss = level.isBoss
+
+        // 锯齿交替：0=左, 1=右, 2=左, 3=右, 4(Boss)=居中
+        let x: number
+        if (isBoss) {
+          x = CX
+        } else {
+          x = li % 2 === 0 ? CX - ZIGZAG_DX : CX + ZIGZAG_DX
+        }
+
+        const y = curY + MS_TO_FIRST + li * LEVEL_V_GAP
+
         nodes.push({
-          type: level.isBoss ? 'boss' : 'level',
-          x: getNodeX(li),
-          y: currentY,
+          type: isBoss ? 'boss' : 'level',
+          x,
+          y,
           level,
           chapter,
           chapterIndex: ci,
           status,
           stars: getLevelStars(level.id),
         })
-        currentY += NODE_H
       }
+      curY += MS_TO_FIRST + (levels.length - 1) * LEVEL_V_GAP + LAST_TO_NEXT
     } else {
-      // 锁定章节：显示灰色占位
-      currentY += NODE_H * 2
+      // 锁定章节：占位间距
+      curY += MS_TO_FIRST + LEVEL_V_GAP * 2 + LAST_TO_NEXT
     }
   }
 
@@ -122,14 +133,23 @@ const allNodes = computed(() => {
 const svgHeight = computed(() => {
   if (allNodes.value.length === 0) return 400
   const lastNode = allNodes.value[allNodes.value.length - 1]
-  return lastNode.y + 60
+  return lastNode.y + PAD_BOTTOM
 })
 
-// 折线路径点（用于画连接线）
-const pathPoints = computed(() => {
-  return allNodes.value
-    .filter(n => n.type !== 'milestone')
-    .map(n => ({ x: n.x, y: n.y, status: n.status }))
+// 逐段折线（用于画连接线，区分点亮/暗色）
+const pathSegments = computed(() => {
+  const segs: { x1: number; y1: number; x2: number; y2: number; lit: boolean }[] = []
+  for (let i = 0; i < allNodes.value.length - 1; i++) {
+    const a = allNodes.value[i]
+    const b = allNodes.value[i + 1]
+    // 只连接同一章节内的节点，或跨章节的里程碑到里程碑
+    segs.push({
+      x1: a.x, y1: a.y,
+      x2: b.x, y2: b.y,
+      lit: a.status !== 'locked' && b.status !== 'locked',
+    })
+  }
+  return segs
 })
 
 // 里程碑节点
@@ -137,14 +157,36 @@ const milestoneNodes = computed(() => {
   return allNodes.value.filter(n => n.type === 'milestone')
 })
 
-// 关卡节点（非里程碑）
+// 关卡节点
 const levelNodes = computed(() => {
   return allNodes.value.filter(n => n.type !== 'milestone')
 })
 
+// 章节区域（用于画背景装饰）
+const chapterAreas = computed(() => {
+  const areas: { chapter: ChapterDef; chapterIndex: number; topY: number; bottomY: number; unlocked: boolean }[] = []
+  for (let ci = 0; ci < chapters.length; ci++) {
+    const milestone = allNodes.value.find(n => n.type === 'milestone' && n.chapterIndex === ci)
+    const chLevels = allNodes.value.filter(n => n.chapterIndex === ci && n.type !== 'milestone')
+    if (milestone) {
+      const topY = milestone.y - MILESTONE_R - 8
+      const bottomY = chLevels.length > 0
+        ? chLevels[chLevels.length - 1].y + 30
+        : milestone.y + 80
+      areas.push({
+        chapter: chapters[ci],
+        chapterIndex: ci,
+        topY,
+        bottomY,
+        unlocked: isChapterUnlocked(ci),
+      })
+    }
+  }
+  return areas
+})
+
 function onNodeClick(node: MapNode) {
   if (node.type === 'milestone') {
-    // 点击里程碑：进入该章节第一关
     const chapter = node.chapter
     const allLevels = getChapterLevels(chapter)
     const firstAvailable = allLevels.find(l => isLevelUnlocked(l, node.chapterIndex))
@@ -154,6 +196,7 @@ function onNodeClick(node: MapNode) {
     return
   }
   if (node.status === 'locked') return
+  if (!node.level) return
   emit('select', node.level, node.chapter)
 }
 </script>
@@ -175,71 +218,126 @@ function onNodeClick(node: MapNode) {
 
     <div class="wm-scroll">
       <svg
-        :viewBox="`0 0 ${SVG_WIDTH} ${svgHeight}`"
+        :viewBox="`0 0 ${SVG_W} ${svgHeight}`"
         class="route-svg"
         preserveAspectRatio="xMidYMin meet"
       >
-        <!-- 折线连接 -->
-        <polyline
-          v-if="pathPoints.length > 1"
-          :points="pathPoints.map(p => `${p.x},${p.y}`).join(' ')"
-          fill="none"
-          stroke="rgba(255,255,255,0.12)"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-        <!-- 点亮段折线 -->
-        <polyline
-          v-if="pathPoints.length > 1"
-          :points="pathPoints.filter(p => p.status !== 'locked').map(p => `${p.x},${p.y}`).join(' ')"
-          fill="none"
-          stroke="rgba(16, 185, 129, 0.5)"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
+        <defs>
+          <!-- 章节背景渐变 -->
+          <linearGradient v-for="(area, ai) in chapterAreas" :key="`grad-${ai}`"
+            :id="`chapterBg${ai}`" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" :stop-color="area.chapter.bgGradient[0]" stop-opacity="0.4" />
+            <stop offset="100%" :stop-color="area.chapter.bgGradient[1]" stop-opacity="0.15" />
+          </linearGradient>
+          <!-- 发光滤镜 -->
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
 
-        <!-- 里程碑节点 -->
+        <!-- ===== 章节背景区域 ===== -->
+        <g v-for="(area, ai) in chapterAreas" :key="`area-${ai}`">
+          <!-- 背景渐变区块 -->
+          <rect
+            :x="8" :y="area.topY"
+            :width="SVG_W - 16"
+            :height="area.bottomY - area.topY"
+            :fill="`url(#chapterBg${ai})`"
+            rx="16"
+          />
+          <!-- 章节主图emoji背景（大半透明） -->
+          <text
+            :x="CX + 60" :y="(area.topY + area.bottomY) / 2 + 10"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            font-size="72"
+            opacity="0.06"
+          >{{ area.chapter.emoji }}</text>
+          <!-- 左侧小emoji装饰 -->
+          <text
+            :x="28" :y="area.topY + 28"
+            text-anchor="middle"
+            dominant-baseline="middle"
+            font-size="16"
+            opacity="0.15"
+          >{{ area.chapter.emoji }}</text>
+        </g>
+
+        <!-- ===== 折线连接（逐段绘制） ===== -->
+        <g v-for="(seg, si) in pathSegments" :key="`seg-${si}`">
+          <!-- 暗色底线 -->
+          <line
+            :x1="seg.x1" :y1="seg.y1"
+            :x2="seg.x2" :y2="seg.y2"
+            stroke="rgba(255,255,255,0.08)"
+            stroke-width="2.5"
+            stroke-linecap="round"
+          />
+          <!-- 点亮线 -->
+          <line
+            v-if="seg.lit"
+            :x1="seg.x1" :y1="seg.y1"
+            :x2="seg.x2" :y2="seg.y2"
+            stroke="rgba(16,185,129,0.6)"
+            stroke-width="2.5"
+            stroke-linecap="round"
+          />
+        </g>
+
+        <!-- ===== 里程碑节点 ===== -->
         <g v-for="(node, ni) in milestoneNodes" :key="`ms-${ni}`"
           class="node-milestone" :class="{ locked: !isChapterUnlocked(node.chapterIndex) }"
           @click="onNodeClick(node)"
         >
-          <!-- 里程碑大圆 -->
-          <circle :cx="node.x" :cy="node.y" r="28"
-            :fill="isChapterUnlocked(node.chapterIndex) ? node.chapter.bgGradient[1] + 'cc' : '#1e293b'"
-            :stroke="isChapterUnlocked(node.chapterIndex) ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'"
+          <!-- 外圈光晕 -->
+          <circle :cx="node.x" :cy="node.y" :r="MILESTONE_R + 8"
+            fill="none"
+            :stroke="isChapterUnlocked(node.chapterIndex) ? node.chapter.bgGradient[1] + '40' : 'rgba(255,255,255,0.04)'"
             stroke-width="2"
+            class="milestone-glow"
           />
-          <text :x="node.x" :y="node.y - 4" text-anchor="middle" dominant-baseline="middle"
-            font-size="22">{{ node.chapter.emoji }}</text>
-          <text :x="node.x" :y="node.y + 14" text-anchor="middle"
-            font-size="8" fill="#94a3b8">{{ node.chapter.title }}</text>
-          <!-- 章节星星 -->
+          <!-- 里程碑大圆 -->
+          <circle :cx="node.x" :cy="node.y" :r="MILESTONE_R"
+            :fill="isChapterUnlocked(node.chapterIndex) ? node.chapter.bgGradient[1] + 'cc' : '#1e293b'"
+            :stroke="isChapterUnlocked(node.chapterIndex) ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.08)'"
+            stroke-width="2.5"
+          />
+          <!-- emoji -->
+          <text :x="node.x" :y="node.y - 3" text-anchor="middle" dominant-baseline="middle"
+            font-size="24">{{ node.chapter.emoji }}</text>
+          <!-- 章节名 -->
+          <text :x="node.x" :y="node.y + 16" text-anchor="middle"
+            font-size="9" :fill="isChapterUnlocked(node.chapterIndex) ? '#c4b5fd' : '#475569'"
+          >{{ node.chapter.title }}</text>
+          <!-- 星星统计 -->
           <text v-if="isChapterUnlocked(node.chapterIndex)"
-            :x="node.x" :y="node.y + 42" text-anchor="middle"
+            :x="node.x" :y="node.y + MILESTONE_R + 16" text-anchor="middle"
             font-size="9" fill="#fbbf24">
             ⭐{{ getChapterStars(node.chapter) }}/{{ getChapterMaxStars(node.chapter) }}
           </text>
           <text v-else
-            :x="node.x" :y="node.y + 42" text-anchor="middle"
-            font-size="10" fill="#475569">🔒</text>
+            :x="node.x" :y="node.y + MILESTONE_R + 16" text-anchor="middle"
+            font-size="11" fill="#475569">🔒</text>
         </g>
 
-        <!-- 关卡节点 -->
+        <!-- ===== 关卡节点 ===== -->
         <g v-for="(node, ni) in levelNodes" :key="`lv-${ni}`"
           class="node-level"
           :class="[node.status, { boss: node.type === 'boss' }]"
           @click="onNodeClick(node)"
         >
-          <!-- 外圈光晕 -->
+          <!-- 可用状态脉冲光晕 -->
           <circle v-if="node.status === 'available' && node.type === 'boss'"
-            :cx="node.x" :cy="node.y" r="18"
+            :cx="node.x" :cy="node.y" :r="BOSS_R + 7"
             fill="none" stroke="rgba(245,158,11,0.4)" stroke-width="1.5"
             class="pulse-ring"
           />
           <circle v-else-if="node.status === 'available'"
-            :cx="node.x" :cy="node.y" r="14"
+            :cx="node.x" :cy="node.y" :r="LEVEL_R + 5"
             fill="none" stroke="rgba(147,51,234,0.4)" stroke-width="1.5"
             class="pulse-ring"
           />
@@ -247,7 +345,7 @@ function onNodeClick(node: MapNode) {
           <!-- 节点圆 -->
           <circle
             :cx="node.x" :cy="node.y"
-            :r="node.type === 'boss' ? 14 : 10"
+            :r="node.type === 'boss' ? BOSS_R : LEVEL_R"
             :fill="node.status === 'completed' ? 'rgba(16,185,129,0.25)'
               : node.status === 'available' ? (node.type === 'boss' ? 'rgba(245,158,11,0.2)' : 'rgba(147,51,234,0.2)')
               : 'rgba(255,255,255,0.05)'"
@@ -261,20 +359,24 @@ function onNodeClick(node: MapNode) {
           <text v-if="node.type === 'boss'" :x="node.x" :y="node.y + 1"
             text-anchor="middle" dominant-baseline="middle" font-size="14">👑</text>
           <text v-else-if="node.status === 'completed'" :x="node.x" :y="node.y + 1"
-            text-anchor="middle" dominant-baseline="middle" font-size="11">✅</text>
+            text-anchor="middle" dominant-baseline="middle" font-size="9">✅</text>
           <text v-else-if="node.status === 'locked'" :x="node.x" :y="node.y + 1"
-            text-anchor="middle" dominant-baseline="middle" font-size="9">🔒</text>
+            text-anchor="middle" dominant-baseline="middle" font-size="7">🔒</text>
           <text v-else :x="node.x" :y="node.y + 1"
-            text-anchor="middle" dominant-baseline="middle" font-size="9" fill="#c4b5fd">⭐</text>
+            text-anchor="middle" dominant-baseline="middle" font-size="8" fill="#c4b5fd">⭐</text>
 
-          <!-- 关卡名 -->
-          <text :x="node.x" :y="node.y + (node.type === 'boss' ? 24 : 18)"
-            text-anchor="middle" font-size="7"
+          <!-- 关卡名（在节点侧方显示，避免重叠） -->
+          <text
+            :x="node.x + (node.x <= CX ? -LEVEL_R - 6 : LEVEL_R + 6)"
+            :y="node.y + 3"
+            :text-anchor="node.x <= CX ? 'end' : 'start'"
+            font-size="8"
             :fill="node.status === 'locked' ? '#475569' : '#94a3b8'"
-          >{{ node.level.name }}</text>
+          >{{ node.level?.name }}</text>
 
-          <!-- 星星 -->
-          <g v-if="node.status === 'completed'" :transform="`translate(${node.x - 12}, ${node.y + (node.type === 'boss' ? 30 : 24)})`">
+          <!-- 星星评分 -->
+          <g v-if="node.status === 'completed' && node.level" 
+            :transform="`translate(${node.x - 12}, ${node.y + (node.type === 'boss' ? BOSS_R + 8 : LEVEL_R + 8)})`">
             <text v-for="i in 3" :key="i" :x="(i - 1) * 9" font-size="7"
               :fill="i <= node.stars ? '#fbbf24' : '#475569'"
             >{{ i <= node.stars ? '★' : '☆' }}</text>
@@ -290,6 +392,7 @@ function onNodeClick(node: MapNode) {
   max-width: 500px;
   margin: 0 auto;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   color: #e2e8f0;
@@ -299,11 +402,11 @@ function onNodeClick(node: MapNode) {
 
 .wm-header {
   text-align: center;
-  padding: 1rem 1.5rem 0.5rem;
+  padding: 0.8rem 1.5rem 0.3rem;
   flex-shrink: 0;
 }
 .wm-header h1 {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   margin: 0;
   text-shadow: 0 0 20px rgba(147, 51, 234, 0.3);
 }
@@ -311,7 +414,7 @@ function onNodeClick(node: MapNode) {
   display: flex;
   justify-content: center;
   gap: 16px;
-  margin-top: 0.4rem;
+  margin-top: 0.3rem;
   font-size: 0.85rem;
   color: #94a3b8;
 }
@@ -319,7 +422,7 @@ function onNodeClick(node: MapNode) {
 .wm-actions {
   display: flex;
   gap: 8px;
-  padding: 0.5rem 1.5rem;
+  padding: 0.4rem 1.5rem;
   flex-shrink: 0;
 }
 .action-btn {
@@ -340,12 +443,14 @@ function onNodeClick(node: MapNode) {
 .wm-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 0 0.5rem 2rem;
+  padding: 0.5rem 0.25rem 2rem;
+  -webkit-overflow-scrolling: touch;
 }
 
 .route-svg {
   width: 100%;
   display: block;
+  min-height: 100%;
 }
 
 .node-milestone {
@@ -377,6 +482,10 @@ function onNodeClick(node: MapNode) {
   animation: ring-pulse 2s ease-in-out infinite;
 }
 
+.milestone-glow {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
 @keyframes node-pulse {
   0%, 100% { filter: brightness(1); }
   50% { filter: brightness(1.3); }
@@ -386,7 +495,11 @@ function onNodeClick(node: MapNode) {
   50% { filter: brightness(1.4); }
 }
 @keyframes ring-pulse {
-  0%, 100% { opacity: 0.3; r: 14; }
-  50% { opacity: 0.8; r: 18; }
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
 }
 </style>
