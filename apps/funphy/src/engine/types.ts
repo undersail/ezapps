@@ -5,6 +5,7 @@ export interface PhysicsConfig {
   bounce: number        // 弹性系数（0=无弹性，1=完美弹性）
   thrust: number        // 推力大小（game units/frame²）
   boundsBehavior: 'bounce' | 'wrap' | 'none'  // 边界行为
+  maxSpeed?: number     // 软限速：速度越接近此值推力效率越低（可选）
 }
 
 // 2D向量
@@ -33,6 +34,10 @@ export interface FeiFei extends Entity {
   skinId: string
   hitTimer: number  // 被撞后的闪烁计时
   winTimer: number  // 通关动画计时
+  dashTimer: number  // 冲刺剩余帧（>0 时推力增强）
+  dashCooldown: number  // 冲刺冷却帧
+  dashDirX: number  // 冲刺方向（归一化）
+  dashDirY: number
 }
 
 // 障碍物类型（platform=单向平台：仅从上方碰撞）

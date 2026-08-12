@@ -11,6 +11,8 @@ export interface InputState {
   joystickX: number  // -1 ~ 1
   joystickY: number  // -1 ~ 1
   joystickActive: boolean
+  dashPressed: boolean  // 冲刺按键（Shift/空格，一次性事件）
+  retryPressed: boolean // 快速重试（R 键，一次性事件）
 }
 
 export function useInput() {
@@ -24,6 +26,8 @@ export function useInput() {
     joystickX: 0,
     joystickY: 0,
     joystickActive: false,
+    dashPressed: false,
+    retryPressed: false,
   })
   
   let keys = new Set<string>()
@@ -32,7 +36,10 @@ export function useInput() {
     const key = e.key.toLowerCase()
     keys.add(key)
     updateFromKeys()
-    if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'escape', ' '].includes(key)) {
+    // 一次性事件
+    if (key === 'shift' || key === ' ') input.dashPressed = true
+    if (key === 'r') input.retryPressed = true
+    if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'escape', ' ', 'shift'].includes(key)) {
       e.preventDefault()
     }
   }

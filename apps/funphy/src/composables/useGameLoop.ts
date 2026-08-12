@@ -46,6 +46,10 @@ export function useGameLoop() {
       skinId,
       hitTimer: 0,
       winTimer: 0,
+      dashTimer: 0,
+      dashCooldown: 0,
+      dashDirX: 1,
+      dashDirY: 0,
     }
     
     const obstacles: Obstacle[] = level.obstacles.map(o => ({
@@ -247,6 +251,27 @@ export function useGameLoop() {
     collisions.value = 0
   }
   
+  /** 冲刺触发：沿摇杆/速度方向短时爆发推力（1.6×，0.3s，冷却 1.5s） */
+  function triggerDash(rt: GameRuntime): void {
+    const f = rt.feifei
+    if (f.dashCooldown > 0) return
+    // 方向：摇杆优先，其次当前速度方向，默认向右
+    let dx = f.thrustDir.x
+    let dy = f.thrustDir.y
+    if (dx === 0 && dy === 0) {
+      const sp = Math.sqrt(f.vel.x ** 2 + f.vel.y ** 2)
+      if (sp > 0.1) { dx = f.vel.x / sp; dy = f.vel.y / sp }
+      else { dx = 1; dy = 0 }
+    }
+    const mag = Math.sqrt(dx * dx + dy * dy)
+    if (mag < 0.01) return
+    f.dashDirX = dx / mag
+    f.dashDirY = dy / mag
+    f.dashTimer = 18      // 0.3s
+    f.dashCooldown = 90   // 1.5s
+    if (soundState.enabled) Sound.playThrust()
+  }
+  
   /** 相机跟随：平滑追踪飞飞 + 速度前瞻 + 边界钳制 */
   function updateCamera(rt: GameRuntime): void {
     if (!renderer) return
@@ -326,6 +351,15 @@ export function useGameLoop() {
       return
     }
     
+    // 冲刺触发（Shift/空格 或 摇杆双击）
+    if (input.dashPressed) {
+      input.dashPressed = false
+      triggerDash(rt)
+    }
+    // dash 计时递减（每物理帧一次，避免子步进加速衰减）
+    if (rt.feifei.dashTimer > 0) rt.feifei.dashTimer--
+    if (rt.feifei.dashCooldown > 0) rt.feifei.dashCooldown--
+    
     // 固定步长物理更新（60Hz 节拍）：帧率再高物理也不会变快
     timeAccumulator += realDt
     let steps = 0
@@ -336,9 +370,9 @@ export function useGameLoop() {
     }
     if (steps >= MAX_PHYSICS_STEPS) timeAccumulator = 0  // 积压过多直接丢弃（防死亡螺旋）
     
-    // 消费事件 → 播放音效
-    if (soundState.enabled) {
-      for (const event of rt.events) {
+    // 消费事件 → 音效 + 屏幕震动 + 粒子
+    for (const event of rt.events) {
+      if (soundState.enabled) {
         if (event === 'collect') Sound.playCollect()
         else if (event === 'bounce') Sound.playBounce()
         else if (event === 'hit') Sound.playHit()
@@ -347,6 +381,12 @@ export function useGameLoop() {
         else if (event === 'portal') Sound.playCollect()
         else if (event === 'hazard') Sound.playHit()
       }
+      // 屏幕震动（幅度按事件分级）
+      if (event === 'hit') renderer?.setShake(3.5)
+      else if (event === 'bounce') renderer?.setShake(1.2)
+      // 粒子爆发
+      else if (event === 'collect') renderer?.spawnParticles(rt.feifei.pos.x, rt.feifei.pos.y, 'collect')
+      else if (event === 'spring') renderer?.spawnParticles(rt.feifei.pos.x, rt.feifei.pos.y, 'spring')
     }
     rt.events.length = 0
     

@@ -49,8 +49,24 @@ export class PhysicsEngine {
     let fy = 0
     
     // 推力：优先使用摇杆方向（thrustDir），否则回退到4方向
-    const thrust = this.config.thrust
-    if (feifei.thrustDir.x !== 0 || feifei.thrustDir.y !== 0) {
+    let thrust = this.config.thrust
+    // 软限速：速度越接近 maxSpeed，推力效率越低（自然形成终端速度，手感更稳）
+    const maxS = this.config.maxSpeed
+    if (maxS && maxS > 0) {
+      const sp = Math.sqrt(feifei.vel.x ** 2 + feifei.vel.y ** 2)
+      const eff = Math.max(0, 1 - (sp / maxS) ** 2)
+      thrust *= eff
+    }
+    // 冲刺：dashTimer 激活期间推力 ×1.6（计时递减在游戏循环做，避免子步进加速衰减）
+    if (feifei.dashTimer > 0) {
+      thrust *= 1.6
+    }
+    
+    if (feifei.dashTimer > 0) {
+      // 冲刺：强制沿冲刺方向推力（覆盖输入）
+      fx += thrust * feifei.dashDirX
+      fy += thrust * feifei.dashDirY
+    } else if (feifei.thrustDir.x !== 0 || feifei.thrustDir.y !== 0) {
       fx += thrust * feifei.thrustDir.x
       fy += thrust * feifei.thrustDir.y
     } else {

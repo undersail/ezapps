@@ -25,6 +25,12 @@ export class SceneRenderer {
   // 章节背景色
   private bgGradient: [string, string] = ['#0a0a2e', '#1a1a4e']
   
+  // 屏幕震动幅度（像素），每帧衰减
+  private shake: number = 0
+  
+  // 粒子系统（世界坐标）
+  private particles: { x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number; color: string }[] = []
+  
   // 视差星空缓存（屏幕空间 + 视差偏移系数）
   private stars: { x: number, y: number, size: number, brightness: number, parallax: number }[] = []
   
@@ -77,9 +83,62 @@ export class SceneRenderer {
     return { width: this.viewW, height: this.viewH, scale: this.scale }
   }
   
+  /** 屏幕震动（像素幅度） */
+  setShake(amount: number): void {
+    this.shake = Math.max(this.shake, amount)
+  }
+  
+  /** 粒子爆发 */
+  spawnParticles(x: number, y: number, kind: 'collect' | 'spring'): void {
+    const n = kind === 'collect' ? 10 : 6
+    for (let i = 0; i < n; i++) {
+      const angle = Math.random() * Math.PI * 2
+      const speed = kind === 'collect' ? (Math.random() * 0.5 + 0.2) : (Math.random() * 0.4 + 0.1)
+      this.particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - (kind === 'spring' ? 0.3 : 0),
+        life: 24,
+        maxLife: 24,
+        size: Math.random() * 1.5 + 1,
+        color: kind === 'collect' ? '#ffd700' : '#fb923c',
+      })
+    }
+    if (this.particles.length > 120) this.particles.splice(0, this.particles.length - 120)
+  }
+  
+  private updateParticles(): void {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i]
+      p.life--
+      if (p.life <= 0) { this.particles.splice(i, 1); continue }
+      p.x += p.vx
+      p.y += p.vy
+      p.vy += 0.01  // 轻微下坠
+    }
+  }
+  
+  private drawParticles(): void {
+    const ctx = this.ctx
+    for (const p of this.particles) {
+      const alpha = p.life / p.maxLife
+      ctx.globalAlpha = alpha
+      ctx.fillStyle = p.color
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.globalAlpha = 1
+  }
+  
   render(runtime: GameRuntime, skin: SkinDef): void {
     const ctx = this.ctx
     ctx.clearRect(0, 0, this.width, this.height)
+    
+    // 震动衰减 + 粒子更新
+    this.shake *= 0.88
+    if (this.shake < 0.05) this.shake = 0
+    this.updateParticles()
     
     // 背景（全屏，星空视差）
     this.drawBackground(runtime)
@@ -92,7 +151,10 @@ export class SceneRenderer {
     const panY = this.worldHeight > this.viewH
       ? -this.cameraY * this.scale
       : (this.height - this.worldHeight * this.scale) / 2
-    ctx.translate(panX, panY)
+    // 屏幕震动（像素级随机偏移）
+    const shakeX = (Math.random() - 0.5) * this.shake
+    const shakeY = (Math.random() - 0.5) * this.shake
+    ctx.translate(panX + shakeX, panY + shakeY)
     ctx.scale(this.scale, this.scale)
     
     // 视口可见范围（世界坐标，加一点余量）
@@ -143,6 +205,9 @@ export class SceneRenderer {
     
     // 飞飞
     this.drawFeiFei(runtime.feifei, skin)
+    
+    // 粒子（世界坐标，最上层）
+    this.drawParticles()
     
     ctx.restore()
   }
@@ -335,7 +400,7 @@ export class SceneRenderer {
     ctx.lineWidth = 1
     ctx.strokeRect(conv.x + 0.5, conv.y + 0.5, conv.width - 1, conv.height - 1)
     // 流动箭头（沿 forceX 方向）
-    const dir = Math.sign(conv.forceX) || 1
+    const dir = conv.forceX >= 0 ? 1 : -1
     const step = 12
     const off = (Date.now() / 40) % step
     ctx.fillStyle = 'rgba(147, 197, 253, 0.6)'
@@ -458,21 +523,23 @@ export class SceneRenderer {
   
   private drawFlame(ctx: CanvasRenderingContext2D, skin: SkinDef, feifei: FeiFei): void {
     const flicker = Math.random() * 0.3 + 0.7
-    const flameLen = (8 + Math.random() * 4) * flicker
+    // 冲刺时尾焰加长加亮
+    const dashBoost = feifei.dashTimer > 0 ? 2.2 : 1
+    const flameLen = (8 + Math.random() * 4) * flicker * dashBoost
     
     ctx.save()
     
     // 尾焰在机身后面
     const gradient = ctx.createLinearGradient(-feifei.radius - flameLen, 0, -feifei.radius, 0)
     gradient.addColorStop(0, 'rgba(255,255,255,0)')
-    gradient.addColorStop(0.5, skin.flameColor + '88')
+    gradient.addColorStop(0.5, skin.flameColor + (feifei.dashTimer > 0 ? 'cc' : '88'))
     gradient.addColorStop(1, skin.flameColor)
     
     ctx.fillStyle = gradient
     ctx.beginPath()
-    ctx.moveTo(-feifei.radius, -3)
+    ctx.moveTo(-feifei.radius, -3 * dashBoost)
     ctx.lineTo(-feifei.radius - flameLen, 0)
-    ctx.lineTo(-feifei.radius, 3)
+    ctx.lineTo(-feifei.radius, 3 * dashBoost)
     ctx.closePath()
     ctx.fill()
     

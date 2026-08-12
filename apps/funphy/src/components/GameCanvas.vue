@@ -88,11 +88,15 @@ function handleResume() {
 const joystickBase = ref<HTMLDivElement | null>(null)
 const JOYSTICK_RADIUS = 56  // 摇杆底座半径
 const KNOB_RADIUS = 22      // 摇杆把手半径
+const JOYSTICK_DEADZONE = 0.15  // 摇杆死区（归一化）
 const knobX = ref(0)
 const knobY = ref(0)
 let joystickTouchId: number | null = null
 let joystickCenterX = 0
 let joystickCenterY = 0
+// 双击冲刺检测
+let lastFullTiltDir: string | null = null
+let lastFullTiltTime = 0
 
 function onJoystickTouchStart(e: TouchEvent) {
   if (joystickTouchId !== null) return
@@ -167,19 +171,57 @@ function updateJoystick(clientX: number, clientY: number) {
   knobY.value = dy
   
   // 归一化方向向量（-1 ~ 1）
-  const normX = dx / maxDist
-  const normY = dy / maxDist
-  setJoystick(normX, normY, Math.abs(normX) > 0.1 || Math.abs(normY) > 0.1)
+  let normX = dx / maxDist
+  let normY = dy / maxDist
+  const mag = Math.sqrt(normX * normX + normY * normY)
+  
+  if (mag < JOYSTICK_DEADZONE) {
+    // 死区内：置零，防止漂移
+    normX = 0
+    normY = 0
+  } else {
+    // 死区重映射 + 指数响应曲线（小幅输入更精细）
+    const remap = Math.min(1, (mag - JOYSTICK_DEADZONE) / (1 - JOYSTICK_DEADZONE))
+    const curved = Math.pow(remap, 1.5)
+    normX = (normX / mag) * curved
+    normY = (normY / mag) * curved
+    
+    // 双击检测：400ms 内满行程推同一方向 → 冲刺
+    const now = Date.now()
+    const dir = Math.abs(normX) > Math.abs(normY) ? (normX > 0 ? 'r' : 'l') : (normY > 0 ? 'd' : 'u')
+    if (remap > 0.85) {
+      if (lastFullTiltDir === dir && now - lastFullTiltTime < 400) {
+        input.dashPressed = true  // 触发冲刺
+        lastFullTiltDir = null
+      } else {
+        lastFullTiltDir = dir
+        lastFullTiltTime = now
+      }
+    }
+  }
+  
+  setJoystick(normX, normY, Math.abs(normX) > 0.01 || Math.abs(normY) > 0.01)
+}
+
+// 快速重试：失败/通关界面按 R 或 空格 直接重开
+function onQuickRetryKey(e: KeyboardEvent) {
+  const k = e.key.toLowerCase()
+  if ((k === 'r' || k === ' ') && (gameState.value === 'lost' || gameState.value === 'won')) {
+    e.preventDefault()
+    handleRetry()
+  }
 }
 
 // 全局鼠标松开
 onMounted(() => {
   window.addEventListener('mouseup', onJoystickMouseUp)
   window.addEventListener('mousemove', onJoystickMouseMove)
+  window.addEventListener('keydown', onQuickRetryKey)
 })
 onUnmounted(() => {
   window.removeEventListener('mouseup', onJoystickMouseUp)
   window.removeEventListener('mousemove', onJoystickMouseMove)
+  window.removeEventListener('keydown', onQuickRetryKey)
 })
 </script>
 
@@ -265,7 +307,7 @@ onUnmounted(() => {
         ></div>
       </div>
       <div class="keyboard-hint-desktop">
-        WASD / 方向键 操控 · ESC 暂停
+        WASD / 方向键 操控 · Shift 冲刺 · ESC 暂停 · R 快速重试
       </div>
     </div>
   </div>
