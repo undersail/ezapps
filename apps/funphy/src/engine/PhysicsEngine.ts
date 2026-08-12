@@ -11,6 +11,12 @@ export class PhysicsEngine {
     this.worldHeight = worldHeight
   }
 
+  /** 更新世界边界（适配Canvas可视范围） */
+  updateWorldBounds(width: number, height: number): void {
+    this.worldWidth = width
+    this.worldHeight = height
+  }
+
   update(runtime: GameRuntime, dt: number): void {
     const { feifei, obstacles, collectibles, triggers, goal } = runtime
     

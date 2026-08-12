@@ -215,6 +215,9 @@ export function useGameLoop() {
     // 渲染
     const skin = skins.find(s => s.id === rt.skinId) || skins[0]
     renderer.setWorldSize(rt.level.worldWidth, rt.level.worldHeight)
+    // 同步物理引擎世界边界到Canvas可视范围，消除黑边
+    const visibleSize = renderer.getVisibleWorldSize()
+    engine.updateWorldBounds(visibleSize.width, visibleSize.height)
     renderer.render(rt, skin)
     
     rafId = requestAnimationFrame(gameLoop)
