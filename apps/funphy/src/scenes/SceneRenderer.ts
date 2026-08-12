@@ -9,6 +9,8 @@ export class SceneRenderer {
   private offsetY: number = 0
   private visibleWorldWidth: number = 0
   private visibleWorldHeight: number = 0
+  private contentOffsetX: number = 0
+  private contentOffsetY: number = 0
   
   // 星空背景缓存
   private stars: { x: number, y: number, size: number, brightness: number }[] = []
@@ -28,23 +30,28 @@ export class SceneRenderer {
   }
   
   setWorldSize(worldWidth: number, worldHeight: number): void {
-    // 计算缩放：让游戏世界填满整个canvas，不留黑边
+    // 统一缩放，保持物体不变形
     const scaleX = this.width / worldWidth
     const scaleY = this.height / worldHeight
-    // 使用统一缩放，但将世界可视范围扩展到填满canvas
     this.scale = Math.min(scaleX, scaleY)
-    this.offsetX = 0
-    this.offsetY = 0
-    // 计算实际可视世界范围（可能比原始世界大）
+    // 可视世界范围（可能比原始世界大，用于填满Canvas）
     this.visibleWorldWidth = this.width / this.scale
     this.visibleWorldHeight = this.height / this.scale
+    // 世界内容在可视范围中的偏移（居中）
+    this.contentOffsetX = (this.visibleWorldWidth - worldWidth) / 2
+    this.contentOffsetY = (this.visibleWorldHeight - worldHeight) / 2
+    // 渲染时从Canvas左上角开始，不偏移
+    this.offsetX = 0
+    this.offsetY = 0
   }
   
-  /** 获取当前可视世界范围，供物理引擎使用 */
-  getVisibleWorldSize(): { width: number; height: number; scale: number } {
+  /** 获取当前可视世界范围和内容偏移，供物理引擎和游戏循环使用 */
+  getVisibleWorldSize(): { width: number; height: number; contentOffsetX: number; contentOffsetY: number; scale: number } {
     return {
       width: this.visibleWorldWidth,
       height: this.visibleWorldHeight,
+      contentOffsetX: this.contentOffsetX,
+      contentOffsetY: this.contentOffsetY,
       scale: this.scale,
     }
   }

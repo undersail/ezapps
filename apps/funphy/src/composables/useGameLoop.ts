@@ -145,7 +145,19 @@ export function useGameLoop() {
     const rt = createRuntime(level, skinId)
     runtime.value = rt
     
-    engine = new PhysicsEngine(level.physics, level.worldWidth, level.worldHeight)
+    // 根据Canvas宽高比计算扩展后的世界尺寸和内容偏移
+    let worldW = level.worldWidth
+    let worldH = level.worldHeight
+    if (renderer) {
+      renderer.setWorldSize(level.worldWidth, level.worldHeight)
+      const vs = renderer.getVisibleWorldSize()
+      worldW = vs.width
+      worldH = vs.height
+      // 将所有物体坐标加上居中偏移，使世界内容在扩展后的可视范围中居中
+      applyContentOffset(rt, vs.contentOffsetX, vs.contentOffsetY)
+    }
+    
+    engine = new PhysicsEngine(level.physics, worldW, worldH)
     
     gameState.value = 'playing'
     timeAccumulator = 0
@@ -156,6 +168,28 @@ export function useGameLoop() {
     stardustCollected.value = 0
     totalStardustInLevel.value = rt.totalStardust
     collisions.value = 0
+  }
+  
+  /** 将所有物体坐标加上居中偏移，使世界内容在扩展后的可视范围中居中 */
+  function applyContentOffset(rt: GameRuntime, ox: number, oy: number): void {
+    rt.feifei.pos.x += ox
+    rt.feifei.pos.y += oy
+    for (const obs of rt.obstacles) {
+      obs.x += ox
+      obs.y += oy
+      obs.originX += ox
+      obs.originY += oy
+    }
+    for (const col of rt.collectibles) {
+      col.x += ox
+      col.y += oy
+    }
+    for (const trigger of rt.triggers) {
+      trigger.x += ox
+      trigger.y += oy
+    }
+    rt.goal.x += ox
+    rt.goal.y += oy
   }
   
   function gameLoop(timestamp: number) {
@@ -215,9 +249,6 @@ export function useGameLoop() {
     // 渲染
     const skin = skins.find(s => s.id === rt.skinId) || skins[0]
     renderer.setWorldSize(rt.level.worldWidth, rt.level.worldHeight)
-    // 同步物理引擎世界边界到Canvas可视范围，消除黑边
-    const visibleSize = renderer.getVisibleWorldSize()
-    engine.updateWorldBounds(visibleSize.width, visibleSize.height)
     renderer.render(rt, skin)
     
     rafId = requestAnimationFrame(gameLoop)
