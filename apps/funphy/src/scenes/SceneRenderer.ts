@@ -61,6 +61,10 @@ export class SceneRenderer {
     this.generateStars()
     // 视口随画布尺寸变化，重新计算
     if (this.worldWidth > 0) this.setWorldSize(this.worldWidth, this.worldHeight)
+    // V2 跑酷视口（固定 140×75 世界单位）
+    this.scale = height / 75
+    this.viewH = 75
+    this.viewW = Math.min(140, width / this.scale)
   }
   
   getWidth(): number { return this.width }
@@ -409,7 +413,7 @@ export class SceneRenderer {
   
   /** 获取跑酷视口尺寸（世界单位）和缩放 */
   getRunnerViewSize(): { width: number; height: number; scale: number } {
-    return { width: 140, height: 75, scale: this.height / 75 }
+    return { width: this.viewW || 140, height: 75, scale: this.height / 75 }
   }
   
   private drawBackground(runtime: GameRuntime): void {

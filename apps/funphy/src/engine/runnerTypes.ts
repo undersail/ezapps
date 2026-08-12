@@ -110,12 +110,13 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
     const def = level.spawns[runtime.nextSpawnIndex]
     if (def.at > runtime.progress) break
     runtime.nextSpawnIndex++
+    const sx = Math.min(Math.max(def.x, 8), viewW - 8)  // 钳制到视口内
     if (def.obstacle) {
       runtime.obstacles.push({
         id: `o_${def.at}_${def.x}`,
         kind: def.obstacle.kind,
         style: def.obstacle.style,
-        x: def.x,
+        x: sx,
         y: -20,
         width: def.obstacle.width,
         height: def.obstacle.height,
@@ -127,10 +128,10 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
       })
     }
     if (def.gem) {
-      runtime.gemsArr.push({ id: `g_${def.at}_${def.x}`, x: def.x, y: -20, collected: false })
+      runtime.gemsArr.push({ id: `g_${def.at}_${def.x}`, x: sx, y: -20, collected: false })
     }
     if (def.energy) {
-      runtime.energyBlocks.push({ id: `e_${def.at}_${def.x}`, x: def.x, y: -20, collected: false })
+      runtime.energyBlocks.push({ id: `e_${def.at}_${def.x}`, x: sx, y: -20, collected: false })
     }
   }
   // 更新下落

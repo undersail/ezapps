@@ -12,20 +12,21 @@ const START_ARMOR = 3
 
 export function useRunnerLoop() {
   const canvasRef = ref<HTMLCanvasElement | null>(null)
-  const gameState = ref<'playing' | 'won' | 'lost'>('playing')
+  const gameState = ref<'playing' | 'paused' | 'won' | 'lost'>('playing')
   const runtime = ref<RunnerRuntime | null>(null) as Ref<RunnerRuntime | null>
   const failText = ref('')
 
-  // 输入
-  const stickX = ref(0)   // 左摇杆 -1~1
-  const stickY = ref(0)
-  const throttle = ref(0) // 右推杆 -1~1（前推正=推进，后拉负=刹车）
+  // 输入（单摇杆模型）
+  const stickX = ref(0)   // 摇杆 X：左右移动 -1~1
+  const stickY = ref(0)   // 摇杆 Y：上推=加速(+1)，下拉=刹车(-1)
+  const throttle = ref(0) // 派生：油门（stickY 上推为正）
 
   // HUD
   const armor = ref(START_ARMOR)
   const energy = ref(100)
   const gems = ref(0)
   const progressPct = ref(0)
+  const elapsedTime = ref(0)
 
   const soundState = useSound()
 
@@ -33,6 +34,14 @@ export function useRunnerLoop() {
   let lastTime = 0
   let timeAccumulator = 0
   const PHYSICS_FRAME = 1 / 60
+  let viewW = 140  // 视口宽（世界单位），随画布纵横比动态更新（防飞船飞出可视区）
+  let viewH = VIEW_HEIGHT
+
+  /** 画布/视口尺寸变化时同步物理边界 */
+  function setViewSize(w: number, h: number): void {
+    viewW = w
+    viewH = h
+  }
 
   function createRuntime(level: RunnerLevelDef): RunnerRuntime {
     return {
@@ -68,9 +77,20 @@ export function useRunnerLoop() {
     const ship = rt.ship
     rt.time += dt
 
-    // ===== 右推杆 → 油门（流速） =====
-    let thr = throttle.value   // 读输入（ref）
-    if (rt.energy <= 0) thr = 0  // 无能量只能滑行
+    // ===== 单摇杆 → 位移（左右）+ 油门（上下） =====
+    // 左右：水平移动
+    const targetVx = stickX.value * level.moveSpeed
+    ship.vx += (targetVx - ship.vx) * 0.18
+    ship.x += ship.vx * dt * 60
+    // 上下：加速（上推=上升+流速快）/ 刹车（下拉=下降+流速慢）
+    const yStick = stickY.value
+    const targetVy = -yStick * level.moveSpeed * 0.7
+    ship.vy += (targetVy - ship.vy) * 0.18
+    ship.y += ship.vy * dt * 60
+
+    // 油门（派生自 stickY 上推）
+    let thr = yStick
+    if (rt.energy <= 0 && thr > 0) thr = 0  // 无能量只能滑行（刹车仍可用）
     rt.throttle = thr
     rt.flowSpeed = level.baseFlow + Math.max(0, thr) * level.flowRange
     if (thr < 0) rt.flowSpeed = level.baseFlow * (1 + thr * 0.7)  // 刹车减速
@@ -85,26 +105,17 @@ export function useRunnerLoop() {
       }
     }
 
-    // ===== 左摇杆 → 位移（带惯性平滑） =====
-    const targetVx = stickX.value * level.moveSpeed
-    const targetVy = stickY.value * level.moveSpeed
-    ship.vx += (targetVx - ship.vx) * 0.18
-    ship.vy += (targetVy - ship.vy) * 0.18
-    ship.x += ship.vx * dt * 60
-    ship.y += ship.vy * dt * 60
-
     // 边界（视口内活动，bounce）
-    const viewW = 140  // 视口宽（约 16:9 于高 75）
     if (ship.x < SHIP_RADIUS) { ship.x = SHIP_RADIUS; ship.vx = Math.abs(ship.vx) * 0.4 }
     if (ship.x > viewW - SHIP_RADIUS) { ship.x = viewW - SHIP_RADIUS; ship.vx = -Math.abs(ship.vx) * 0.4 }
     if (ship.y < SHIP_RADIUS) { ship.y = SHIP_RADIUS; ship.vy = Math.abs(ship.vy) * 0.4 }
-    if (ship.y > VIEW_HEIGHT - SHIP_RADIUS) { ship.y = VIEW_HEIGHT - SHIP_RADIUS; ship.vy = -Math.abs(ship.vy) * 0.4 }
+    if (ship.y > viewH - SHIP_RADIUS) { ship.y = viewH - SHIP_RADIUS; ship.vy = -Math.abs(ship.vy) * 0.4 }
 
     // 无敌帧递减
     if (ship.invincible > 0) ship.invincible--
 
     // ===== 生成器：激活 + 下落 =====
-    spawnRunnerEntities(rt, viewW, VIEW_HEIGHT)
+    spawnRunnerEntities(rt, viewW, viewH)
 
     // ===== 碰撞 =====
     // 障碍
@@ -157,31 +168,34 @@ export function useRunnerLoop() {
     energy.value = Math.round(rt.energy)
     gems.value = rt.gems
     progressPct.value = Math.min(100, Math.round(rt.progress / level.length * 100))
+    elapsedTime.value = Math.round(rt.time)
   }
 
   function gameLoop(ts: number): void {
     const rt = runtime.value
-    if (!rt || rt.state !== 'playing') return
+    if (!rt) return
 
-    if (!lastTime) lastTime = ts
-    const realDt = Math.min(5, (ts - lastTime) / 16.667)  // 帧数
-    lastTime = ts
-    timeAccumulator += realDt
+    if (rt.state === 'playing') {
+      if (!lastTime) lastTime = ts
+      const realDt = Math.min(5, (ts - lastTime) / 16.667)  // 帧数
+      lastTime = ts
+      timeAccumulator += realDt
 
-    while (timeAccumulator >= 1) {   // 每 1 帧执行一步物理（60Hz）
-      step(rt, 1 / 60)               // dt = 秒
-      timeAccumulator -= 1
-      // 消费事件（音效）
-      if (rt.events.length) {
-        for (const e of rt.events) {
-          if (e === 'hit') Sound.playHit()
-          else if (e === 'gem') Sound.playCollect()
-          else if (e === 'energy') Sound.playBounce()
-          else if (e === 'win') Sound.playWin()
+      while (timeAccumulator >= 1) {   // 每 1 帧执行一步物理（60Hz）
+        step(rt, 1 / 60)               // dt = 秒
+        timeAccumulator -= 1
+        // 消费事件（音效）
+        if (rt.events.length) {
+          for (const e of rt.events) {
+            if (e === 'hit') Sound.playHit()
+            else if (e === 'gem') Sound.playCollect()
+            else if (e === 'energy') Sound.playBounce()
+            else if (e === 'win') Sound.playWin()
+          }
+          rt.events.length = 0
         }
-        rt.events.length = 0
+        if (rt.state !== 'playing') break
       }
-      if (rt.state !== 'playing') break
     }
 
     rafId = requestAnimationFrame(gameLoop)
@@ -209,41 +223,40 @@ export function useRunnerLoop() {
     runtime.value = null
   }
 
-  // 键盘（桌面模式）
+  // 键盘（桌面模式）：←→ 移动，↑ 加速，↓ 刹车
   let keys = new Set<string>()
   function onKeyDown(e: KeyboardEvent) {
     keys.add(e.key.toLowerCase())
-    // 右推杆等效：Shift/X=推进，空格/Z=刹车
-    if (e.key === 'Shift' || e.key === 'x') throttle.value = 1
-    if (e.key === ' ' || e.key === 'z') throttle.value = -1
-    // 左摇杆等效：WASD/方向
+    if (e.key === 'Escape' || e.key === 'p') togglePause()
     updateStickFromKeys()
   }
   function onKeyUp(e: KeyboardEvent) {
     keys.delete(e.key.toLowerCase())
-    if (e.key === 'Shift' || e.key === 'x') throttle.value = 0
-    if (e.key === ' ' || e.key === 'z') throttle.value = 0
     updateStickFromKeys()
   }
   function updateStickFromKeys() {
     let x = 0, y = 0
     if (keys.has('a') || keys.has('arrowleft')) x -= 1
     if (keys.has('d') || keys.has('arrowright')) x += 1
-    if (keys.has('w') || keys.has('arrowup')) y -= 1
-    if (keys.has('s') || keys.has('arrowdown')) y += 1
-    // 键盘操作时左摇杆值优先（触屏未用则用键盘）
-    if (x !== 0 || y !== 0) {
-      stickX.value = x
-      stickY.value = y
-    } else if (!touchActive) {
-      stickX.value = 0
-      stickY.value = 0
-    }
+    if (keys.has('w') || keys.has('arrowup')) y += 1       // 上推=加速
+    if (keys.has('s') || keys.has('arrowdown')) y -= 1     // 下拉=刹车
+    if (touchActive) return  // 触屏优先
+    stickX.value = x
+    stickY.value = y
   }
   let touchActive = false
   function setStickTouch(active: boolean) {
     touchActive = active
     if (!active) { stickX.value = 0; stickY.value = 0 }
+  }
+
+  // 暂停
+  function togglePause() {
+    if (gameState.value === 'playing') gameState.value = 'paused'
+    else if (gameState.value === 'paused') gameState.value = 'playing'
+  }
+  function resumeGame() {
+    if (gameState.value === 'paused') gameState.value = 'playing'
   }
 
   if (typeof window !== 'undefined') {
@@ -265,10 +278,11 @@ export function useRunnerLoop() {
     runtime,
     failText,
     stickX, stickY, throttle,
-    armor, energy, gems, progressPct,
+    armor, energy, gems, progressPct, elapsedTime,
     soundEnabled: soundState.soundEnabled,
     toggleSound: soundState.toggleSound,
     startLevel, retryLevel, backToMenu,
-    setStickTouch,
+    togglePause, resumeGame,
+    setStickTouch, setViewSize,
   }
 }

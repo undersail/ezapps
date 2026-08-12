@@ -1,34 +1,52 @@
 <template>
   <div class="runner-root">
-    <div class="canvas-area">
+    <div class="canvas-area" ref="canvasAreaRef">
       <canvas ref="canvasRef"></canvas>
 
-      <!-- HUD 顶部 -->
-      <div class="runner-hud" v-if="gameState === 'playing' || gameState === 'won' || gameState === 'lost'">
-        <div class="hud-left">
+      <!-- HUD 顶部：三栏卡片布局 -->
+      <div class="runner-hud" v-if="gameState === 'playing' || gameState === 'paused' || gameState === 'won' || gameState === 'lost'">
+        <!-- 左：护甲 + 宝石 -->
+        <div class="hud-group hud-left">
           <span class="armor-display">
-            <span v-for="i in armor" :key="i" class="armor-heart">❤️</span>
-            <span v-for="i in (3 - armor)" :key="'e' + i" class="armor-heart empty">🖤</span>
+            <span v-for="i in 3" :key="i" class="armor-heart" :class="{ empty: i > armor }">❤️</span>
           </span>
           <span class="gem-display">💎 {{ gems }}</span>
         </div>
-        <div class="hud-center">
-          <div class="energy-bar">
-            <div class="energy-fill" :style="{ width: energy + '%', background: energy > 40 ? '#4ade80' : energy > 15 ? '#facc15' : '#ef4444' }"></div>
+        <!-- 中：时间 + 里程 -->
+        <div class="hud-group hud-center">
+          <span class="stat">⏱ {{ fmtTime }}</span>
+          <div class="progress-wrap">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: progressPct + '%' }"></div>
+            </div>
+            <span class="progress-num">{{ progressPct }}%</span>
           </div>
-          <div class="energy-label">⚡ {{ energy }}%</div>
+          <div class="energy-wrap">
+            <div class="energy-bar">
+              <div class="energy-fill" :style="{ width: energy + '%', background: energyColor }"></div>
+            </div>
+            <span class="energy-num">⚡{{ energy }}%</span>
+          </div>
         </div>
-        <div class="hud-right">
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: progressPct + '%' }"></div>
-          </div>
-          <button class="hud-btn" @click="toggleSound">{{ soundEnabled ? '🔊' : '🔇' }}</button>
+        <!-- 右：暂停 + 声音 -->
+        <div class="hud-group hud-right">
+          <button class="hud-btn" @click="toggleSound" aria-label="声音">{{ soundEnabled ? '🔊' : '🔇' }}</button>
+          <button class="hud-btn" @click="togglePause" aria-label="暂停">⏸</button>
         </div>
       </div>
 
-      <!-- 悬浮教学提示（V2-1 简易版） -->
-      <div class="runner-tip" v-if="gameState === 'playing' && runtime && runtime.progress < 12">
-        ⬅️ 左摇杆移动躲避 · ➡️ 右推杆推进
+      <!-- 悬浮教学提示 -->
+      <div class="runner-tip" v-if="gameState === 'playing' && runtime && runtime.progress < 30">
+        🕹 摇杆：←→ 移动 · ↑ 加速 · ↓ 刹车
+      </div>
+
+      <!-- 暂停界面 -->
+      <div class="overlay" v-if="gameState === 'paused'">
+        <div class="overlay-card">
+          <h2>⏸ 已暂停</h2>
+          <button class="btn-primary" @click="resumeGame">继续</button>
+          <button class="btn-secondary" @click="handleBack">返回大厅</button>
+        </div>
       </div>
 
       <!-- 失败界面 -->
@@ -36,7 +54,7 @@
         <div class="overlay-card lose-card">
           <h2>{{ failText }}</h2>
           <button class="btn-primary" @click="handleRetry">再试一次</button>
-          <button class="btn-secondary" @click="backToMenu">返回大厅</button>
+          <button class="btn-secondary" @click="handleBack">返回大厅</button>
         </div>
       </div>
 
@@ -46,47 +64,37 @@
           <h2>🎉 通关！</h2>
           <p class="result-line">💎 收集宝石 {{ gems }} / {{ runtime?.level.goal.gems }}</p>
           <p class="result-line">⚡ 剩余能量 {{ energy }}%</p>
+          <p class="result-line">⏱ 用时 {{ fmtTime }}</p>
           <button class="btn-primary" @click="handleNext">继续</button>
         </div>
       </div>
     </div>
 
-    <!-- 双摇杆控制区 -->
+    <!-- 单摇杆控制区 -->
     <div class="controls-area" v-if="gameState === 'playing'">
-      <!-- 左摇杆（方向/位移） -->
       <div class="stick-wrap">
-        <div class="stick-label">方向</div>
         <div
-          class="joystick-base small"
+          ref="joystickBase"
+          class="joystick-base"
           @touchstart.prevent="onStickStart"
           @touchmove.prevent="onStickMove"
           @touchend.prevent="onStickEnd"
+          @touchcancel.prevent="onStickEnd"
           @mousedown.prevent="onStickMouseDown"
         >
+          <!-- 方向指示 -->
+          <div class="joy-arrow up">▲</div>
+          <div class="joy-arrow down">▼</div>
+          <div class="joy-arrow left">◀</div>
+          <div class="joy-arrow right">▶</div>
           <div class="joystick-knob" :style="{ transform: `translate(${knobX}px, ${knobY}px)` }"></div>
         </div>
-      </div>
-
-      <!-- 右推杆（推力/刹车） -->
-      <div class="throttle-wrap">
-        <div class="stick-label">推力</div>
-        <div
-          class="throttle-base"
-          @touchstart.prevent="onThrottleStart"
-          @touchmove.prevent="onThrottleMove"
-          @touchend.prevent="onThrottleEnd"
-          @mousedown.prevent="onThrottleMouseDown"
-        >
-          <div class="throttle-arrow up">▲</div>
-          <div class="throttle-knob" :style="{ transform: `translateY(${throttleKnobY}px)` }"></div>
-          <div class="throttle-arrow down">▼</div>
-        </div>
-        <div class="throttle-state">{{ throttleText }}</div>
+        <div class="stick-hint">上=加速 · 下=刹车 · 左右=移动</div>
       </div>
     </div>
 
     <div class="keyboard-hint-desktop" v-if="gameState === 'playing'">
-      WASD/方向键 移动 · Shift/X 推进 · 空格/Z 刹车
+      ←→ 移动 · ↑ 加速 · ↓ 刹车 · ESC 暂停
     </div>
   </div>
 </template>
@@ -100,24 +108,84 @@ import { runnerLevels } from '../data/runner/ocean'
 
 const {
   canvasRef, gameState, runtime, failText,
-  stickX, stickY, throttle,
-  armor, energy, gems, progressPct,
+  stickX, stickY,
+  armor, energy, gems, progressPct, elapsedTime,
   soundEnabled, toggleSound,
-  startLevel, retryLevel, backToMenu, setStickTouch,
+  startLevel, retryLevel, backToMenu,
+  togglePause, resumeGame,
+  setStickTouch, setViewSize,
 } = useRunnerLoop()
 
-const throttleText = computed(() => {
-  const t = throttle.value
-  if (t > 0.1) return '推进 ⬆'
-  if (t < -0.1) return '刹车 ⬇'
-  return '滑行'
+const fmtTime = computed(() => {
+  const t = elapsedTime.value
+  const m = Math.floor(t / 60)
+  const s = t % 60
+  return m > 0 ? `${m}:${s.toString().padStart(2, '0')}` : `${s}s`
 })
 
-// ===== 左摇杆（复用 V1 逻辑，尺寸缩小） =====
+const energyColor = computed(() => energy.value > 40 ? '#4ade80' : energy.value > 15 ? '#facc15' : '#ef4444')
+
+// ===== 画布自适应（ResizeObserver） =====
+const canvasAreaRef = ref<HTMLElement | null>(null)
+let renderer: SceneRenderer | null = null
+let renderRaf = 0
+let resizeObserver: ResizeObserver | null = null
+
+function setupCanvas() {
+  const canvas = canvasRef.value
+  const area = canvasAreaRef.value
+  if (!canvas || !area) return
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  const dpr = window.devicePixelRatio || 1
+  const w = Math.max(1, area.clientWidth)
+  const h = Math.max(1, area.clientHeight)
+  canvas.width = Math.round(w * dpr)
+  canvas.height = Math.round(h * dpr)
+  if (!renderer) {
+    renderer = new SceneRenderer(ctx, canvas.width, canvas.height)
+  } else {
+    renderer.resize(canvas.width, canvas.height)
+  }
+  // 同步物理边界（视口世界尺寸，防飞船飞出可视区）
+  const vs = renderer.getRunnerViewSize()
+  setViewSize(vs.width, vs.height)
+}
+
+function renderLoop() {
+  const canvas = canvasRef.value
+  const rt = runtime.value
+  if (canvas && renderer && rt) {
+    renderer.renderRunner(rt, skins[0])
+  }
+  renderRaf = requestAnimationFrame(renderLoop)
+}
+
+onMounted(() => {
+  setupCanvas()
+  // 监听容器尺寸变化（旋转/窗口调整/布局稳定）
+  const area = canvasAreaRef.value
+  if (area && typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => {
+      setupCanvas()
+    })
+    resizeObserver.observe(area)
+  }
+  renderRaf = requestAnimationFrame(renderLoop)
+  // 自动开始第一关（V2-1 测试入口）
+  startLevel(runnerLevels[0])
+})
+
+onUnmounted(() => {
+  cancelAnimationFrame(renderRaf)
+  resizeObserver?.disconnect()
+})
+
+// ===== 单摇杆（左右移动 + 上下加速/刹车） =====
 const knobX = ref(0)
 const knobY = ref(0)
-const JOY_RADIUS = 40
-const KNOB_R = 16
+const JOY_RADIUS = 52
+const KNOB_R = 22
 let stickTouchId: number | null = null
 let stickCenterX = 0
 let stickCenterY = 0
@@ -128,19 +196,21 @@ function setStickFromOffset(dx: number, dy: number) {
   let ny = dy / maxDist
   const mag = Math.sqrt(nx * nx + ny * ny)
   if (mag > 1) { nx /= mag; ny /= mag }
-  // 死区 0.15
-  const remap = mag > 0.15 ? (mag - 0.15) / 0.85 : 0
-  const norm = remap / (mag || 1)
-  stickX.value = nx * norm * (mag > 0.15 ? 1 : 0)
-  stickY.value = ny * norm * (mag > 0.15 ? 1 : 0)
+  // 死区 0.15 + 重映射
+  const active = mag > 0.15
+  const remap = active ? (mag - 0.15) / 0.85 : 0
+  const norm = active ? remap / mag : 0
+  stickX.value = nx * norm
+  stickY.value = ny * norm
   knobX.value = nx * maxDist
   knobY.value = ny * maxDist
-  setStickTouch(mag > 0.15)
+  setStickTouch(active)
 }
 
 function onStickStart(e: TouchEvent) {
   const t = e.touches[0]
-  const el = (e.target as HTMLElement).getBoundingClientRect()
+  const el = joystickBase.value?.getBoundingClientRect()
+  if (!el) return
   stickTouchId = t.identifier
   stickCenterX = t.clientX - el.left
   stickCenterY = t.clientY - el.top
@@ -149,8 +219,8 @@ function onStickStart(e: TouchEvent) {
 function onStickMove(e: TouchEvent) {
   if (stickTouchId === null) return
   const t = Array.from(e.touches).find(tt => tt.identifier === stickTouchId)
-  if (!t) return
-  const el = (e.target as HTMLElement).getBoundingClientRect()
+  const el = joystickBase.value?.getBoundingClientRect()
+  if (!t || !el) return
   setStickFromOffset(t.clientX - el.left - stickCenterX, t.clientY - el.top - stickCenterY)
 }
 function onStickEnd() {
@@ -162,7 +232,8 @@ function onStickEnd() {
   setStickTouch(false)
 }
 function onStickMouseDown(e: MouseEvent) {
-  const el = (e.target as HTMLElement).getBoundingClientRect()
+  const el = joystickBase.value?.getBoundingClientRect()
+  if (!el) return
   stickCenterX = el.width / 2
   stickCenterY = el.height / 2
   const move = (ev: MouseEvent) => {
@@ -176,90 +247,15 @@ function onStickMouseDown(e: MouseEvent) {
   window.addEventListener('mousemove', move)
   window.addEventListener('mouseup', up)
 }
-
-// ===== 右推杆（垂直：上=推进，下=刹车） =====
-const throttleKnobY = ref(0)
-const THROTTLE_RANGE = 36
-let throttleTouchId: number | null = null
-
-function setThrottleFromOffset(dy: number) {
-  let t = -dy / THROTTLE_RANGE
-  t = Math.max(-1, Math.min(1, t))
-  throttle.value = t
-  throttleKnobY.value = -t * THROTTLE_RANGE
-}
-function onThrottleStart(e: TouchEvent) {
-  const t = e.touches[0]
-  throttleTouchId = t.identifier
-  setThrottleFromOffset(0)
-}
-function onThrottleMove(e: TouchEvent) {
-  if (throttleTouchId === null) return
-  const t = Array.from(e.touches).find(tt => tt.identifier === throttleTouchId)
-  if (!t) return
-  const el = (e.target as HTMLElement).getBoundingClientRect()
-  const centerY = el.top + el.height / 2
-  setThrottleFromOffset(t.clientY - centerY)
-}
-function onThrottleEnd() {
-  throttleTouchId = null
-  throttle.value = 0
-  throttleKnobY.value = 0
-}
-function onThrottleMouseDown(e: MouseEvent) {
-  const el = (e.target as HTMLElement).getBoundingClientRect()
-  const centerY = el.top + el.height / 2
-  const move = (ev: MouseEvent) => {
-    setThrottleFromOffset(ev.clientY - centerY)
-  }
-  const up = () => {
-    window.removeEventListener('mousemove', move)
-    window.removeEventListener('mouseup', up)
-    onThrottleEnd()
-  }
-  window.addEventListener('mousemove', move)
-  window.addEventListener('mouseup', up)
-}
-
-// ===== 渲染循环 =====
-let renderer: SceneRenderer | null = null
-let renderRaf = 0
-
-function renderLoop() {
-  const canvas = canvasRef.value
-  const rt = runtime.value
-  if (canvas && renderer && rt) {
-    renderer.renderRunner(rt, skins[rt.level.chapter % skins.length] || skins[0])
-  }
-  renderRaf = requestAnimationFrame(renderLoop)
-}
-
-onMounted(() => {
-  const canvas = canvasRef.value
-  if (!canvas) return
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-  // 尺寸
-  const dpr = window.devicePixelRatio || 1
-  const w = canvas.clientWidth || 640
-  const h = canvas.clientHeight || 360
-  canvas.width = w * dpr
-  canvas.height = h * dpr
-  renderer = new SceneRenderer(ctx, canvas.width, canvas.height)
-  renderer.setBgGradient(['#042f3e', '#0a5a5e'])
-  renderRaf = requestAnimationFrame(renderLoop)
-  // 自动开始第一关（V2-1 测试入口）
-  startLevel(runnerLevels[0])
-})
-
-onUnmounted(() => {
-  cancelAnimationFrame(renderRaf)
-})
+const joystickBase = ref<HTMLElement | null>(null)
 
 function handleRetry() {
   retryLevel()
 }
 function handleNext() {
+  backToMenu()
+}
+function handleBack() {
   backToMenu()
 }
 </script>
@@ -268,10 +264,10 @@ function handleNext() {
 .runner-root {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 100vh;
+  height: 100dvh;
   background: #030712;
   color: #fff;
+  overflow: hidden;
 }
 .canvas-area {
   position: relative;
@@ -284,7 +280,7 @@ canvas {
   display: block;
 }
 
-/* HUD */
+/* ==== HUD（三栏卡片） ==== */
 .runner-hud {
   position: absolute;
   top: 0;
@@ -293,147 +289,153 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 8px 12px;
-  background: linear-gradient(rgba(0,0,0,0.5), transparent);
+  background: linear-gradient(rgba(2, 6, 23, 0.55), rgba(2, 6, 23, 0));
   z-index: 5;
+  pointer-events: none;
 }
-.hud-left { display: flex; align-items: center; gap: 10px; }
-.armor-heart { font-size: 1.1rem; }
-.armor-heart.empty { opacity: 0.3; }
-.gem-display { font-size: 0.95rem; }
-.hud-center { display: flex; align-items: center; gap: 8px; }
-.energy-bar {
-  width: 120px;
-  height: 10px;
-  border-radius: 5px;
-  background: rgba(255,255,255,0.15);
-  overflow: hidden;
+.hud-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 10px;
+  padding: 4px 10px;
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
 }
-.energy-fill { height: 100%; border-radius: 5px; transition: width 0.1s; }
-.energy-label { font-size: 0.75rem; min-width: 48px; }
-.hud-right { display: flex; align-items: center; gap: 8px; }
+.armor-heart { font-size: 0.95rem; }
+.armor-heart.empty { opacity: 0.25; filter: grayscale(1); }
+.gem-display { font-size: 0.9rem; font-weight: 600; }
+.hud-center { gap: 10px; }
+.stat { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: #e2e8f0; min-width: 44px; }
+.progress-wrap { display: flex; align-items: center; gap: 6px; }
 .progress-bar {
-  width: 100px;
-  height: 8px;
+  width: 90px;
+  height: 7px;
   border-radius: 4px;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.12);
   overflow: hidden;
 }
-.progress-fill { height: 100%; background: #38bdf8; transition: width 0.15s; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #38bdf8, #818cf8); border-radius: 4px; transition: width 0.15s; }
+.progress-num { font-size: 0.7rem; color: rgba(255,255,255,0.6); min-width: 30px; }
+.energy-wrap { display: flex; align-items: center; gap: 6px; }
+.energy-bar {
+  width: 70px;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.12);
+  overflow: hidden;
+}
+.energy-fill { height: 100%; border-radius: 4px; transition: width 0.1s, background 0.3s; }
+.energy-num { font-size: 0.7rem; min-width: 40px; }
 .hud-btn {
-  background: rgba(255,255,255,0.1);
-  border: none;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 8px;
-  padding: 4px 8px;
+  padding: 3px 8px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  color: #fff;
 }
 
 .runner-tip {
   position: absolute;
-  top: 60px;
+  top: 52px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0,0,0,0.6);
-  padding: 6px 14px;
+  background: rgba(2, 6, 23, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 6px 16px;
   border-radius: 16px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   z-index: 5;
   pointer-events: none;
+  white-space: nowrap;
 }
 
-/* 控制区 */
+/* ==== 单摇杆 ==== */
 .controls-area {
   flex-shrink: 0;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  padding: 8px 20px 14px;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 0 16px;
   z-index: 10;
 }
-.stick-wrap, .throttle-wrap {
+.stick-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
-.stick-label { font-size: 0.7rem; color: rgba(255,255,255,0.5); }
 .joystick-base {
   position: relative;
-  width: 84px;
-  height: 84px;
+  width: 128px;
+  height: 128px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.08);
-  border: 2px solid rgba(255,255,255,0.2);
+  background: radial-gradient(circle, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  border: 2px solid rgba(148, 163, 184, 0.25);
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
-.joystick-base.small .joystick-knob {
-  width: 32px;
-  height: 32px;
+.joystick-knob {
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: rgba(148, 163, 184, 0.7);
+  background: radial-gradient(circle at 35% 35%, rgba(148, 163, 184, 0.9), rgba(100, 116, 139, 0.7));
+  border: 1px solid rgba(255,255,255,0.3);
   position: absolute;
   top: 50%;
   left: 50%;
-  margin: -16px 0 0 -16px;
+  margin: -22px 0 0 -22px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
 }
-.throttle-base {
-  position: relative;
-  width: 56px;
-  height: 110px;
-  border-radius: 28px;
-  background: rgba(255,255,255,0.08);
-  border: 2px solid rgba(255,255,255,0.2);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  touch-action: none;
-  padding: 6px 0;
-}
-.throttle-arrow { font-size: 0.7rem; color: rgba(255,255,255,0.4); }
-.throttle-knob {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(74, 222, 128, 0.7);
+.joy-arrow {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  margin: -18px 0 0 -18px;
-  box-shadow: 0 0 10px rgba(74, 222, 128, 0.4);
+  color: rgba(255,255,255,0.35);
+  font-size: 0.7rem;
+  pointer-events: none;
 }
-.throttle-state { font-size: 0.7rem; color: rgba(255,255,255,0.6); min-height: 14px; }
+.joy-arrow.up { top: 6px; left: 50%; transform: translateX(-50%); }
+.joy-arrow.down { bottom: 6px; left: 50%; transform: translateX(-50%); }
+.joy-arrow.left { left: 8px; top: 50%; transform: translateY(-50%); }
+.joy-arrow.right { right: 8px; top: 50%; transform: translateY(-50%); }
+.stick-hint { font-size: 0.7rem; color: rgba(255,255,255,0.45); }
 
 .keyboard-hint-desktop {
   display: none;
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: rgba(255,255,255,0.4);
-  padding-bottom: 6px;
+  padding-bottom: 4px;
 }
 @media (min-width: 768px) {
   .keyboard-hint-desktop { display: block; }
 }
 
-/* 界面 */
+/* ==== 界面 ==== */
 .overlay {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.65);
   z-index: 20;
 }
 .overlay-card {
   background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 16px;
-  padding: 28px 36px;
+  padding: 28px 40px;
   text-align: center;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
-.overlay-card h2 { margin: 0 0 12px; font-size: 1.6rem; }
+.overlay-card h2 { margin: 0 0 14px; font-size: 1.5rem; }
 .result-line { margin: 6px 0; color: rgba(255,255,255,0.8); }
 .btn-primary {
   margin-top: 14px;
@@ -445,6 +447,7 @@ canvas {
   font-weight: 600;
   padding: 10px 28px;
   cursor: pointer;
+  width: 100%;
 }
 .btn-secondary {
   margin-top: 8px;
@@ -455,5 +458,6 @@ canvas {
   font-size: 0.9rem;
   padding: 8px 22px;
   cursor: pointer;
+  width: 100%;
 }
 </style>
