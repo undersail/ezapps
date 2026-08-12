@@ -218,6 +218,9 @@ export class PhysicsEngine {
       else { dx = 0; dy = 1 }
       feifei.pos.x += dx * (r + 1)
       feifei.pos.y += dy * (r + 1)
+      // 中心在内部时直接归零速度
+      feifei.vel.x = 0
+      feifei.vel.y = 0
     } else {
       // 正常推出
       const nx = dx / dist
@@ -225,14 +228,30 @@ export class PhysicsEngine {
       feifei.pos.x = nearestX + nx * (r + 0.5)
       feifei.pos.y = nearestY + ny * (r + 0.5)
       
-      // 反弹速度
+      // 计算法向速度分量
       const dot = feifei.vel.x * nx + feifei.vel.y * ny
       if (dot < 0) {
-        feifei.vel.x -= 2 * dot * nx * this.config.bounce
-        feifei.vel.y -= 2 * dot * ny * this.config.bounce
-        // 速度衰减
-        feifei.vel.x *= 0.85
-        feifei.vel.y *= 0.85
+        // 法向速度极小时直接归零（防止微弹循环导致抖动和报警音）
+        const REST_THRESHOLD = 0.3
+        if (Math.abs(dot) < REST_THRESHOLD) {
+          // 消除法向速度分量，保留切向速度
+          feifei.vel.x -= dot * nx
+          feifei.vel.y -= dot * ny
+        } else {
+          // 正常反弹
+          feifei.vel.x -= 2 * dot * nx * this.config.bounce
+          feifei.vel.y -= 2 * dot * ny * this.config.bounce
+          // 速度衰减
+          feifei.vel.x *= 0.85
+          feifei.vel.y *= 0.85
+        }
+      }
+      
+      // 碰撞后速度极小时直接归零（彻底防止抖动）
+      const speedAfter = Math.sqrt(feifei.vel.x ** 2 + feifei.vel.y ** 2)
+      if (speedAfter < 0.1) {
+        feifei.vel.x = 0
+        feifei.vel.y = 0
       }
     }
   }

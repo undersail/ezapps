@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import HomePage from './components/HomePage.vue'
 import LevelSelect from './components/LevelSelect.vue'
 import GameCanvas from './components/GameCanvas.vue'
 import PhysicsCard from './components/PhysicsCard.vue'
@@ -14,8 +15,8 @@ import type { LevelDef, ChapterDef } from './engine/types'
 const { progress, completeLevel, unlockCard } = useGameProgress()
 
 // 页面状态
-type Page = 'menu' | 'playing' | 'cards' | 'skins'
-const page = ref<Page>('menu')
+type Page = 'home' | 'menu' | 'playing' | 'cards' | 'skins'
+const page = ref<Page>('home')
 
 // 当前关卡和章节
 const currentLevel = ref<LevelDef | null>(null)
@@ -151,16 +152,31 @@ function onCloseCards() {
 function onCloseSkins() {
   page.value = 'menu'
 }
+
+function onGoHome() {
+  page.value = 'home'
+}
+
+function onStartGame() {
+  page.value = 'menu'
+}
 </script>
 
 <template>
   <div class="app">
+    <!-- 主页 -->
+    <HomePage
+      v-if="page === 'home'"
+      @start="onStartGame"
+    />
+
     <!-- 选关页面 -->
     <LevelSelect
       v-if="page === 'menu'"
       @select="onLevelSelect"
       @open-cards="onOpenCards"
       @open-skins="onOpenSkins"
+      @go-home="onGoHome"
     />
 
     <!-- 游戏页面 -->

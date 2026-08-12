@@ -10,6 +10,7 @@ const emit = defineEmits<{
   (e: 'select', level: LevelDef, chapter: ChapterDef): void
   (e: 'openCards'): void
   (e: 'openSkins'): void
+  (e: 'goHome'): void
 }>()
 
 function isChapterUnlocked(chapterIndex: number): boolean {
@@ -66,6 +67,7 @@ interface MapNode {
   chapterIndex: number
   status: 'locked' | 'available' | 'completed'
   stars: number
+  labelSide: 'left' | 'right'  // 关卡名文字在左侧还是右侧
 }
 
 // 计算所有节点坐标
@@ -87,6 +89,7 @@ const allNodes = computed(() => {
       chapterIndex: ci,
       status: unlocked ? 'completed' : 'locked',
       stars: 0,
+      labelSide: 'right',
     })
 
     // 小关节点：直线布局（全部居中，从上到下）
@@ -102,6 +105,9 @@ const allNodes = computed(() => {
 
         const y = curY + MS_TO_FIRST + li * LEVEL_V_GAP
 
+        // 左右交替：0=左，1=右，2=左...
+        const side: 'left' | 'right' = li % 2 === 0 ? 'left' : 'right'
+
         nodes.push({
           type: isBoss ? 'boss' : 'level',
           x,
@@ -111,6 +117,7 @@ const allNodes = computed(() => {
           chapterIndex: ci,
           status,
           stars: getLevelStars(level.id),
+          labelSide: side,
         })
       }
       curY += MS_TO_FIRST + (levels.length - 1) * LEVEL_V_GAP + LAST_TO_NEXT
@@ -198,6 +205,7 @@ function onNodeClick(node: MapNode) {
 <template>
   <div class="world-map">
     <header class="wm-header">
+      <button class="back-home-btn" @click="emit('goHome')">🏠</button>
       <h1>🚀 飞飞历险记</h1>
       <div class="wm-stats">
         <span>✨ {{ progress.stardust }}</span>
@@ -359,19 +367,22 @@ function onNodeClick(node: MapNode) {
           <text v-else :x="node.x" :y="node.y + 1"
             text-anchor="middle" dominant-baseline="middle" font-size="8" fill="#c4b5fd">⭐</text>
 
-          <!-- 关卡名（在节点下方居中显示） -->
+          <!-- 关卡名（侧边左右交替显示） -->
           <text
-            :x="node.x"
-            :y="node.y + (node.type === 'boss' ? BOSS_R : LEVEL_R) + 12"
-            text-anchor="middle"
-            font-size="8"
+            :x="node.labelSide === 'left' ? node.x - (node.type === 'boss' ? BOSS_R : LEVEL_R) - 8 : node.x + (node.type === 'boss' ? BOSS_R : LEVEL_R) + 8"
+            :y="node.y + 4"
+            :text-anchor="node.labelSide === 'left' ? 'end' : 'start'"
+            font-size="11"
             :fill="node.status === 'locked' ? '#475569' : '#94a3b8'"
           >{{ node.level?.name }}</text>
 
-          <!-- 星星评分（移到节点右下侧，避免与居中显示的关卡名重叠） -->
-          <g v-if="node.status === 'completed' && node.level" 
-            :transform="`translate(${node.x + (node.type === 'boss' ? BOSS_R : LEVEL_R) + 7}, ${node.y + (node.type === 'boss' ? BOSS_R + 8 : LEVEL_R + 8)})`">
-            <text v-for="i in 3" :key="i" :x="(i - 1) * 9" font-size="7"
+          <!-- 星星评分（跟随关卡名同侧） -->
+          <g v-if="node.status === 'completed' && node.level"
+            :transform="`translate(${node.labelSide === 'left' ? node.x - (node.type === 'boss' ? BOSS_R : LEVEL_R) - 8 : node.x + (node.type === 'boss' ? BOSS_R : LEVEL_R) + 8}, ${node.y + 14})`">
+            <text v-for="i in 3" :key="i"
+              :x="node.labelSide === 'left' ? -(i - 1) * 10 - 8 : (i - 1) * 10"
+              :text-anchor="node.labelSide === 'left' ? 'end' : 'start'"
+              font-size="8"
               :fill="i <= node.stars ? '#fbbf24' : '#475569'"
             >{{ i <= node.stars ? '★' : '☆' }}</text>
           </g>
@@ -398,11 +409,29 @@ function onNodeClick(node: MapNode) {
   text-align: center;
   padding: 0.8rem 1.5rem 0.3rem;
   flex-shrink: 0;
+  position: relative;
 }
 .wm-header h1 {
   font-size: 1.5rem;
   margin: 0;
   text-shadow: 0 0 20px rgba(147, 51, 234, 0.3);
+}
+.back-home-btn {
+  position: absolute;
+  left: 1rem;
+  top: 0.8rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 1.2rem;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.back-home-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 .wm-stats {
   display: flex;
