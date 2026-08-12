@@ -61,10 +61,10 @@ export class SceneRenderer {
     this.generateStars()
     // 视口随画布尺寸变化，重新计算
     if (this.worldWidth > 0) this.setWorldSize(this.worldWidth, this.worldHeight)
-    // V2 跑酷视口（固定 140×75 世界单位）
-    this.scale = height / 75
+    // V2 跑酷视口：完整包含适配（140×75 世界单位整体居中，宽高取最小比例）
+    this.scale = Math.min(width / 140, height / 75)
     this.viewH = 75
-    this.viewW = Math.min(140, width / this.scale)
+    this.viewW = 140
   }
   
   getWidth(): number { return this.width }
@@ -288,8 +288,8 @@ export class SceneRenderer {
     ctx.clearRect(0, 0, this.width, this.height)
     
     const VIEW_H = 75
-    const VIEW_W = 140
-    const scale = this.height / VIEW_H
+    const VIEW_W = 140   // 固定视口（完整包含适配）
+    const scale = this.scale  // min(width/140, height/75)
     const panX = (this.width - VIEW_W * scale) / 2
     const panY = (this.height - VIEW_H * scale) / 2
     

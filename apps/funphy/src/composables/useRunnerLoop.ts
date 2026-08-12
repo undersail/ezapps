@@ -134,6 +134,7 @@ export function useRunnerLoop() {
             rt.state = 'lost'
             rt.failReason = 'armor'
             failText.value = '💥 护甲耗尽！'
+            gameState.value = 'lost'   // 同步 UI 状态（弹失败窗）
           }
           break
         }
@@ -161,6 +162,7 @@ export function useRunnerLoop() {
     if (rt.progress >= level.length) {
       rt.state = 'won'
       rt.events.push('win')
+      gameState.value = 'won'   // 同步 UI 状态（弹通关窗）
     }
 
     // ===== HUD 同步 =====

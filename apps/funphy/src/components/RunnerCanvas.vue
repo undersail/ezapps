@@ -201,7 +201,7 @@ function setStickFromOffset(dx: number, dy: number) {
   const remap = active ? (mag - 0.15) / 0.85 : 0
   const norm = active ? remap / mag : 0
   stickX.value = nx * norm
-  stickY.value = ny * norm
+  stickY.value = -ny * norm   // 上推(dy<0) → 正（加速），下拉 → 负（刹车）
   knobX.value = nx * maxDist
   knobY.value = ny * maxDist
   setStickTouch(active)
@@ -262,6 +262,7 @@ function handleBack() {
 
 <style scoped>
 .runner-root {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100dvh;
@@ -364,6 +365,25 @@ canvas {
   align-items: center;
   padding: 10px 0 16px;
   z-index: 10;
+}
+/* 横屏/桌面：摇杆悬浮左下角，游戏区全屏 */
+@media (min-width: 768px) and (orientation: landscape), (min-width: 900px) {
+  .controls-area {
+    position: absolute;
+    left: 14px;
+    bottom: 14px;
+    padding: 0;
+  }
+  .joystick-base {
+    width: 108px;
+    height: 108px;
+  }
+  .joystick-knob {
+    width: 38px;
+    height: 38px;
+    margin: -19px 0 0 -19px;
+  }
+  .stick-hint { display: none; }
 }
 .stick-wrap {
   display: flex;
