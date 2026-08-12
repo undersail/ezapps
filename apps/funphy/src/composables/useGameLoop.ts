@@ -203,9 +203,9 @@ export function useGameLoop() {
     const rt = createRuntime(level, skinId, spawn)
     runtime.value = rt
     
-    // 设置章节背景色
-    if (renderer && bgGradient) {
-      renderer.setBgGradient(bgGradient)
+    // 设置背景色（关卡级优先，其次章节）
+    if (renderer) {
+      renderer.setBgGradient(level.bgGradient ?? bgGradient ?? ['#0a0a2e', '#1a1a4e'])
     }
     
     // 先设为playing，让HUD/D-Pad显示，canvas-area被挤压到正确尺寸

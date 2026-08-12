@@ -264,6 +264,7 @@ export interface LevelDef {
   timeLimit?: number  // 秒
   isBoss: boolean
   camera?: CameraConfig  // 相机配置
+  bgGradient?: [string, string]  // 关卡级背景色（覆盖章节默认）
 }
 
 // 章节定义

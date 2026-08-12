@@ -210,6 +210,56 @@ export class SceneRenderer {
     this.drawParticles()
     
     ctx.restore()
+    
+    // 目标指示（屏幕空间）：终点在视口外时显示边缘方向箭头
+    this.drawGoalIndicator(runtime)
+  }
+  
+  /** 屏幕边缘目标指示：终点不在视野内时显示方向箭头（大世界关卡） */
+  private drawGoalIndicator(runtime: GameRuntime): void {
+    const goal = runtime.goal
+    const panX = this.worldWidth > this.viewW ? -this.cameraX * this.scale : (this.width - this.worldWidth * this.scale) / 2
+    const panY = this.worldHeight > this.viewH ? -this.cameraY * this.scale : (this.height - this.worldHeight * this.scale) / 2
+    const gx = goal.x * this.scale + panX
+    const gy = goal.y * this.scale + panY
+    const margin = 42
+    // 终点在视野内：不显示
+    if (gx > margin && gx < this.width - margin && gy > margin && gy < this.height - margin) return
+    
+    const cx = this.width / 2
+    const cy = this.height / 2
+    const dx = gx - cx
+    const dy = gy - cy
+    const angle = Math.atan2(dy, dx)
+    // 锚点钳制到屏幕边缘（留 margin）
+    const cosA = Math.cos(angle)
+    const sinA = Math.sin(angle)
+    const tx = Math.abs((this.width / 2 - margin) / (Math.abs(cosA) > 0.01 ? cosA : 0.01))
+    const ty = Math.abs((this.height / 2 - margin) / (Math.abs(sinA) > 0.01 ? sinA : 0.01))
+    const t = Math.min(tx, ty)
+    const ax = cx + cosA * t
+    const ay = cy + sinA * t
+    
+    const ctx = this.ctx
+    ctx.save()
+    ctx.translate(ax, ay)
+    ctx.rotate(angle)
+    // 箭头
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.9)'
+    ctx.beginPath()
+    ctx.moveTo(10, 0)
+    ctx.lineTo(-5, -7)
+    ctx.lineTo(-5, 7)
+    ctx.closePath()
+    ctx.fill()
+    // 脉冲光环
+    const pulse = Math.sin(Date.now() / 300) * 0.3 + 0.7
+    ctx.strokeStyle = `rgba(16, 185, 129, ${pulse * 0.6})`
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(0, 0, 13 + pulse * 4, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.restore()
   }
   
   private drawBackground(runtime: GameRuntime): void {

@@ -40,11 +40,12 @@ const inertiaStar: ChapterDef = {
       id: '1-2',
       name: '躲避小行星',
       difficulty: 2,
-      worldWidth: 200,
+      worldWidth: 300,
       worldHeight: 75,
       physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.08, maxSpeed: 2.8, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
-      goal: { x: 190, y: 37, radius: 3 },
+      goal: { x: 290, y: 37, radius: 3 },
+      bgGradient: ['#1a0b3a', '#2d1b69'],
       obstacles: [
         // 小行星带1（x 30-95）：上下摆动的移动小行星
         { id: 'o1', type: 'moving', x: 35, y: 20, width: 8, height: 8, moveAxis: 'y', moveRange: 15, moveSpeed: 0.02, color: '#7c3aed', rounded: true },
@@ -52,24 +53,29 @@ const inertiaStar: ChapterDef = {
         { id: 'o3', type: 'moving', x: 75, y: 20, width: 7, height: 7, moveAxis: 'y', moveRange: 16, moveSpeed: 0.03, color: '#7c3aed', rounded: true },
         { id: 'o4', type: 'static', x: 88, y: 33, width: 8, height: 8, color: '#6b7280', rounded: true },
         // 小行星带2（x 125-170）：更多移动小行星
-        { id: 'o5', type: 'moving', x: 130, y: 45, width: 8, height: 8, moveAxis: 'y', moveRange: 15, moveSpeed: 0.028, color: '#7c3aed', rounded: true },
-        { id: 'o6', type: 'moving', x: 150, y: 18, width: 9, height: 9, moveAxis: 'y', moveRange: 12, moveSpeed: 0.022, color: '#7c3aed', rounded: true },
-        { id: 'o7', type: 'moving', x: 168, y: 42, width: 7, height: 7, moveAxis: 'y', moveRange: 18, moveSpeed: 0.035, color: '#7c3aed', rounded: true },
+        { id: 'o5', type: 'moving', x: 230, y: 45, width: 8, height: 8, moveAxis: 'y', moveRange: 15, moveSpeed: 0.028, color: '#7c3aed', rounded: true },
+        { id: 'o6', type: 'moving', x: 250, y: 18, width: 9, height: 9, moveAxis: 'y', moveRange: 12, moveSpeed: 0.022, color: '#7c3aed', rounded: true },
+        { id: 'o7', type: 'moving', x: 268, y: 42, width: 7, height: 7, moveAxis: 'y', moveRange: 18, moveSpeed: 0.035, color: '#7c3aed', rounded: true },
         // 终点保护
-        { id: 'o8', type: 'static', x: 182, y: 28, width: 7, height: 7, color: '#6b7280', rounded: true },
-        { id: 'o9', type: 'static', x: 182, y: 46, width: 7, height: 7, color: '#6b7280', rounded: true },
+        { id: 'o8', type: 'static', x: 282, y: 28, width: 7, height: 7, color: '#6b7280', rounded: true },
+        { id: 'o9', type: 'static', x: 282, y: 46, width: 7, height: 7, color: '#6b7280', rounded: true },
       ],
       collectibles: [
         { id: 's1', type: 'stardust', x: 45, y: 32 },
         { id: 's2', type: 'stardust', x: 70, y: 50 },
         { id: 's3', type: 'stardust', x: 115, y: 25 },
-        { id: 's4', type: 'stardust', x: 145, y: 48 },
-        { id: 's5', type: 'stardust', x: 172, y: 30 },
+        { id: 's4', type: 'stardust', x: 245, y: 48 },
+        { id: 's5', type: 'stardust', x: 272, y: 30 },
       ],
       triggers: [
         // 风区加速走廊：经过时被向右推，体验"借力滑行"
         { id: 't1', type: 'wind', x: 100, y: 25, width: 15, height: 25, params: { forceX: 0.12, forceY: 0 } },
-        { id: 't2', type: 'wind', x: 158, y: 25, width: 12, height: 25, params: { forceX: 0.1, forceY: 0 } },
+        { id: 't2', type: 'wind', x: 258, y: 25, width: 12, height: 25, params: { forceX: 0.1, forceY: 0 } },
+      ],
+      hazards: [
+        // 危险陨石带：顶部红色区域，接触即失败，必须低飞穿过（压在风区走廊之间）
+        { id: 'h1', x: 112, y: 18, width: 5, height: 35, color: '#ef4444' },
+        { id: 'h2', x: 265, y: 12, width: 5, height: 30, color: '#ef4444' },
       ],
       starConditions: { collisions: [0, 1, 3], time: [45, 65, 100] },
       isBoss: false,
@@ -108,20 +114,21 @@ const inertiaStar: ChapterDef = {
       id: '1-4',
       name: '星尘收集赛',
       difficulty: 3,
-      worldWidth: 240,
+      worldWidth: 320,
       worldHeight: 100,
       physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, maxSpeed: 3.2, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 50 },
-      goal: { x: 225, y: 50, radius: 3 },
+      goal: { x: 305, y: 50, radius: 3 },
+      bgGradient: ['#06282e', '#0d4a42'],
       obstacles: [
         // 终点保护
-        { id: 'o1', type: 'static', x: 217, y: 40, width: 7, height: 7, color: '#6b7280', rounded: true },
-        { id: 'o2', type: 'static', x: 217, y: 58, width: 7, height: 7, color: '#6b7280', rounded: true },
+        { id: 'o1', type: 'static', x: 297, y: 40, width: 7, height: 7, color: '#6b7280', rounded: true },
+        { id: 'o2', type: 'static', x: 297, y: 58, width: 7, height: 7, color: '#6b7280', rounded: true },
         // 干扰小行星
         { id: 'o3', type: 'moving', x: 55, y: 25, width: 6, height: 6, moveAxis: 'y', moveRange: 15, moveSpeed: 0.025, color: '#7c3aed', rounded: true },
         { id: 'o4', type: 'moving', x: 110, y: 70, width: 6, height: 6, moveAxis: 'y', moveRange: 16, moveSpeed: 0.028, color: '#7c3aed', rounded: true },
         { id: 'o5', type: 'moving', x: 165, y: 30, width: 6, height: 6, moveAxis: 'y', moveRange: 18, moveSpeed: 0.032, color: '#7c3aed', rounded: true },
-        { id: 'o6', type: 'moving', x: 200, y: 65, width: 6, height: 6, moveAxis: 'y', moveRange: 14, moveSpeed: 0.03, color: '#7c3aed', rounded: true },
+        { id: 'o6', type: 'moving', x: 280, y: 65, width: 6, height: 6, moveAxis: 'y', moveRange: 14, moveSpeed: 0.03, color: '#7c3aed', rounded: true },
       ],
       collectibles: [
         // 波浪路线：利用惯性滑行吃星尘
@@ -134,14 +141,19 @@ const inertiaStar: ChapterDef = {
         { id: 's7', type: 'stardust', x: 135, y: 65 },
         { id: 's8', type: 'stardust', x: 155, y: 35 },
         { id: 's9', type: 'stardust', x: 175, y: 70 },
-        { id: 's10', type: 'stardust', x: 195, y: 40 },
-        { id: 's11', type: 'stardust', x: 210, y: 65 },
-        { id: 's12', type: 'stardust', x: 218, y: 45 },
+        { id: 's10', type: 'stardust', x: 275, y: 40 },
+        { id: 's11', type: 'stardust', x: 290, y: 65 },
+        { id: 's12', type: 'stardust', x: 298, y: 45 },
       ],
       triggers: [
         // 高速走廊：风区借力滑行
         { id: 't1', type: 'wind', x: 65, y: 30, width: 12, height: 40, params: { forceX: 0.15, forceY: 0 } },
         { id: 't2', type: 'wind', x: 150, y: 30, width: 12, height: 40, params: { forceX: 0.15, forceY: 0 } },
+      ],
+      portals: [
+        // 传送门捷径：放弃下方星尘，直接跳到后半段（路线选择）
+        { id: 'p1', pairId: 'p2', x: 100, y: 82, radius: 5 },
+        { id: 'p2', pairId: 'p1', x: 240, y: 18, radius: 5 },
       ],
       starConditions: { collectibles: [12, 10, 8], time: [25, 40, 60] },
       timeLimit: 30,
@@ -158,6 +170,7 @@ const inertiaStar: ChapterDef = {
     feifei: { x: 12, y: 70 },
     goal: { x: 205, y: 70, radius: 3 },
     camera: { lookahead: false },  // 迷宫：减少前瞻晃动，稳定视野
+    bgGradient: ['#2e0a14', '#4e1528'],
     obstacles: [
       // 外框墙
       { id: 'w1', type: 'static', x: 0, y: 0, width: 220, height: 3, color: '#475569', rounded: false },
@@ -766,7 +779,7 @@ const energyStar: ChapterDef = {
     {
       id: '6-3', name: '过山车', difficulty: 2,
       worldWidth: 120, worldHeight: 80,
-      physics: { gravity: 0.06, drag: 0.01, bounce: 0.3, thrust: 0.06, boundsBehavior: 'bounce' },
+      physics: { gravity: 0.06, drag: 0.01, bounce: 0.3, thrust: 0.08, maxSpeed: 3.0, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 10 },
       goal: { x: 110, y: 70, radius: 3 },
       obstacles: [
@@ -787,13 +800,14 @@ const energyStar: ChapterDef = {
     {
       id: '6-4', name: '能量守恒', difficulty: 3,
       worldWidth: 100, worldHeight: 80,
-      physics: { gravity: 0.05, drag: 0.005, bounce: 0.5, thrust: 0.04, boundsBehavior: 'bounce' },
+      physics: { gravity: 0.05, drag: 0.005, bounce: 0.5, thrust: 0.08, maxSpeed: 2.8, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 70 },
       goal: { x: 90, y: 10, radius: 3 },
       obstacles: [
-        { id: 'o1', type: 'static', x: 15, y: 55, width: 20, height: 3, color: '#475569', rounded: false },
-        { id: 'o2', type: 'static', x: 45, y: 40, width: 20, height: 3, color: '#475569', rounded: false },
-        { id: 'o3', type: 'static', x: 70, y: 25, width: 15, height: 3, color: '#475569', rounded: false },
+        // 单向平台：逐级向上跳（能量守恒：动能↔势能）
+        { id: 'o1', type: 'platform', x: 15, y: 55, width: 20, height: 3, color: '#10b981', rounded: false },
+        { id: 'o2', type: 'platform', x: 45, y: 40, width: 20, height: 3, color: '#10b981', rounded: false },
+        { id: 'o3', type: 'platform', x: 70, y: 25, width: 15, height: 3, color: '#10b981', rounded: false },
         { id: 'o4', type: 'static', x: 82, y: 3, width: 7, height: 7, color: '#6b7280', rounded: true },
         { id: 'o5', type: 'static', x: 95, y: 14, width: 7, height: 7, color: '#6b7280', rounded: true },
       ],
@@ -810,7 +824,7 @@ const energyStar: ChapterDef = {
   boss: {
     id: '6-5-boss', name: '永动机陷阱', difficulty: 4,
     worldWidth: 120, worldHeight: 90,
-    physics: { gravity: 0.05, drag: 0.005, bounce: 0.6, thrust: 0.04, boundsBehavior: 'bounce' },
+    physics: { gravity: 0.05, drag: 0.005, bounce: 0.6, thrust: 0.08, maxSpeed: 3.0, boundsBehavior: 'bounce' },
     feifei: { x: 10, y: 80 },
     goal: { x: 110, y: 10, radius: 3 },
     obstacles: [
@@ -818,9 +832,10 @@ const energyStar: ChapterDef = {
       { id: 'w2', type: 'static', x: 0, y: 87, width: 120, height: 3, color: '#475569', rounded: false },
       { id: 'w3', type: 'static', x: 0, y: 0, width: 3, height: 90, color: '#475569', rounded: false },
       { id: 'w4', type: 'static', x: 117, y: 0, width: 3, height: 90, color: '#475569', rounded: false },
-      { id: 'o1', type: 'static', x: 25, y: 55, width: 20, height: 3, color: '#64748b', rounded: false },
-      { id: 'o2', type: 'static', x: 55, y: 40, width: 20, height: 3, color: '#64748b', rounded: false },
-      { id: 'o3', type: 'static', x: 85, y: 25, width: 20, height: 3, color: '#64748b', rounded: false },
+      // 单向平台梯田：逐级向上，配合 boost 弹跳
+      { id: 'o1', type: 'platform', x: 25, y: 55, width: 20, height: 3, color: '#10b981', rounded: false },
+      { id: 'o2', type: 'platform', x: 55, y: 40, width: 20, height: 3, color: '#10b981', rounded: false },
+      { id: 'o3', type: 'platform', x: 85, y: 25, width: 20, height: 3, color: '#10b981', rounded: false },
     ],
     collectibles: [
       { id: 'c1', type: 'checkpoint', x: 30, y: 75 },
