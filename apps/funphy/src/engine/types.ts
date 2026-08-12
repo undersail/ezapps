@@ -305,6 +305,7 @@ export interface GameRuntime {
   goal: Goal
   camera: { x: number; y: number }  // 相机左上角（世界坐标）
   respawnPoint: { x: number; y: number }  // 复活点（checkpoint 或关卡起点）
+  failReason: 'timeout' | 'hazard' | null  // 失败原因（区分提示文案）
   time: number
   collisions: number
   stardust: number

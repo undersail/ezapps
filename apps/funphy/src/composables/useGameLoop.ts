@@ -166,6 +166,7 @@ export function useGameLoop() {
       goal,
       camera: { x: 0, y: 0 },
       respawnPoint: { x: spawnPos.x, y: spawnPos.y },
+      failReason: null,
       time: 0,
       collisions: 0,
       stardust: 0,
@@ -414,6 +415,7 @@ export function useGameLoop() {
     // 时间限制检查
     if (rt.level.timeLimit && rt.time > rt.level.timeLimit) {
       rt.state = 'lost'
+      rt.failReason = 'timeout'
     }
     
     // 失败检查（时间耗尽 / 危险区接触）

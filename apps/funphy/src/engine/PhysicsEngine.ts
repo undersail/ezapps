@@ -50,11 +50,12 @@ export class PhysicsEngine {
     
     // 推力：优先使用摇杆方向（thrustDir），否则回退到4方向
     let thrust = this.config.thrust
-    // 软限速：速度越接近 maxSpeed，推力效率越低（自然形成终端速度，手感更稳）
-    const maxS = this.config.maxSpeed
-    if (maxS && maxS > 0) {
+    // 软限速（线性）：速度越接近 maxSpeed 推力效率越低，在 maxSpeed 处封顶
+    // 未标注 maxSpeed 的关卡默认 1.3（约 78 单位/秒，5-6 秒横穿大世界）
+    const maxS = this.config.maxSpeed ?? 1.3
+    if (maxS > 0) {
       const sp = Math.sqrt(feifei.vel.x ** 2 + feifei.vel.y ** 2)
-      const eff = Math.max(0, 1 - (sp / maxS) ** 2)
+      const eff = Math.max(0, 1 - sp / maxS)
       thrust *= eff
     }
     // 冲刺：dashTimer 激活期间推力 ×1.6（计时递减在游戏循环做，避免子步进加速衰减）
@@ -199,6 +200,7 @@ export class PhysicsEngine {
           feifei.pos.y > hazard.y && feifei.pos.y < hazard.y + hazard.height) {
         runtime.events.push('hazard')
         runtime.state = 'lost'
+        runtime.failReason = 'hazard'
         break
       }
     }
@@ -367,9 +369,9 @@ export class PhysicsEngine {
       else { dx = 0; dy = 1 }
       feifei.pos.x += dx * (r + 1)
       feifei.pos.y += dy * (r + 1)
-      // 中心在内部时直接归零速度
-      feifei.vel.x = 0
-      feifei.vel.y = 0
+      // 沿推出方向给微小速度（防止多障碍夹击时速度归零死锁）
+      feifei.vel.x = dx * 0.3
+      feifei.vel.y = dy * 0.3
     } else {
       // 正常推出
       const nx = dx / dist

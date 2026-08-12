@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useGameLoop } from '../composables/useGameLoop'
 import { useSound } from '../composables/useSound'
 import type { LevelDef } from '../engine/types'
@@ -24,6 +24,7 @@ const {
   stardustCollected,
   totalStardustInLevel,
   collisions,
+  runtime,
   input,
   setDirection,
   setJoystick,
@@ -34,6 +35,12 @@ const {
   retryLevel,
   backToMenu,
 } = useGameLoop()
+
+// 失败原因文案（危险区 / 时间耗尽）
+const failText = computed(() => {
+  if (runtime.value?.failReason === 'hazard') return '💥 撞上危险区！'
+  return '😵 时间到！'
+})
 
 const { soundEnabled, toggleSound } = useSound()
 const canvasEl = ref<HTMLCanvasElement | null>(null)
@@ -276,7 +283,7 @@ onUnmounted(() => {
     <!-- 失败界面 -->
     <div class="overlay" v-if="gameState === 'lost'">
       <div class="overlay-card lose-card">
-        <h2>😵 时间到！</h2>
+        <h2>{{ failText }}</h2>
         <button class="btn-primary" @click="handleRetry">再试一次</button>
         <button class="btn-secondary" @click="handleBack">返回</button>
       </div>
@@ -284,27 +291,36 @@ onUnmounted(() => {
 
     <!-- 摇杆控制区 -->
     <div class="joystick-area" v-if="gameState === 'playing'">
-      <div
-        ref="joystickBase"
-        class="joystick-base"
-        @touchstart.prevent="onJoystickTouchStart"
-        @touchmove.prevent="onJoystickTouchMove"
-        @touchend.prevent="onJoystickTouchEnd"
-        @touchcancel.prevent="onJoystickTouchEnd"
-        @mousedown.prevent="onJoystickMouseDown"
-      >
-        <!-- 方向指示 -->
-        <div class="joystick-arrow up">▲</div>
-        <div class="joystick-arrow down">▼</div>
-        <div class="joystick-arrow left">◀</div>
-        <div class="joystick-arrow right">▶</div>
-        <!-- 摇杆把手 -->
+      <div class="controls-row">
         <div
-          class="joystick-knob"
-          :style="{
-            transform: `translate(${knobX}px, ${knobY}px)`,
-          }"
-        ></div>
+          ref="joystickBase"
+          class="joystick-base"
+          @touchstart.prevent="onJoystickTouchStart"
+          @touchmove.prevent="onJoystickTouchMove"
+          @touchend.prevent="onJoystickTouchEnd"
+          @touchcancel.prevent="onJoystickTouchEnd"
+          @mousedown.prevent="onJoystickMouseDown"
+        >
+          <!-- 方向指示 -->
+          <div class="joystick-arrow up">▲</div>
+          <div class="joystick-arrow down">▼</div>
+          <div class="joystick-arrow left">◀</div>
+          <div class="joystick-arrow right">▶</div>
+          <!-- 摇杆把手 -->
+          <div
+            class="joystick-knob"
+            :style="{
+              transform: `translate(${knobX}px, ${knobY}px)`,
+            }"
+          ></div>
+        </div>
+        <!-- 冲刺功能键（触屏） -->
+        <button
+          class="dash-btn"
+          @touchstart.prevent="input.dashPressed = true"
+          @mousedown.prevent="input.dashPressed = true"
+          aria-label="冲刺"
+        >⚡</button>
       </div>
       <div class="keyboard-hint-desktop">
         WASD / 方向键 操控 · Shift 冲刺 · ESC 暂停 · R 快速重试
@@ -441,6 +457,36 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   z-index: 10;
+}
+
+.controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+/* 冲刺功能键 */
+.dash-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid rgba(250, 204, 21, 0.5);
+  background: radial-gradient(circle at 35% 35%, rgba(250, 204, 21, 0.4), rgba(147, 51, 234, 0.5));
+  color: #fde68a;
+  font-size: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.3);
+}
+.dash-btn:active {
+  transform: scale(0.92);
+  box-shadow: 0 0 20px rgba(250, 204, 21, 0.6);
 }
 
 .joystick-base {

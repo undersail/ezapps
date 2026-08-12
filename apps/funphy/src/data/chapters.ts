@@ -16,7 +16,7 @@ const inertiaStar: ChapterDef = {
       difficulty: 1,
       worldWidth: 100,
       worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, maxSpeed: 3.0, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.16, maxSpeed: 1.4, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
       goal: { x: 90, y: 37, radius: 3 },
       obstacles: [
@@ -42,7 +42,7 @@ const inertiaStar: ChapterDef = {
       difficulty: 2,
       worldWidth: 300,
       worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.08, maxSpeed: 2.8, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.17, maxSpeed: 1.3, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
       goal: { x: 290, y: 37, radius: 3 },
       bgGradient: ['#1a0b3a', '#2d1b69'],
@@ -87,7 +87,7 @@ const inertiaStar: ChapterDef = {
       difficulty: 2,
       worldWidth: 80,
       worldHeight: 60,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.06, maxSpeed: 2.2, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.15, maxSpeed: 1.1, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 30 },
       goal: { x: 70, y: 30, radius: 3, maxSpeed: 0.8 },
       obstacles: [
@@ -116,7 +116,7 @@ const inertiaStar: ChapterDef = {
       difficulty: 3,
       worldWidth: 320,
       worldHeight: 100,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, maxSpeed: 3.2, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.16, maxSpeed: 1.4, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 50 },
       goal: { x: 305, y: 50, radius: 3 },
       bgGradient: ['#06282e', '#0d4a42'],
@@ -166,7 +166,7 @@ const inertiaStar: ChapterDef = {
     difficulty: 4,
     worldWidth: 220,
     worldHeight: 140,
-    physics: { gravity: 0, drag: 0, bounce: 0.5, thrust: 0.08, maxSpeed: 3.0, boundsBehavior: 'bounce' },
+    physics: { gravity: 0, drag: 0, bounce: 0.5, thrust: 0.17, maxSpeed: 1.4, boundsBehavior: 'bounce' },
     feifei: { x: 12, y: 70 },
     goal: { x: 205, y: 70, radius: 3 },
     camera: { lookahead: false },  // 迷宫：减少前瞻晃动，稳定视野
@@ -228,7 +228,7 @@ const gravityStar: ChapterDef = {
     {
       id: '2-1', name: '登月', difficulty: 1,
       worldWidth: 100, worldHeight: 75,
-      physics: { gravity: 0.03, drag: 0, bounce: 0.5, thrust: 0.08, boundsBehavior: 'bounce' },
+      physics: { gravity: 0.03, drag: 0, bounce: 0.5, thrust: 0.17, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 65 },
       goal: { x: 90, y: 10, radius: 3 },
       obstacles: [
@@ -318,7 +318,7 @@ const gravityStar: ChapterDef = {
   boss: {
     id: '2-5-boss', name: '重力切换', difficulty: 4,
     worldWidth: 100, worldHeight: 80,
-    physics: { gravity: 0.04, drag: 0, bounce: 0.5, thrust: 0.08, boundsBehavior: 'bounce' },
+    physics: { gravity: 0.04, drag: 0, bounce: 0.5, thrust: 0.17, boundsBehavior: 'bounce' },
     feifei: { x: 10, y: 70 },
     goal: { x: 90, y: 10, radius: 3 },
     obstacles: [
@@ -359,7 +359,7 @@ const bounceStar: ChapterDef = {
     {
       id: '3-1', name: '弹力墙', difficulty: 1,
       worldWidth: 100, worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.95, thrust: 0.07, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.95, thrust: 0.16, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
       goal: { x: 90, y: 37, radius: 3 },
       obstacles: [
@@ -379,7 +379,7 @@ const bounceStar: ChapterDef = {
     {
       id: '3-2', name: '台球飞飞', difficulty: 2,
       worldWidth: 100, worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.95, thrust: 0.06, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.95, thrust: 0.15, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
       goal: { x: 90, y: 37, radius: 3 },
       obstacles: [
@@ -401,7 +401,7 @@ const bounceStar: ChapterDef = {
     {
       id: '3-3', name: '连锁反应', difficulty: 2,
       worldWidth: 120, worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.95, thrust: 0.06, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.95, thrust: 0.15, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
       goal: { x: 110, y: 37, radius: 3 },
       obstacles: [
@@ -427,7 +427,7 @@ const bounceStar: ChapterDef = {
     {
       id: '3-4', name: '弹力跳板', difficulty: 3,
       worldWidth: 100, worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.95, thrust: 0.06, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.95, thrust: 0.15, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 65 },
       goal: { x: 90, y: 10, radius: 3 },
       obstacles: [
@@ -450,7 +450,7 @@ const bounceStar: ChapterDef = {
   boss: {
     id: '3-5-boss', name: '弹力迷宫', difficulty: 4,
     worldWidth: 120, worldHeight: 90,
-    physics: { gravity: 0, drag: 0, bounce: 0.95, thrust: 0.06, boundsBehavior: 'bounce' },
+    physics: { gravity: 0, drag: 0, bounce: 0.95, thrust: 0.15, boundsBehavior: 'bounce' },
     feifei: { x: 10, y: 80 },
     goal: { x: 110, y: 10, radius: 3 },
     obstacles: [
@@ -615,7 +615,7 @@ const orbitStar: ChapterDef = {
     {
       id: '5-1', name: '单星环绕', difficulty: 1,
       worldWidth: 100, worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.06, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.15, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
       goal: { x: 90, y: 37, radius: 3 },
       obstacles: [
@@ -636,7 +636,7 @@ const orbitStar: ChapterDef = {
     {
       id: '5-2', name: '双星系统', difficulty: 2,
       worldWidth: 100, worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.06, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.15, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
       goal: { x: 90, y: 37, radius: 3 },
       obstacles: [
@@ -658,7 +658,7 @@ const orbitStar: ChapterDef = {
     {
       id: '5-3', name: '拉格朗日点', difficulty: 2,
       worldWidth: 120, worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.06, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.15, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
       goal: { x: 110, y: 37, radius: 3 },
       obstacles: [
@@ -703,7 +703,7 @@ const orbitStar: ChapterDef = {
   boss: {
     id: '5-5-boss', name: '三体问题', difficulty: 4,
     worldWidth: 120, worldHeight: 90,
-    physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.06, boundsBehavior: 'bounce' },
+    physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.15, boundsBehavior: 'bounce' },
     feifei: { x: 10, y: 80 },
     goal: { x: 110, y: 10, radius: 3 },
     obstacles: [
@@ -740,7 +740,7 @@ const energyStar: ChapterDef = {
     {
       id: '6-1', name: '滑坡', difficulty: 1,
       worldWidth: 100, worldHeight: 75,
-      physics: { gravity: 0.05, drag: 0.01, bounce: 0.3, thrust: 0.08, boundsBehavior: 'bounce' },
+      physics: { gravity: 0.05, drag: 0.01, bounce: 0.3, thrust: 0.17, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 10 },
       goal: { x: 90, y: 65, radius: 3 },
       obstacles: [
@@ -759,7 +759,7 @@ const energyStar: ChapterDef = {
     {
       id: '6-2', name: '弹弓', difficulty: 2,
       worldWidth: 100, worldHeight: 75,
-      physics: { gravity: 0.05, drag: 0.01, bounce: 0.8, thrust: 0.07, boundsBehavior: 'bounce' },
+      physics: { gravity: 0.05, drag: 0.01, bounce: 0.8, thrust: 0.16, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 65 },
       goal: { x: 90, y: 10, radius: 3 },
       obstacles: [
@@ -779,7 +779,7 @@ const energyStar: ChapterDef = {
     {
       id: '6-3', name: '过山车', difficulty: 2,
       worldWidth: 120, worldHeight: 80,
-      physics: { gravity: 0.06, drag: 0.01, bounce: 0.3, thrust: 0.08, maxSpeed: 3.0, boundsBehavior: 'bounce' },
+      physics: { gravity: 0.06, drag: 0.01, bounce: 0.3, thrust: 0.17, maxSpeed: 1.3, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 10 },
       goal: { x: 110, y: 70, radius: 3 },
       obstacles: [
@@ -800,7 +800,7 @@ const energyStar: ChapterDef = {
     {
       id: '6-4', name: '能量守恒', difficulty: 3,
       worldWidth: 100, worldHeight: 80,
-      physics: { gravity: 0.05, drag: 0.005, bounce: 0.5, thrust: 0.08, maxSpeed: 2.8, boundsBehavior: 'bounce' },
+      physics: { gravity: 0.05, drag: 0.005, bounce: 0.5, thrust: 0.17, maxSpeed: 1.3, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 70 },
       goal: { x: 90, y: 10, radius: 3 },
       obstacles: [
@@ -824,7 +824,7 @@ const energyStar: ChapterDef = {
   boss: {
     id: '6-5-boss', name: '永动机陷阱', difficulty: 4,
     worldWidth: 120, worldHeight: 90,
-    physics: { gravity: 0.05, drag: 0.005, bounce: 0.6, thrust: 0.08, maxSpeed: 3.0, boundsBehavior: 'bounce' },
+    physics: { gravity: 0.05, drag: 0.005, bounce: 0.6, thrust: 0.17, maxSpeed: 1.3, boundsBehavior: 'bounce' },
     feifei: { x: 10, y: 80 },
     goal: { x: 110, y: 10, radius: 3 },
     obstacles: [
