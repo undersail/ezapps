@@ -1,4 +1,4 @@
-import type { PhysicsConfig, FeiFei, Vec2, Obstacle, Collectible, Trigger, Goal, GameRuntime } from './types'
+import type { PhysicsConfig, FeiFei, Vec2, Obstacle, Collectible, Trigger, Goal, GameRuntime, Spring, Portal, Conveyor, Hazard } from './types'
 
 export class PhysicsEngine {
   private config: PhysicsConfig
@@ -102,6 +102,15 @@ export class PhysicsEngine {
       }
     }
     
+    // 传送带：区域内的持续表面推力
+    for (const conv of runtime.conveyors) {
+      if (feifei.pos.x > conv.x && feifei.pos.x < conv.x + conv.width &&
+          feifei.pos.y > conv.y && feifei.pos.y < conv.y + conv.height) {
+        fx += conv.forceX
+        fy += conv.forceY
+      }
+    }
+    
     // 3. 更新速度
     feifei.vel.x += fx * dt
     feifei.vel.y += fy * dt
@@ -121,6 +130,11 @@ export class PhysicsEngine {
     
     // 6. 碰撞检测 - 障碍物
     for (const obs of obstacles) {
+      // 单向平台：仅当飞飞从上方落下时碰撞（从下方/侧面穿过）
+      if (obs.type === 'platform') {
+        this.resolvePlatformCollision(feifei, obs, runtime)
+        continue
+      }
       if (this.circleRectCollision(feifei, obs)) {
         const prevSpeed = Math.sqrt(feifei.vel.x ** 2 + feifei.vel.y ** 2)
         this.resolveObstacleCollision(feifei, obs)
@@ -131,6 +145,45 @@ export class PhysicsEngine {
           feifei.expression = 'hit'
           runtime.events.push('hit')
         }
+      }
+    }
+    
+    // 6.2 弹力垫：接触即弹射（带冷却防连弹）
+    for (const spring of runtime.springs) {
+      if (spring.cooldown > 0) { spring.cooldown--; continue }
+      if (this.circleRectHit(feifei, spring.x, spring.y, spring.width, spring.height)) {
+        feifei.vel.x += spring.dirX * spring.power
+        feifei.vel.y += spring.dirY * spring.power
+        spring.cooldown = 12
+        runtime.events.push('spring')
+      }
+    }
+    
+    // 6.3 传送门：接触即传送到配对门（保持速度，带冷却防来回传送）
+    for (const portal of runtime.portals) {
+      if (portal.cooldown > 0) { portal.cooldown--; continue }
+      const pdx = feifei.pos.x - portal.x
+      const pdy = feifei.pos.y - portal.y
+      const pr = feifei.radius + portal.radius
+      if (pdx * pdx + pdy * pdy < pr * pr) {
+        const pair = runtime.portals.find(p => p.id === portal.pairId && p.id !== portal.id)
+        if (pair) {
+          feifei.pos.x = pair.x
+          feifei.pos.y = pair.y
+          portal.cooldown = 20
+          pair.cooldown = 20
+          runtime.events.push('portal')
+        }
+      }
+    }
+    
+    // 6.4 危险区：接触即失败
+    for (const hazard of runtime.hazards) {
+      if (feifei.pos.x > hazard.x && feifei.pos.x < hazard.x + hazard.width &&
+          feifei.pos.y > hazard.y && feifei.pos.y < hazard.y + hazard.height) {
+        runtime.events.push('hazard')
+        runtime.state = 'lost'
+        break
       }
     }
     
@@ -229,6 +282,39 @@ export class PhysicsEngine {
     const dx = cx - nearestX
     const dy = cy - nearestY
     return (dx * dx + dy * dy) < (r * r)
+  }
+  
+  /** 圆-矩形相交检测（不带推出） */
+  private circleRectHit(feifei: FeiFei, rx: number, ry: number, rw: number, rh: number): boolean {
+    const nearestX = Math.max(rx, Math.min(feifei.pos.x, rx + rw))
+    const nearestY = Math.max(ry, Math.min(feifei.pos.y, ry + rh))
+    const dx = feifei.pos.x - nearestX
+    const dy = feifei.pos.y - nearestY
+    return (dx * dx + dy * dy) < (feifei.radius * feifei.radius)
+  }
+  
+  /** 单向平台碰撞：仅当飞飞从上方落到平台表面时站立/反弹 */
+  private resolvePlatformCollision(feifei: FeiFei, obs: Obstacle, runtime: GameRuntime): void {
+    const r = feifei.radius
+    // 水平重叠
+    if (feifei.pos.x + r <= obs.x || feifei.pos.x - r >= obs.x + obs.width) return
+    // 飞飞底部已到达平台顶面（且中心尚未深穿）
+    const bottom = feifei.pos.y + r
+    if (bottom < obs.y || bottom > obs.y + 6) return
+    // 仅向下运动时生效（向上/悬停穿过）
+    if (feifei.vel.y <= 0) return
+    
+    // 落到平台表面：轻量碰撞计数
+    feifei.pos.y = obs.y - r
+    const impact = feifei.vel.y
+    if (impact > 0.8) {
+      feifei.vel.y = -impact * this.config.bounce * 0.3
+      runtime.collisions++
+      feifei.hitTimer = 8
+      runtime.events.push('hit')
+    } else {
+      feifei.vel.y = 0
+    }
   }
   
   private resolveObstacleCollision(feifei: FeiFei, obs: Obstacle): void {

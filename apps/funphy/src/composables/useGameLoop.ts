@@ -4,7 +4,7 @@ import { SceneRenderer } from '../scenes/SceneRenderer'
 import { useInput, type InputState } from './useInput'
 import { useSound } from './useSound'
 import * as Sound from '../utils/sound'
-import type { GameRuntime, LevelDef, FeiFei, Obstacle, Collectible, Trigger, Goal, SkinDef, StarCondition } from '../engine/types'
+import type { GameRuntime, LevelDef, FeiFei, Obstacle, Collectible, Trigger, Goal, SkinDef, StarCondition, Spring, Portal, Conveyor, Hazard } from '../engine/types'
 import { skins } from '../data/skins'
 
 function clamp(v: number, min: number, max: number): number {
@@ -84,6 +84,46 @@ export function useGameLoop() {
       params: t.params,
     }))
     
+    const springs: Spring[] = (level.springs ?? []).map(s => ({
+      id: s.id,
+      x: s.x,
+      y: s.y,
+      width: s.width,
+      height: s.height,
+      power: s.power,
+      dirX: s.dirX ?? 0,
+      dirY: s.dirY ?? -1,
+      cooldown: 0,
+    }))
+    
+    const portals: Portal[] = (level.portals ?? []).map(p => ({
+      id: p.id,
+      pairId: p.pairId,
+      x: p.x,
+      y: p.y,
+      radius: p.radius,
+      cooldown: 0,
+    }))
+    
+    const conveyors: Conveyor[] = (level.conveyors ?? []).map(c => ({
+      id: c.id,
+      x: c.x,
+      y: c.y,
+      width: c.width,
+      height: c.height,
+      forceX: c.forceX,
+      forceY: c.forceY ?? 0,
+    }))
+    
+    const hazards: Hazard[] = (level.hazards ?? []).map(h => ({
+      id: h.id,
+      x: h.x,
+      y: h.y,
+      width: h.width,
+      height: h.height,
+      color: h.color ?? '#ef4444',
+    }))
+    
     const goal: Goal = {
       x: level.goal.x,
       y: level.goal.y,
@@ -100,6 +140,10 @@ export function useGameLoop() {
       obstacles,
       collectibles,
       triggers,
+      springs,
+      portals,
+      conveyors,
+      hazards,
       goal,
       camera: { x: 0, y: 0 },
       time: 0,
@@ -299,6 +343,9 @@ export function useGameLoop() {
         else if (event === 'bounce') Sound.playBounce()
         else if (event === 'hit') Sound.playHit()
         else if (event === 'win') Sound.playWin()
+        else if (event === 'spring') Sound.playBounce()
+        else if (event === 'portal') Sound.playCollect()
+        else if (event === 'hazard') Sound.playHit()
       }
     }
     rt.events.length = 0
@@ -311,6 +358,10 @@ export function useGameLoop() {
     // 时间限制检查
     if (rt.level.timeLimit && rt.time > rt.level.timeLimit) {
       rt.state = 'lost'
+    }
+    
+    // 失败检查（时间耗尽 / 危险区接触）
+    if (rt.state === 'lost') {
       gameState.value = 'lost'
     }
     

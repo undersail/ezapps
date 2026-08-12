@@ -1,4 +1,4 @@
-import type { GameRuntime, FeiFei, FeiFeiExpression, Obstacle, Collectible, Trigger, Goal, SkinDef } from '../engine/types'
+import type { GameRuntime, FeiFei, FeiFeiExpression, Obstacle, Collectible, Trigger, Goal, SkinDef, Spring, Portal, Conveyor, Hazard } from '../engine/types'
 
 function clamp(v: number, min: number, max: number): number {
   return v < min ? min : (v > max ? max : v)
@@ -117,6 +117,20 @@ export class SceneRenderer {
       }
     }
     
+    // 新实体：弹力垫/传送门/传送带/危险区（视口裁剪）
+    for (const spring of runtime.springs) {
+      if (inView(spring.x, spring.y, spring.width, spring.height)) this.drawSpring(spring)
+    }
+    for (const portal of runtime.portals) {
+      if (inView(portal.x - portal.radius, portal.y - portal.radius, portal.radius * 2, portal.radius * 2)) this.drawPortal(portal)
+    }
+    for (const conv of runtime.conveyors) {
+      if (inView(conv.x, conv.y, conv.width, conv.height)) this.drawConveyor(conv)
+    }
+    for (const hazard of runtime.hazards) {
+      if (inView(hazard.x, hazard.y, hazard.width, hazard.height)) this.drawHazard(hazard)
+    }
+    
     // 收集品（视口裁剪）
     for (const col of runtime.collectibles) {
       if (inView(col.x - 8, col.y - 8, 16, 16)) {
@@ -156,6 +170,18 @@ export class SceneRenderer {
   
   private drawObstacle(obs: Obstacle): void {
     const ctx = this.ctx
+    
+    // 单向平台：绿色半透明，表面亮线
+    if (obs.type === 'platform') {
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.35)'
+      ctx.fillRect(obs.x, obs.y, obs.width, obs.height)
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.9)'
+      ctx.fillRect(obs.x, obs.y, obs.width, 2)
+      ctx.fillStyle = 'rgba(255,255,255,0.25)'
+      ctx.fillRect(obs.x + 1, obs.y + 2, obs.width - 2, 1)
+      return
+    }
+    
     ctx.fillStyle = obs.color || '#4a5568'
     
     if (obs.rounded) {
@@ -253,6 +279,94 @@ export class SceneRenderer {
     }
     ctx.closePath()
     ctx.fill()
+  }
+  
+  /** 弹力垫：橙色，画向上箭头 */
+  private drawSpring(spring: Spring): void {
+    const ctx = this.ctx
+    const pulse = Math.sin(Date.now() / 200) * 0.1 + 0.4
+    ctx.fillStyle = `rgba(249, 115, 22, ${pulse})`
+    ctx.fillRect(spring.x, spring.y, spring.width, spring.height)
+    ctx.strokeStyle = 'rgba(249, 115, 22, 0.9)'
+    ctx.lineWidth = 1
+    ctx.strokeRect(spring.x + 0.5, spring.y + 0.5, spring.width - 1, spring.height - 1)
+    // 向上箭头
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
+    const cx = spring.x + spring.width / 2
+    const cy = spring.y + spring.height / 2
+    ctx.beginPath()
+    ctx.moveTo(cx, cy - 3)
+    ctx.lineTo(cx - 4, cy + 2)
+    ctx.lineTo(cx + 4, cy + 2)
+    ctx.closePath()
+    ctx.fill()
+  }
+  
+  /** 传送门：紫色旋转圆环 */
+  private drawPortal(portal: Portal): void {
+    const ctx = this.ctx
+    const spin = Date.now() / 300
+    ctx.save()
+    ctx.translate(portal.x, portal.y)
+    ctx.rotate(spin)
+    ctx.strokeStyle = 'rgba(168, 85, 247, 0.9)'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(0, 0, portal.radius, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.strokeStyle = 'rgba(168, 85, 247, 0.4)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.arc(0, 0, portal.radius - 3, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.fillStyle = 'rgba(168, 85, 247, 0.15)'
+    ctx.beginPath()
+    ctx.arc(0, 0, portal.radius - 1, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+  }
+  
+  /** 传送带：蓝色底 + 流动箭头 */
+  private drawConveyor(conv: Conveyor): void {
+    const ctx = this.ctx
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.3)'
+    ctx.fillRect(conv.x, conv.y, conv.width, conv.height)
+    ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)'
+    ctx.lineWidth = 1
+    ctx.strokeRect(conv.x + 0.5, conv.y + 0.5, conv.width - 1, conv.height - 1)
+    // 流动箭头（沿 forceX 方向）
+    const dir = Math.sign(conv.forceX) || 1
+    const step = 12
+    const off = (Date.now() / 40) % step
+    ctx.fillStyle = 'rgba(147, 197, 253, 0.6)'
+    for (let ax = conv.x + off; ax < conv.x + conv.width; ax += step) {
+      const cy = conv.y + conv.height / 2
+      ctx.beginPath()
+      ctx.moveTo(ax, cy)
+      ctx.lineTo(ax - 3 * dir, cy - 2)
+      ctx.lineTo(ax - 3 * dir, cy + 2)
+      ctx.closePath()
+      ctx.fill()
+    }
+  }
+  
+  /** 危险区：红色半透明 + 斜纹 */
+  private drawHazard(hazard: Hazard): void {
+    const ctx = this.ctx
+    const blink = Math.sin(Date.now() / 150) * 0.1 + 0.45
+    ctx.fillStyle = `rgba(239, 68, 68, ${blink})`
+    ctx.fillRect(hazard.x, hazard.y, hazard.width, hazard.height)
+    // 斜纹
+    ctx.strokeStyle = 'rgba(254, 202, 202, 0.5)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    for (let i = -hazard.height; i < hazard.width; i += 8) {
+      ctx.moveTo(hazard.x + i, hazard.y + hazard.height)
+      ctx.lineTo(hazard.x + i + hazard.height, hazard.y)
+    }
+    ctx.stroke()
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)'
+    ctx.strokeRect(hazard.x + 0.5, hazard.y + 0.5, hazard.width - 1, hazard.height - 1)
   }
   
   private drawTrigger(trigger: Trigger): void {

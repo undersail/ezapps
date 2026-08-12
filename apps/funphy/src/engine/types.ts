@@ -35,8 +35,8 @@ export interface FeiFei extends Entity {
   winTimer: number  // 通关动画计时
 }
 
-// 障碍物类型
-export type ObstacleType = 'static' | 'moving' | 'wall'
+// 障碍物类型（platform=单向平台：仅从上方碰撞）
+export type ObstacleType = 'static' | 'moving' | 'wall' | 'platform'
 
 // 障碍物定义
 export interface ObstacleDef {
@@ -94,7 +94,7 @@ export interface Collectible {
   animTimer: number  // 收集动画
 }
 
-// 特殊区域类型
+// 触发区域类型
 export type TriggerType = 'boost' | 'slow' | 'gravity_well' | 'wind'
 
 // 触发区域定义
@@ -144,6 +144,94 @@ export interface StarCondition {
   energy?: [number, number, number]  // 3星/2星/1星的剩余能量百分比
 }
 
+// ============ 新实体（P1-1）：弹力垫 / 传送门 / 传送带 / 危险区 ============
+
+// 弹力垫定义
+export interface SpringDef {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  power: number           // 弹射力度（速度增量）
+  dirX?: number           // 弹射方向 x（默认 0 = 向上）
+  dirY?: number           // 弹射方向 y（默认 -1 = 向上）
+}
+
+// 运行时弹力垫
+export interface Spring {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  power: number
+  dirX: number
+  dirY: number
+  cooldown: number        // 触发冷却（帧），防连续弹
+}
+
+// 传送门定义（成对）
+export interface PortalDef {
+  id: string
+  pairId: string          // 配对门的 id
+  x: number
+  y: number
+  radius: number
+}
+
+// 运行时传送门
+export interface Portal {
+  id: string
+  pairId: string
+  x: number
+  y: number
+  radius: number
+  cooldown: number
+}
+
+// 传送带定义
+export interface ConveyorDef {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  forceX: number          // 表面推力（默认向右）
+  forceY?: number
+}
+
+// 运行时传送带
+export interface Conveyor {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  forceX: number
+  forceY: number
+}
+
+// 危险区定义（接触即失败）
+export interface HazardDef {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  color?: string
+}
+
+// 运行时危险区
+export interface Hazard {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  color: string
+}
+
 // 相机配置（可选，缺省时用默认跟随参数）
 export interface CameraConfig {
   lerp?: number        // 跟随平滑系数（0.05~0.15，默认 0.08）
@@ -163,6 +251,10 @@ export interface LevelDef {
   obstacles: ObstacleDef[]
   collectibles: CollectibleDef[]
   triggers: TriggerDef[]
+  springs?: SpringDef[]       // 弹力垫（可选）
+  portals?: PortalDef[]       // 传送门（可选）
+  conveyors?: ConveyorDef[]   // 传送带（可选）
+  hazards?: HazardDef[]       // 危险区（可选）
   starConditions: StarCondition
   timeLimit?: number  // 秒
   isBoss: boolean
@@ -186,7 +278,7 @@ export interface ChapterDef {
 export type GameState = 'menu' | 'playing' | 'paused' | 'won' | 'lost'
 
 // 游戏运行时数据
-export type GameEvent = 'collect' | 'bounce' | 'hit' | 'win' | 'thrust_start'
+export type GameEvent = 'collect' | 'bounce' | 'hit' | 'win' | 'thrust_start' | 'spring' | 'portal' | 'hazard'
 
 export interface GameRuntime {
   state: GameState
@@ -195,6 +287,10 @@ export interface GameRuntime {
   obstacles: Obstacle[]
   collectibles: Collectible[]
   triggers: Trigger[]
+  springs: Spring[]
+  portals: Portal[]
+  conveyors: Conveyor[]
+  hazards: Hazard[]
   goal: Goal
   camera: { x: number; y: number }  // 相机左上角（世界坐标）
   time: number

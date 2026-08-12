@@ -74,20 +74,21 @@ while (accumulator >= 1 && steps < 5) {  // 最多补 5 步，防死亡螺旋
 - `slow` 触发器按步长缩放（`1 - 0.05*dt`），子步进下总效果不变
 - 与方案初稿（换算为每秒量 + 120Hz）的差异：**用"固定 60Hz + 子步进"达到同样的帧率无关目标，但免去全部参数换算**，回归风险更低
 
-### 2.2 碰撞系统增强（P0）
+### 2.2 碰撞系统增强（P0）✅ 已实施
 
-1. **子步进防穿透**：高速移动时每帧物理步内再分 2-4 子步检测，杜绝高速穿墙（当前 `thrust` 上限低所以没暴露，冲刺加入后必须做）
-2. **新增碰撞类型**（types.ts 扩展）：
+1. **子步进防穿透** ✅：高速移动时每帧物理步内再分 2 子步检测，杜绝高速穿墙
+2. **新增碰撞类型** ✅（types.ts 扩展 + 引擎实现）：
 
 | 类型 | 行为 | 用途 |
 |------|------|------|
-| `platform`（单向平台） | 仅从上方碰撞，从下方/侧面穿过 | 跳跃峡谷、过山车 |
-| `spring`（弹力垫） | 接触即施加固定弹力（带方向） | 弹力星跳板 |
-| `conveyor`（传送带） | 表面施加持续切向力 | 阻力星、能量星 |
-| `hazard`（危险区） | 接触即失败/扣碰撞次数 | 陨石带、暴风雪 |
-| `oneway-wall` | 仅单侧碰撞 | 迷宫关 |
+| `platform`（单向平台） | 仅从上方碰撞（`resolvePlatformCollision`），从下方/侧面穿过 | 跳跃峡谷、过山车 |
+| `spring`（弹力垫） | 接触即施加方向冲量（`dirX/dirY*power`），12 帧冷却防连弹 | 弹力星跳板 |
+| `portal`（传送门） | 接触即传送到配对门（保持速度），20 帧冷却防来回传送 | 迷宫捷径 |
+| `conveyor`（传送带） | 区域内持续表面推力（`forceX/forceY`） | 阻力星、能量星 |
+| `hazard`（危险区） | 接触即失败（`state='lost'`） | 陨石带、暴风雪 |
 
-3. **碰撞响应分级**：静态障碍（反弹）→ 平台（单向）→ 弹力垫（施力）→ 危险（失败），按类型分发处理函数，替换现有单一 `resolveObstacleCollision`
+3. **碰撞响应分级**：静态障碍（反弹）→ 单向平台（站立）→ 弹力垫（施力）→ 危险（失败）✅
+4. 全部可选字段（`LevelDef.springs/portals/conveyors/hazards`），旧关卡零改动；已通过引擎模拟逐一验证 ✅
 
 ### 2.3 力系统完善（P0/P1）
 
@@ -148,44 +149,17 @@ camX = clamp(camX, 0, worldW - viewW)        // 边界钳制，不露出世界�
 
 ## 4. 关卡数据重构与丰富（需求 3）
 
-### 4.1 types.ts 扩展（P0）
+### 4.1 types.ts 扩展（P0）✅ 已实施
 
 ```ts
-// LevelDef 新增
+// LevelDef 新增（全部可选，旧关卡零改动）
 export interface LevelDef {
   // ...现有字段
-  viewport: { width: number; height: number }   // 视口尺寸（世界单位）
-  camera?: { lerp?: number; deadzone?: number; lookahead?: boolean }
-  goalType: 'reach' | 'collect' | 'dock' | 'survive'  // 目标类型
-  hintText?: string        // 失败后提示（"试试提前减速？"）
-  respawn?: boolean        // 是否有 checkpoint 复活
-  entities: {
-    platforms: PlatformDef[]     // 单向/移动平台
-    springs: SpringDef[]         // 弹力垫
-    portals: PortalDef[]         // 传送门（成对）
-    conveyors: ConveyorDef[]     // 传送带
-    gravityWells: GravityWellDef[]  // 引力井（从 trigger 升级为独立实体）
-    hazards: HazardDef[]         // 危险区
-  }
-}
-
-// 新实体示例
-export interface PlatformDef {
-  id: string
-  x: number; y: number; width: number; height: number
-  moveAxis?: 'x' | 'y'       // 移动平台
-  moveRange?: number
-  moveSpeed?: number
-}
-export interface SpringDef {
-  id: string
-  x: number; y: number; width: number; height: number
-  power: number              // 弹力
-  direction?: Vec2           // 默认向上
-}
-export interface PortalDef {
-  id: string; pairId: string // 成对传送
-  x: number; y: number; radius: number
+  camera?: CameraConfig                 // 相机配置（P0-2 ✅）
+  springs?: SpringDef[]                 // 弹力垫：power + dirX/dirY 方向冲量
+  portals?: PortalDef[]                 // 传送门：pairId 成对传送
+  conveyors?: ConveyorDef[]             // 传送带：forceX/forceY 表面推力
+  hazards?: HazardDef[]                 // 危险区：接触即失败
 }
 ```
 
@@ -282,7 +256,7 @@ hintText：失败后的操作提示（先玩后悟，不教学只提示）
 |------|------|------|---------|
 | **P0-1 物理底座** ✅ | 固定步长 + 子步进 + gravity_well 实现 | 无 | 现有 30 关全部可玩、手感一致 |
 | **P0-2 相机系统** ✅ | 世界/视口分离 + 跟随相机 + 视口裁剪 | P0-1 | 放大 1 关到 3 倍世界，边缘切换流畅 |
-| **P1-1 实体扩展** | platform/spring/portal/conveyor/hazard + 碰撞分发 | P0-1 | 每种实体一个测试关 |
+| **P1-1 实体扩展** ✅ | platform/spring/portal/conveyor/hazard + 碰撞分发 | P0-1 | 每种实体一个测试关 |
 | **P1-2 操控手感** | 冲刺 + 摇杆曲线 + 屏幕震动 + 粒子 + 快速重试 | P0-1 | 试玩手感对比 |
 | **P1-3 关卡重设计** | 第 1 章 5 关按 gimmick 重设计（含大世界） | P0-2 + P1-1 | 第一章试玩验收 |
 | **P2** | 第 2-6 章逐章重设计 + 视差背景 + 目标指示 | 前述全部 | 全 30 关验收 |
