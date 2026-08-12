@@ -201,7 +201,7 @@ export class SceneRenderer {
     }
     
     // 终点
-    this.drawGoal(runtime.goal)
+    this.drawGoal(runtime.goal, runtime.feifei)
     
     // 飞飞
     this.drawFeiFei(runtime.feifei, skin)
@@ -458,29 +458,37 @@ export class SceneRenderer {
     ctx.restore()
   }
   
-  private drawGoal(goal: Goal): void {
+  private drawGoal(goal: Goal, feifei: FeiFei): void {
     const ctx = this.ctx
     const pulse = Math.sin(Date.now() / 500) * 0.3 + 0.7
+    
+    // 速度指示灯（有 maxSpeed 的对接关卡）：绿=安全 黄=偏快 红=太快
+    let indicatorColor = '#10b981'
+    if (goal.maxSpeed !== undefined) {
+      const speed = Math.sqrt(feifei.vel.x ** 2 + feifei.vel.y ** 2)
+      if (speed >= goal.maxSpeed * 0.8) indicatorColor = '#ef4444'
+      else if (speed >= goal.maxSpeed * 0.5) indicatorColor = '#f59e0b'
+    }
     
     // 发光
     ctx.save()
     ctx.globalAlpha = 0.2 * pulse
     ctx.beginPath()
     ctx.arc(goal.x, goal.y, goal.radius + 5, 0, Math.PI * 2)
-    ctx.fillStyle = '#10b981'
+    ctx.fillStyle = indicatorColor
     ctx.fill()
     ctx.restore()
     
     // 主圆
     ctx.beginPath()
     ctx.arc(goal.x, goal.y, goal.radius, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(16, 185, 129, ${pulse})`
+    ctx.fillStyle = indicatorColor
+    ctx.globalAlpha = pulse
     ctx.fill()
+    ctx.globalAlpha = 1
     
-    // 速度指示灯（有maxSpeed时）
+    // 对接图标
     if (goal.maxSpeed !== undefined) {
-      // 这里需要知道飞飞的速度，暂时用绿色
-      ctx.fillStyle = '#10b981'
       ctx.font = '6px sans-serif'
       ctx.textAlign = 'center'
       ctx.fillText('🎯', goal.x, goal.y + 2)

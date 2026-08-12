@@ -33,10 +33,11 @@ export function useGameLoop() {
   const PHYSICS_FRAME = 1        // 物理步长（帧单位，对应 60Hz 固定节拍）
   const MAX_PHYSICS_STEPS = 5    // 单帧最大物理步数（防 spiral of death）
   
-  function createRuntime(level: LevelDef, skinId: string): GameRuntime {
+  function createRuntime(level: LevelDef, skinId: string, spawn?: { x: number; y: number }): GameRuntime {
+    const spawnPos = spawn ?? { ...level.feifei }
     const feifei: FeiFei = {
       id: 'feifei',
-      pos: { ...level.feifei },
+      pos: { x: spawnPos.x, y: spawnPos.y },
       vel: { x: 0, y: 0 },
       radius: 3,
       active: true,
@@ -150,6 +151,7 @@ export function useGameLoop() {
       hazards,
       goal,
       camera: { x: 0, y: 0 },
+      respawnPoint: { x: spawnPos.x, y: spawnPos.y },
       time: 0,
       collisions: 0,
       stardust: 0,
@@ -196,9 +198,9 @@ export function useGameLoop() {
     return Math.max(0, Math.min(3, s))
   }
   
-  async function startLevel(level: LevelDef, skinId: string = 'default', bgGradient?: [string, string]) {
+  async function startLevel(level: LevelDef, skinId: string = 'default', bgGradient?: [string, string], spawn?: { x: number; y: number }) {
     currentLevel.value = level
-    const rt = createRuntime(level, skinId)
+    const rt = createRuntime(level, skinId, spawn)
     runtime.value = rt
     
     // 设置章节背景色
@@ -449,7 +451,8 @@ export function useGameLoop() {
   
   function retryLevel() {
     if (currentLevel.value && runtime.value) {
-      startLevel(currentLevel.value, runtime.value.skinId)
+      // 从复活点（checkpoint）重开，而非关卡起点
+      startLevel(currentLevel.value, runtime.value.skinId, undefined, runtime.value.respawnPoint)
     }
   }
   

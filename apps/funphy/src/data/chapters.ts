@@ -9,14 +9,14 @@ const inertiaStar: ChapterDef = {
   intro: '你驾驶飞飞来到了惯性星——一个没有空气、没有摩擦力的神秘星球。在这里，推一下就永远停不下来！掌握惯性的力量，穿越小行星带，完成精准对接，才能拿到惯性星的核心物理卡。',
   bgGradient: ['#0a0a2e', '#1a1a4e'],
   levels: [
-    // 1-1 太空漫步：星星在开阔路径上，终点被小行星包围
+    // 1-1 太空漫步（教学关）：星尘直线引导"推一下停不下来"，软限速防新手失控
     {
       id: '1-1',
       name: '太空漫步',
       difficulty: 1,
       worldWidth: 100,
       worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, maxSpeed: 3.0, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
       goal: { x: 90, y: 37, radius: 3 },
       obstacles: [
@@ -26,107 +26,124 @@ const inertiaStar: ChapterDef = {
         { id: 'o3', type: 'static', x: 95, y: 32, width: 5, height: 5, color: '#6b7280', rounded: true },
       ],
       collectibles: [
-        { id: 's1', type: 'stardust', x: 30, y: 25 },
-        { id: 's2', type: 'stardust', x: 50, y: 50 },
-        { id: 's3', type: 'stardust', x: 70, y: 30 },
+        // 直线引导：沿着星尘走就到终点
+        { id: 's1', type: 'stardust', x: 30, y: 37 },
+        { id: 's2', type: 'stardust', x: 50, y: 37 },
+        { id: 's3', type: 'stardust', x: 70, y: 37 },
       ],
       triggers: [],
       starConditions: { time: [35, 50, 70] },
       isBoss: false,
     },
-    // 1-2 躲避小行星：终点在移动障碍物通道尽头
+    // 1-2 躲避小行星（大世界滚动）：移动小行星阵 + 风区加速走廊，必须预判惯性
     {
       id: '1-2',
       name: '躲避小行星',
       difficulty: 2,
-      worldWidth: 120,
+      worldWidth: 200,
       worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.08, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.08, maxSpeed: 2.8, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
-      goal: { x: 110, y: 37, radius: 3 },
+      goal: { x: 190, y: 37, radius: 3 },
       obstacles: [
-        // 中间区域小行星
-        { id: 'o1', type: 'moving', x: 30, y: 20, width: 8, height: 8, moveAxis: 'y', moveRange: 15, moveSpeed: 0.02, color: '#7c3aed', rounded: true },
-        { id: 'o2', type: 'static', x: 50, y: 40, width: 10, height: 10, color: '#6b7280', rounded: true },
-        { id: 'o3', type: 'moving', x: 50, y: 15, width: 7, height: 7, moveAxis: 'y', moveRange: 20, moveSpeed: 0.025, color: '#7c3aed', rounded: true },
-        // 终点保护：移动小行星守卫入口
-        { id: 'o4', type: 'static', x: 100, y: 25, width: 8, height: 8, color: '#6b7280', rounded: true },
-        { id: 'o5', type: 'static', x: 100, y: 48, width: 8, height: 8, color: '#6b7280', rounded: true },
-        { id: 'o6', type: 'moving', x: 105, y: 37, width: 6, height: 6, moveAxis: 'y', moveRange: 8, moveSpeed: 0.035, color: '#7c3aed', rounded: true },
+        // 小行星带1（x 30-95）：上下摆动的移动小行星
+        { id: 'o1', type: 'moving', x: 35, y: 20, width: 8, height: 8, moveAxis: 'y', moveRange: 15, moveSpeed: 0.02, color: '#7c3aed', rounded: true },
+        { id: 'o2', type: 'moving', x: 55, y: 50, width: 9, height: 9, moveAxis: 'y', moveRange: 14, moveSpeed: 0.025, color: '#7c3aed', rounded: true },
+        { id: 'o3', type: 'moving', x: 75, y: 20, width: 7, height: 7, moveAxis: 'y', moveRange: 16, moveSpeed: 0.03, color: '#7c3aed', rounded: true },
+        { id: 'o4', type: 'static', x: 88, y: 33, width: 8, height: 8, color: '#6b7280', rounded: true },
+        // 小行星带2（x 125-170）：更多移动小行星
+        { id: 'o5', type: 'moving', x: 130, y: 45, width: 8, height: 8, moveAxis: 'y', moveRange: 15, moveSpeed: 0.028, color: '#7c3aed', rounded: true },
+        { id: 'o6', type: 'moving', x: 150, y: 18, width: 9, height: 9, moveAxis: 'y', moveRange: 12, moveSpeed: 0.022, color: '#7c3aed', rounded: true },
+        { id: 'o7', type: 'moving', x: 168, y: 42, width: 7, height: 7, moveAxis: 'y', moveRange: 18, moveSpeed: 0.035, color: '#7c3aed', rounded: true },
+        // 终点保护
+        { id: 'o8', type: 'static', x: 182, y: 28, width: 7, height: 7, color: '#6b7280', rounded: true },
+        { id: 'o9', type: 'static', x: 182, y: 46, width: 7, height: 7, color: '#6b7280', rounded: true },
       ],
       collectibles: [
-        { id: 's1', type: 'stardust', x: 40, y: 30 },
-        { id: 's2', type: 'stardust', x: 60, y: 20 },
-        { id: 's3', type: 'stardust', x: 80, y: 45 },
+        { id: 's1', type: 'stardust', x: 45, y: 32 },
+        { id: 's2', type: 'stardust', x: 70, y: 50 },
+        { id: 's3', type: 'stardust', x: 115, y: 25 },
+        { id: 's4', type: 'stardust', x: 145, y: 48 },
+        { id: 's5', type: 'stardust', x: 172, y: 30 },
       ],
-      triggers: [],
-      starConditions: { collisions: [0, 1, 2] },
+      triggers: [
+        // 风区加速走廊：经过时被向右推，体验"借力滑行"
+        { id: 't1', type: 'wind', x: 100, y: 25, width: 15, height: 25, params: { forceX: 0.12, forceY: 0 } },
+        { id: 't2', type: 'wind', x: 158, y: 25, width: 12, height: 25, params: { forceX: 0.1, forceY: 0 } },
+      ],
+      starConditions: { collisions: [0, 1, 3], time: [45, 65, 100] },
       isBoss: false,
     },
-    // 1-3 精准对接：终点在狭窄通道内，需要精确控制速度
+    // 1-3 精准对接（精细控制）：限速着陆 + 速度指示灯（绿/黄/红），速度门通道
     {
       id: '1-3',
       name: '精准对接',
       difficulty: 2,
       worldWidth: 80,
       worldHeight: 60,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.06, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.06, maxSpeed: 2.2, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 30 },
       goal: { x: 70, y: 30, radius: 3, maxSpeed: 0.8 },
       obstacles: [
-        // 终点被墙壁包围，只有窄入口
+        // 终点被墙壁包围，只有窄入口（速度门：高速会被弹回）
         { id: 'o1', type: 'static', x: 62, y: 10, width: 3, height: 14, color: '#475569', rounded: false },
         { id: 'o2', type: 'static', x: 62, y: 38, width: 3, height: 14, color: '#475569', rounded: false },
         { id: 'o3', type: 'static', x: 62, y: 24, width: 3, height: 6, color: '#475569', rounded: false },
-        // 中间障碍
+        // 中间障碍：S 形通道
         { id: 'o4', type: 'static', x: 30, y: 10, width: 4, height: 18, color: '#475569', rounded: false },
         { id: 'o5', type: 'static', x: 30, y: 38, width: 4, height: 14, color: '#475569', rounded: false },
+        { id: 'o6', type: 'static', x: 46, y: 22, width: 4, height: 16, color: '#475569', rounded: false },
       ],
       collectibles: [
         { id: 's1', type: 'stardust', x: 20, y: 15 },
-        { id: 's2', type: 'stardust', x: 45, y: 45 },
-        { id: 's3', type: 'stardust', x: 55, y: 20 },
+        { id: 's2', type: 'stardust', x: 40, y: 48 },
+        { id: 's3', type: 'stardust', x: 55, y: 18 },
       ],
       triggers: [],
-      starConditions: { speed: [0.3, 0.5, 0.8] },
+      starConditions: { speed: [0.3, 0.5, 0.8], time: [30, 45, 60] },
       isBoss: false,
     },
-    // 1-4 星尘收集赛：终点在角落被障碍物保护
+    // 1-4 星尘收集赛（竞速收集）：30 秒限时 + 12 颗星尘 + 风区高速走廊，惯性滑行规划路线
     {
       id: '1-4',
       name: '星尘收集赛',
       difficulty: 3,
-      worldWidth: 100,
-      worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, boundsBehavior: 'bounce' },
-      feifei: { x: 50, y: 37 },
-      goal: { x: 90, y: 10, radius: 3 },
+      worldWidth: 240,
+      worldHeight: 100,
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, maxSpeed: 3.2, boundsBehavior: 'bounce' },
+      feifei: { x: 10, y: 50 },
+      goal: { x: 225, y: 50, radius: 3 },
       obstacles: [
-        // 终点保护：角落被小行星围住
-        { id: 'o1', type: 'static', x: 82, y: 5, width: 7, height: 7, color: '#6b7280', rounded: true },
-        { id: 'o2', type: 'static', x: 95, y: 15, width: 7, height: 7, color: '#6b7280', rounded: true },
-        { id: 'o3', type: 'moving', x: 85, y: 18, width: 5, height: 5, moveAxis: 'x', moveRange: 5, moveSpeed: 0.03, color: '#7c3aed', rounded: true },
-        // 中间移动障碍
-        { id: 'o4', type: 'moving', x: 25, y: 30, width: 6, height: 6, moveAxis: 'y', moveRange: 15, moveSpeed: 0.02, color: '#7c3aed', rounded: true },
-        { id: 'o5', type: 'moving', x: 60, y: 20, width: 6, height: 6, moveAxis: 'x', moveRange: 10, moveSpeed: 0.025, color: '#7c3aed', rounded: true },
-        { id: 'o6', type: 'moving', x: 75, y: 50, width: 6, height: 6, moveAxis: 'y', moveRange: 12, moveSpeed: 0.03, color: '#7c3aed', rounded: true },
+        // 终点保护
+        { id: 'o1', type: 'static', x: 217, y: 40, width: 7, height: 7, color: '#6b7280', rounded: true },
+        { id: 'o2', type: 'static', x: 217, y: 58, width: 7, height: 7, color: '#6b7280', rounded: true },
+        // 干扰小行星
+        { id: 'o3', type: 'moving', x: 55, y: 25, width: 6, height: 6, moveAxis: 'y', moveRange: 15, moveSpeed: 0.025, color: '#7c3aed', rounded: true },
+        { id: 'o4', type: 'moving', x: 110, y: 70, width: 6, height: 6, moveAxis: 'y', moveRange: 16, moveSpeed: 0.028, color: '#7c3aed', rounded: true },
+        { id: 'o5', type: 'moving', x: 165, y: 30, width: 6, height: 6, moveAxis: 'y', moveRange: 18, moveSpeed: 0.032, color: '#7c3aed', rounded: true },
+        { id: 'o6', type: 'moving', x: 200, y: 65, width: 6, height: 6, moveAxis: 'y', moveRange: 14, moveSpeed: 0.03, color: '#7c3aed', rounded: true },
       ],
       collectibles: [
-        { id: 's1', type: 'stardust', x: 15, y: 15 },
-        { id: 's2', type: 'stardust', x: 30, y: 55 },
-        { id: 's3', type: 'stardust', x: 45, y: 20 },
-        { id: 's4', type: 'stardust', x: 55, y: 60 },
-        { id: 's5', type: 'stardust', x: 65, y: 35 },
-        { id: 's6', type: 'stardust', x: 20, y: 40 },
-        { id: 's7', type: 'stardust', x: 80, y: 25 },
-        { id: 's8', type: 'stardust', x: 40, y: 65 },
-        { id: 's9', type: 'stardust', x: 70, y: 15 },
-        { id: 's10', type: 'stardust', x: 85, y: 55 },
-        { id: 's11', type: 'stardust', x: 10, y: 60 },
-        { id: 's12', type: 'stardust', x: 50, y: 45 },
+        // 波浪路线：利用惯性滑行吃星尘
+        { id: 's1', type: 'stardust', x: 20, y: 50 },
+        { id: 's2', type: 'stardust', x: 40, y: 25 },
+        { id: 's3', type: 'stardust', x: 60, y: 70 },
+        { id: 's4', type: 'stardust', x: 80, y: 40 },
+        { id: 's5', type: 'stardust', x: 95, y: 75 },
+        { id: 's6', type: 'stardust', x: 115, y: 30 },
+        { id: 's7', type: 'stardust', x: 135, y: 65 },
+        { id: 's8', type: 'stardust', x: 155, y: 35 },
+        { id: 's9', type: 'stardust', x: 175, y: 70 },
+        { id: 's10', type: 'stardust', x: 195, y: 40 },
+        { id: 's11', type: 'stardust', x: 210, y: 65 },
+        { id: 's12', type: 'stardust', x: 218, y: 45 },
       ],
-      triggers: [],
-      starConditions: { collectibles: [12, 10, 8] },
+      triggers: [
+        // 高速走廊：风区借力滑行
+        { id: 't1', type: 'wind', x: 65, y: 30, width: 12, height: 40, params: { forceX: 0.15, forceY: 0 } },
+        { id: 't2', type: 'wind', x: 150, y: 30, width: 12, height: 40, params: { forceX: 0.15, forceY: 0 } },
+      ],
+      starConditions: { collectibles: [12, 10, 8], time: [25, 40, 60] },
       timeLimit: 30,
       isBoss: false,
     },
@@ -135,40 +152,52 @@ const inertiaStar: ChapterDef = {
     id: '1-5-boss',
     name: '惯性迷宫',
     difficulty: 4,
-    worldWidth: 120,
-    worldHeight: 90,
-    physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, boundsBehavior: 'bounce' },
-    feifei: { x: 10, y: 80 },
-    goal: { x: 110, y: 10, radius: 3 },
+    worldWidth: 220,
+    worldHeight: 140,
+    physics: { gravity: 0, drag: 0, bounce: 0.5, thrust: 0.08, maxSpeed: 3.0, boundsBehavior: 'bounce' },
+    feifei: { x: 12, y: 70 },
+    goal: { x: 205, y: 70, radius: 3 },
+    camera: { lookahead: false },  // 迷宫：减少前瞻晃动，稳定视野
     obstacles: [
-      // 迷宫墙壁
-      { id: 'w1', type: 'static', x: 0, y: 0, width: 120, height: 3, color: '#475569', rounded: false },
-      { id: 'w2', type: 'static', x: 0, y: 87, width: 120, height: 3, color: '#475569', rounded: false },
-      { id: 'w3', type: 'static', x: 0, y: 0, width: 3, height: 90, color: '#475569', rounded: false },
-      { id: 'w4', type: 'static', x: 117, y: 0, width: 3, height: 90, color: '#475569', rounded: false },
-      // 内部墙壁
-      { id: 'w5', type: 'static', x: 20, y: 0, width: 3, height: 65, color: '#64748b', rounded: false },
-      { id: 'w6', type: 'static', x: 40, y: 25, width: 3, height: 65, color: '#64748b', rounded: false },
-      { id: 'w7', type: 'static', x: 60, y: 0, width: 3, height: 65, color: '#64748b', rounded: false },
-      { id: 'w8', type: 'static', x: 80, y: 25, width: 3, height: 65, color: '#64748b', rounded: false },
-      { id: 'w9', type: 'static', x: 100, y: 0, width: 3, height: 55, color: '#64748b', rounded: false },
-      // 移动墙壁
-      { id: 'wm1', type: 'moving', x: 30, y: 50, width: 3, height: 15, moveAxis: 'y', moveRange: 10, moveSpeed: 0.015, color: '#f59e0b', rounded: false },
-      { id: 'wm2', type: 'moving', x: 50, y: 30, width: 3, height: 15, moveAxis: 'y', moveRange: 10, moveSpeed: 0.02, color: '#f59e0b', rounded: false },
-      { id: 'wm3', type: 'moving', x: 70, y: 55, width: 3, height: 15, moveAxis: 'y', moveRange: 10, moveSpeed: 0.018, color: '#f59e0b', rounded: false },
-      { id: 'wm4', type: 'moving', x: 90, y: 35, width: 3, height: 15, moveAxis: 'y', moveRange: 12, moveSpeed: 0.022, color: '#f59e0b', rounded: false },
+      // 外框墙
+      { id: 'w1', type: 'static', x: 0, y: 0, width: 220, height: 3, color: '#475569', rounded: false },
+      { id: 'w2', type: 'static', x: 0, y: 137, width: 220, height: 3, color: '#475569', rounded: false },
+      { id: 'w3', type: 'static', x: 0, y: 0, width: 3, height: 140, color: '#475569', rounded: false },
+      { id: 'w4', type: 'static', x: 217, y: 0, width: 3, height: 140, color: '#475569', rounded: false },
+      // S 形隔墙：上下交替留口（底部开口 / 顶部开口）
+      { id: 'w5', type: 'static', x: 40, y: 0, width: 3, height: 100, color: '#64748b', rounded: false },
+      { id: 'w6', type: 'static', x: 80, y: 40, width: 3, height: 100, color: '#64748b', rounded: false },
+      { id: 'w7', type: 'static', x: 120, y: 0, width: 3, height: 100, color: '#64748b', rounded: false },
+      { id: 'w8', type: 'static', x: 160, y: 40, width: 3, height: 100, color: '#64748b', rounded: false },
+      // 移动墙：守口，卡时机通过（相位随机）
+      { id: 'wm1', type: 'moving', x: 40, y: 100, width: 3, height: 16, moveAxis: 'y', moveRange: 8, moveSpeed: 0.02, color: '#f59e0b', rounded: false },
+      { id: 'wm2', type: 'moving', x: 80, y: 25, width: 3, height: 16, moveAxis: 'y', moveRange: 9, moveSpeed: 0.025, color: '#f59e0b', rounded: false },
+      { id: 'wm3', type: 'moving', x: 120, y: 100, width: 3, height: 16, moveAxis: 'y', moveRange: 8, moveSpeed: 0.022, color: '#f59e0b', rounded: false },
+      { id: 'wm4', type: 'moving', x: 160, y: 25, width: 3, height: 16, moveAxis: 'y', moveRange: 9, moveSpeed: 0.028, color: '#f59e0b', rounded: false },
+      // 终点保护
+      { id: 'w9', type: 'static', x: 195, y: 60, width: 3, height: 10, color: '#64748b', rounded: false },
+      { id: 'w10', type: 'static', x: 195, y: 72, width: 3, height: 10, color: '#64748b', rounded: false },
     ],
     collectibles: [
-      { id: 'c1', type: 'checkpoint', x: 30, y: 75 },
-      { id: 'c2', type: 'checkpoint', x: 50, y: 15 },
-      { id: 'c3', type: 'checkpoint', x: 70, y: 75 },
+      // 检查点：碰触后失败从该处复活
+      { id: 'c1', type: 'checkpoint', x: 28, y: 70 },
+      { id: 'c2', type: 'checkpoint', x: 95, y: 112 },
+      { id: 'c3', type: 'checkpoint', x: 138, y: 28 },
+      // 星尘：引导路线
+      { id: 's1', type: 'stardust', x: 60, y: 20 },
+      { id: 's2', type: 'stardust', x: 100, y: 85 },
+      { id: 's3', type: 'stardust', x: 140, y: 50 },
+      { id: 's4', type: 'stardust', x: 180, y: 95 },
     ],
     triggers: [
-      { id: 't1', type: 'boost', x: 10, y: 65, width: 10, height: 10, params: { force: 0.08 } },
-      { id: 't2', type: 'slow', x: 55, y: 5, width: 10, height: 10, params: {} },
-      { id: 't3', type: 'boost', x: 85, y: 65, width: 10, height: 10, params: { force: 0.08 } },
+      // 加速区（黄色）：经过时向上推，帮助越过隔墙
+      { id: 't1', type: 'boost', x: 20, y: 15, width: 10, height: 10, params: { force: 0.08 } },
+      { id: 't3', type: 'boost', x: 135, y: 105, width: 10, height: 10, params: { force: 0.08 } },
+      // 减速区（蓝色）：惯性刹车
+      { id: 't2', type: 'slow', x: 75, y: 45, width: 10, height: 10, params: {} },
     ],
     starConditions: { time: [60, 90, 120] },
+    timeLimit: 120,
     isBoss: true,
   },
 }

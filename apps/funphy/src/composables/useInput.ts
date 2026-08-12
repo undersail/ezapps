@@ -39,6 +39,7 @@ export function useInput() {
     // 一次性事件
     if (key === 'shift' || key === ' ') input.dashPressed = true
     if (key === 'r') input.retryPressed = true
+    if (key === 'escape' || key === 'p') input.pausePressed = true
     if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'escape', ' ', 'shift'].includes(key)) {
       e.preventDefault()
     }

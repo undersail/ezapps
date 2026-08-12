@@ -228,6 +228,9 @@ export class PhysicsEngine {
           col.animTimer = 20
           if (col.type === 'stardust') {
             runtime.stardust++
+          } else if (col.type === 'checkpoint') {
+            // 检查点：记录复活位置
+            runtime.respawnPoint = { x: col.x, y: col.y }
           }
           runtime.events.push('collect')
         }

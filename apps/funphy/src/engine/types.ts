@@ -298,6 +298,7 @@ export interface GameRuntime {
   hazards: Hazard[]
   goal: Goal
   camera: { x: number; y: number }  // 相机左上角（世界坐标）
+  respawnPoint: { x: number; y: number }  // 复活点（checkpoint 或关卡起点）
   time: number
   collisions: number
   stardust: number
