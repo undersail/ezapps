@@ -7,6 +7,10 @@ import * as Sound from '../utils/sound'
 import type { GameRuntime, LevelDef, FeiFei, Obstacle, Collectible, Trigger, Goal, SkinDef, StarCondition } from '../engine/types'
 import { skins } from '../data/skins'
 
+function clamp(v: number, min: number, max: number): number {
+  return v < min ? min : (v > max ? max : v)
+}
+
 export function useGameLoop() {
   const { input, setDirection, setJoystick, setPause } = useInput()
   const { soundEnabled: soundState } = useSound()
@@ -97,6 +101,7 @@ export function useGameLoop() {
       collectibles,
       triggers,
       goal,
+      camera: { x: 0, y: 0 },
       time: 0,
       collisions: 0,
       stardust: 0,
@@ -172,18 +177,21 @@ export function useGameLoop() {
       }
     }
     
-    // 根据Canvas实际尺寸计算扩展后的世界尺寸和内容偏移
-    let worldW = level.worldWidth
-    let worldH = level.worldHeight
+    // 根据Canvas实际尺寸计算缩放与视口
     if (renderer) {
       renderer.setWorldSize(level.worldWidth, level.worldHeight)
-      const vs = renderer.getVisibleWorldSize()
-      worldW = vs.width
-      worldH = vs.height
-      applyContentOffset(rt, vs.contentOffsetX, vs.contentOffsetY)
     }
     
-    engine = new PhysicsEngine(level.physics, worldW, worldH)
+    // 物理引擎：世界 = 关卡完整世界（可大于视口，相机负责平移）
+    engine = new PhysicsEngine(level.physics, level.worldWidth, level.worldHeight)
+    
+    // 相机初始：对准飞飞出生点
+    if (renderer) {
+      const view = renderer.getViewSize()
+      rt.camera.x = clamp(rt.feifei.pos.x - view.width / 2, 0, Math.max(0, level.worldWidth - view.width))
+      rt.camera.y = clamp(rt.feifei.pos.y - view.height / 2, 0, Math.max(0, level.worldHeight - view.height))
+      renderer.setCamera(rt.camera.x, rt.camera.y)
+    }
     
     timeAccumulator = 0
     lastTime = performance.now()
@@ -195,26 +203,31 @@ export function useGameLoop() {
     collisions.value = 0
   }
   
-  /** 将所有物体坐标加上居中偏移，使世界内容在扩展后的可视范围中居中 */
-  function applyContentOffset(rt: GameRuntime, ox: number, oy: number): void {
-    rt.feifei.pos.x += ox
-    rt.feifei.pos.y += oy
-    for (const obs of rt.obstacles) {
-      obs.x += ox
-      obs.y += oy
-      obs.originX += ox
-      obs.originY += oy
+  /** 相机跟随：平滑追踪飞飞 + 速度前瞻 + 边界钳制 */
+  function updateCamera(rt: GameRuntime): void {
+    if (!renderer) return
+    const view = renderer.getViewSize()
+    const cfg = rt.level.camera ?? {}
+    const lerp = cfg.lerp ?? 0.08
+    const lookahead = cfg.lookahead ?? true
+    
+    const speed = Math.sqrt(rt.feifei.vel.x ** 2 + rt.feifei.vel.y ** 2)
+    let tx = rt.feifei.pos.x
+    let ty = rt.feifei.pos.y
+    if (lookahead && speed > 0.1) {
+      // 前瞻：朝速度方向看远一点（Alto's 式）
+      const la = Math.min(speed * 3, 15)
+      tx += (rt.feifei.vel.x / speed) * la
+      ty += (rt.feifei.vel.y / speed) * la
     }
-    for (const col of rt.collectibles) {
-      col.x += ox
-      col.y += oy
-    }
-    for (const trigger of rt.triggers) {
-      trigger.x += ox
-      trigger.y += oy
-    }
-    rt.goal.x += ox
-    rt.goal.y += oy
+    
+    const targetX = tx - view.width / 2
+    const targetY = ty - view.height / 2
+    rt.camera.x += (targetX - rt.camera.x) * lerp
+    rt.camera.y += (targetY - rt.camera.y) * lerp
+    rt.camera.x = clamp(rt.camera.x, 0, Math.max(0, rt.level.worldWidth - view.width))
+    rt.camera.y = clamp(rt.camera.y, 0, Math.max(0, rt.level.worldHeight - view.height))
+    renderer.setCamera(rt.camera.x, rt.camera.y)
   }
   
   function gameLoop(timestamp: number) {
@@ -308,9 +321,9 @@ export function useGameLoop() {
       gameState.value = 'won'
     }
     
-    // 渲染
+    // 相机跟随 + 渲染
     const skin = skins.find(s => s.id === rt.skinId) || skins[0]
-    renderer.setWorldSize(rt.level.worldWidth, rt.level.worldHeight)
+    updateCamera(rt)
     renderer.render(rt, skin)
     
     rafId = requestAnimationFrame(gameLoop)

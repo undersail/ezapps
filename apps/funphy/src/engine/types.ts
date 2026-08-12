@@ -144,6 +144,12 @@ export interface StarCondition {
   energy?: [number, number, number]  // 3星/2星/1星的剩余能量百分比
 }
 
+// 相机配置（可选，缺省时用默认跟随参数）
+export interface CameraConfig {
+  lerp?: number        // 跟随平滑系数（0.05~0.15，默认 0.08）
+  lookahead?: boolean  // 速度前瞻（默认 true，Boss 迷宫关可关闭）
+}
+
 // 关卡定义
 export interface LevelDef {
   id: string
@@ -160,6 +166,7 @@ export interface LevelDef {
   starConditions: StarCondition
   timeLimit?: number  // 秒
   isBoss: boolean
+  camera?: CameraConfig  // 相机配置
 }
 
 // 章节定义
@@ -189,6 +196,7 @@ export interface GameRuntime {
   collectibles: Collectible[]
   triggers: Trigger[]
   goal: Goal
+  camera: { x: number; y: number }  // 相机左上角（世界坐标）
   time: number
   collisions: number
   stardust: number

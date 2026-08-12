@@ -1,22 +1,32 @@
 import type { GameRuntime, FeiFei, FeiFeiExpression, Obstacle, Collectible, Trigger, Goal, SkinDef } from '../engine/types'
 
+function clamp(v: number, min: number, max: number): number {
+  return v < min ? min : (v > max ? max : v)
+}
+
 export class SceneRenderer {
+  /** 一屏视口高度基准（世界单位）：低于此高度的世界不垂直滚动 */
+  private static readonly DEFAULT_VIEW_HEIGHT = 75
+  
   private ctx: CanvasRenderingContext2D
   private width: number
   private height: number
   private scale: number
-  private offsetX: number = 0
-  private offsetY: number = 0
-  private visibleWorldWidth: number = 0
-  private visibleWorldHeight: number = 0
-  private contentOffsetX: number = 0
-  private contentOffsetY: number = 0
+  // 世界尺寸（游戏逻辑坐标）
+  private worldWidth: number = 0
+  private worldHeight: number = 0
+  // 视口尺寸（世界单位，一屏能显示多少世界）
+  private viewW: number = 0
+  private viewH: number = 0
+  // 相机左上角（世界坐标）
+  private cameraX: number = 0
+  private cameraY: number = 0
   
   // 章节背景色
   private bgGradient: [string, string] = ['#0a0a2e', '#1a1a4e']
   
-  // 星空背景缓存
-  private stars: { x: number, y: number, size: number, brightness: number }[] = []
+  // 视差星空缓存（屏幕空间 + 视差偏移系数）
+  private stars: { x: number, y: number, size: number, brightness: number, parallax: number }[] = []
   
   constructor(ctx: CanvasRenderingContext2D, width: number, height: number) {
     this.ctx = ctx
@@ -30,6 +40,8 @@ export class SceneRenderer {
     this.width = width
     this.height = height
     this.generateStars()
+    // 视口随画布尺寸变化，重新计算
+    if (this.worldWidth > 0) this.setWorldSize(this.worldWidth, this.worldHeight)
   }
   
   getWidth(): number { return this.width }
@@ -40,56 +52,76 @@ export class SceneRenderer {
   }
   
   setWorldSize(worldWidth: number, worldHeight: number): void {
-    // 统一缩放，保持物体不变形
-    const scaleX = this.width / worldWidth
-    const scaleY = this.height / worldHeight
-    this.scale = Math.min(scaleX, scaleY)
-    // 可视世界范围（可能比原始世界大，用于填满Canvas）
-    this.visibleWorldWidth = this.width / this.scale
-    this.visibleWorldHeight = this.height / this.scale
-    // 世界内容在可视范围中的偏移（居中）
-    this.contentOffsetX = (this.visibleWorldWidth - worldWidth) / 2
-    this.contentOffsetY = (this.visibleWorldHeight - worldHeight) / 2
-    // 渲染时从Canvas左上角开始，不偏移
-    this.offsetX = 0
-    this.offsetY = 0
+    this.worldWidth = worldWidth
+    this.worldHeight = worldHeight
+    // 视口：高度固定为一屏基准（默认 75 世界单位），宽度按画布纵横比推导
+    // 这样世界比视口大时相机可滚动，世界比视口小时自动居中（旧关卡无回归）
+    this.viewH = Math.min(worldHeight, SceneRenderer.DEFAULT_VIEW_HEIGHT)
+    const aspect = this.width / this.height
+    this.viewW = Math.min(this.viewH * aspect, worldWidth)
+    // 缩放：视口高度铺满画布高度
+    this.scale = this.height / this.viewH
+    // 相机初始在 (0,0)，由游戏循环 setCamera 控制
+    this.cameraX = 0
+    this.cameraY = 0
   }
   
-  /** 获取当前可视世界范围和内容偏移，供物理引擎和游戏循环使用 */
-  getVisibleWorldSize(): { width: number; height: number; contentOffsetX: number; contentOffsetY: number; scale: number } {
-    return {
-      width: this.visibleWorldWidth,
-      height: this.visibleWorldHeight,
-      contentOffsetX: this.contentOffsetX,
-      contentOffsetY: this.contentOffsetY,
-      scale: this.scale,
-    }
+  /** 设置相机左上角（世界坐标），自动钳制在世界范围内 */
+  setCamera(x: number, y: number): void {
+    this.cameraX = clamp(x, 0, Math.max(0, this.worldWidth - this.viewW))
+    this.cameraY = clamp(y, 0, Math.max(0, this.worldHeight - this.viewH))
+  }
+  
+  /** 获取视口尺寸（世界单位）和缩放，供游戏循环/相机逻辑使用 */
+  getViewSize(): { width: number; height: number; scale: number } {
+    return { width: this.viewW, height: this.viewH, scale: this.scale }
   }
   
   render(runtime: GameRuntime, skin: SkinDef): void {
     const ctx = this.ctx
     ctx.clearRect(0, 0, this.width, this.height)
     
-    // 背景
+    // 背景（全屏，星空视差）
     this.drawBackground(runtime)
     
     ctx.save()
-    ctx.translate(this.offsetX, this.offsetY)
+    // 世界比视口大 → 相机平移；世界比视口小 → 居中（旧关卡行为不变）
+    const panX = this.worldWidth > this.viewW
+      ? -this.cameraX * this.scale
+      : (this.width - this.worldWidth * this.scale) / 2
+    const panY = this.worldHeight > this.viewH
+      ? -this.cameraY * this.scale
+      : (this.height - this.worldHeight * this.scale) / 2
+    ctx.translate(panX, panY)
     ctx.scale(this.scale, this.scale)
     
-    // 触发区域
+    // 视口可见范围（世界坐标，加一点余量）
+    const visL = this.cameraX - 5
+    const visT = this.cameraY - 5
+    const visR = this.cameraX + this.viewW + 5
+    const visB = this.cameraY + this.viewH + 5
+    const inView = (x: number, y: number, w: number, h: number) =>
+      x + w >= visL && x <= visR && y + h >= visT && y <= visB
+    
+    // 触发区域（视口裁剪）
     for (const trigger of runtime.triggers) {
-      this.drawTrigger(trigger)
+      if (inView(trigger.x, trigger.y, trigger.width, trigger.height)) {
+        this.drawTrigger(trigger)
+      }
     }
     
-    // 障碍物
+    // 障碍物（视口裁剪）
     for (const obs of runtime.obstacles) {
-      this.drawObstacle(obs)
+      if (inView(obs.x, obs.y, obs.width, obs.height)) {
+        this.drawObstacle(obs)
+      }
     }
     
-    // 收集品
+    // 收集品（视口裁剪）
     for (const col of runtime.collectibles) {
-      this.drawCollectible(col)
+      if (inView(col.x - 8, col.y - 8, 16, 16)) {
+        this.drawCollectible(col)
+      }
     }
     
     // 终点
@@ -111,10 +143,12 @@ export class SceneRenderer {
     ctx.fillStyle = gradient
     ctx.fillRect(0, 0, this.width, this.height)
     
-    // 星星
+    // 视差星星：按相机位置偏移（远景慢、近景快），超出屏幕后回绕
     for (const star of this.stars) {
+      const sx = wrap(star.x - this.cameraX * star.parallax * this.scale, this.width)
+      const sy = wrap(star.y - this.cameraY * star.parallax * this.scale, this.height)
       ctx.beginPath()
-      ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2)
+      ctx.arc(sx, sy, star.size, 0, Math.PI * 2)
       ctx.fillStyle = `rgba(255, 255, 255, ${star.brightness})`
       ctx.fill()
     }
@@ -429,13 +463,19 @@ export class SceneRenderer {
   
   private generateStars(): void {
     this.stars = []
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 120; i++) {
       this.stars.push({
         x: Math.random() * this.width,
         y: Math.random() * this.height,
         size: Math.random() * 1.5 + 0.5,
-        brightness: Math.random() * 0.5 + 0.3
+        brightness: Math.random() * 0.5 + 0.3,
+        parallax: Math.random() * 0.4 + 0.1,  // 0.1 远景 ~ 0.5 近景
       })
     }
   }
+}
+
+function wrap(v: number, max: number): number {
+  const m = v % max
+  return m < 0 ? m + max : m
 }
