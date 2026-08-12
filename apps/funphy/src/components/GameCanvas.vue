@@ -7,6 +7,7 @@ import type { LevelDef } from '../engine/types'
 const props = defineProps<{
   level: LevelDef
   skinId: string
+  bgGradient: [string, string]
 }>()
 
 const emit = defineEmits<{
@@ -40,7 +41,15 @@ onMounted(async () => {
   await nextTick()
   if (canvasEl.value) {
     initCanvas(canvasEl.value)
-    startLevel(props.level, props.skinId)
+    startLevel(props.level, props.skinId, props.bgGradient)
+  }
+})
+
+// 故事模式：level变化时自动开始新关卡
+watch(() => props.level, async (newLevel) => {
+  if (newLevel && canvasEl.value) {
+    await nextTick()
+    startLevel(newLevel, props.skinId, props.bgGradient)
   }
 })
 

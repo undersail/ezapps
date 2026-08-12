@@ -12,6 +12,9 @@ export class SceneRenderer {
   private contentOffsetX: number = 0
   private contentOffsetY: number = 0
   
+  // 章节背景色
+  private bgGradient: [string, string] = ['#0a0a2e', '#1a1a4e']
+  
   // 星空背景缓存
   private stars: { x: number, y: number, size: number, brightness: number }[] = []
   
@@ -31,6 +34,10 @@ export class SceneRenderer {
   
   getWidth(): number { return this.width }
   getHeight(): number { return this.height }
+  
+  setBgGradient(colors: [string, string]): void {
+    this.bgGradient = colors
+  }
   
   setWorldSize(worldWidth: number, worldHeight: number): void {
     // 统一缩放，保持物体不变形
@@ -97,10 +104,10 @@ export class SceneRenderer {
   private drawBackground(runtime: GameRuntime): void {
     const ctx = this.ctx
     
-    // 深色太空背景
+    // 深色太空背景（使用章节渐变色）
     const gradient = ctx.createLinearGradient(0, 0, 0, this.height)
-    gradient.addColorStop(0, '#0a0a2e')
-    gradient.addColorStop(1, '#1a1a4e')
+    gradient.addColorStop(0, this.bgGradient[0])
+    gradient.addColorStop(1, this.bgGradient[1])
     ctx.fillStyle = gradient
     ctx.fillRect(0, 0, this.width, this.height)
     

@@ -168,6 +168,8 @@ export interface ChapterDef {
   subtitle: string
   emoji: string
   planet: string
+  intro: string       // 章节介绍故事文本
+  bgGradient: [string, string]  // 背景渐变色 [top, bottom]
   levels: LevelDef[]
   boss: LevelDef
 }

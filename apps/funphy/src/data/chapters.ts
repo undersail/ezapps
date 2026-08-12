@@ -6,6 +6,8 @@ const inertiaStar: ChapterDef = {
   subtitle: '牛顿第一定律',
   emoji: '🪐',
   planet: 'Inertia',
+  intro: '你驾驶飞飞来到了惯性星——一个没有空气、没有摩擦力的神秘星球。在这里，推一下就永远停不下来！掌握惯性的力量，穿越小行星带，完成精准对接，才能拿到惯性星的核心物理卡。',
+  bgGradient: ['#0a0a2e', '#1a1a4e'],
   levels: [
     // 1-1 太空漫步
     {
@@ -16,7 +18,7 @@ const inertiaStar: ChapterDef = {
       worldHeight: 75,
       physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
-      goal: { x: 90, y: 37, radius: 5 },
+      goal: { x: 90, y: 37, radius: 3 },
       obstacles: [],
       collectibles: [
         { id: 's1', type: 'stardust', x: 30, y: 25 },
@@ -36,7 +38,7 @@ const inertiaStar: ChapterDef = {
       worldHeight: 75,
       physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.08, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
-      goal: { x: 110, y: 37, radius: 5 },
+      goal: { x: 110, y: 37, radius: 3 },
       obstacles: [
         { id: 'o1', type: 'moving', x: 30, y: 20, width: 8, height: 8, moveAxis: 'y', moveRange: 15, moveSpeed: 0.02, color: '#7c3aed', rounded: true },
         { id: 'o2', type: 'static', x: 50, y: 40, width: 10, height: 10, color: '#6b7280', rounded: true },
@@ -64,7 +66,7 @@ const inertiaStar: ChapterDef = {
       worldHeight: 60,
       physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.06, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 30 },
-      goal: { x: 70, y: 30, radius: 5, maxSpeed: 1.0 },
+      goal: { x: 70, y: 30, radius: 3, maxSpeed: 1.0 },
       obstacles: [
         { id: 'o1', type: 'static', x: 30, y: 10, width: 4, height: 40, color: '#475569', rounded: false },
         { id: 'o2', type: 'static', x: 50, y: 10, width: 4, height: 40, color: '#475569', rounded: false },
@@ -87,7 +89,7 @@ const inertiaStar: ChapterDef = {
       worldHeight: 75,
       physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, boundsBehavior: 'bounce' },
       feifei: { x: 50, y: 37 },
-      goal: { x: 90, y: 10, radius: 5 },
+      goal: { x: 90, y: 10, radius: 3 },
       obstacles: [
         { id: 'o1', type: 'moving', x: 25, y: 30, width: 6, height: 6, moveAxis: 'y', moveRange: 15, moveSpeed: 0.02, color: '#7c3aed', rounded: true },
         { id: 'o2', type: 'moving', x: 60, y: 20, width: 6, height: 6, moveAxis: 'x', moveRange: 10, moveSpeed: 0.025, color: '#7c3aed', rounded: true },
@@ -121,7 +123,7 @@ const inertiaStar: ChapterDef = {
     worldHeight: 90,
     physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, boundsBehavior: 'bounce' },
     feifei: { x: 10, y: 80 },
-    goal: { x: 110, y: 10, radius: 5 },
+    goal: { x: 110, y: 10, radius: 3 },
     obstacles: [
       // 迷宫墙壁
       { id: 'w1', type: 'static', x: 0, y: 0, width: 120, height: 3, color: '#475569', rounded: false },

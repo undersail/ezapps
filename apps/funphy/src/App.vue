@@ -5,10 +5,11 @@ import GameCanvas from './components/GameCanvas.vue'
 import PhysicsCard from './components/PhysicsCard.vue'
 import CardCollection from './components/CardCollection.vue'
 import SkinPicker from './components/SkinPicker.vue'
+import ChapterIntro from './components/ChapterIntro.vue'
 import { chapters } from './data/chapters'
 import { physicsCards } from './data/physicsCards'
 import { useGameProgress } from './composables/useGameProgress'
-import type { LevelDef } from './engine/types'
+import type { LevelDef, ChapterDef } from './engine/types'
 
 const { progress, completeLevel, unlockCard } = useGameProgress()
 
@@ -16,28 +17,57 @@ const { progress, completeLevel, unlockCard } = useGameProgress()
 type Page = 'menu' | 'playing' | 'cards' | 'skins'
 const page = ref<Page>('menu')
 
-// 当前关卡
+// 当前关卡和章节
 const currentLevel = ref<LevelDef | null>(null)
+const currentChapter = ref<ChapterDef | null>(null)
+
+// 章节介绍弹窗
+const showChapterIntro = ref(false)
+const introChapter = ref<ChapterDef | null>(null)
 
 // 物理卡弹窗
 const showCardPopup = ref(false)
 const currentCard = ref(physicsCards[0])
 const isNewCard = ref(false)
 
-function onLevelSelect(level: LevelDef) {
+// 当前章节背景渐变
+const currentBgGradient = computed<[string, string]>(() => {
+  return currentChapter.value?.bgGradient || ['#0a0a2e', '#1a1a4e']
+})
+
+function onLevelSelect(level: LevelDef, chapter: ChapterDef) {
+  currentChapter.value = chapter
   currentLevel.value = level
+
+  // 检查是否需要显示章节介绍（章节第一关且未完成过）
+  const allLevels = [...chapter.levels, chapter.boss]
+  const isFirstLevel = allLevels[0]?.id === level.id
+  const chapterIntroShown = `intro_shown_${chapter.id}`
+  if (isFirstLevel && !localStorage.getItem(chapterIntroShown)) {
+    introChapter.value = chapter
+    showChapterIntro.value = true
+    return
+  }
+
+  page.value = 'playing'
+}
+
+function onChapterIntroStart() {
+  if (introChapter.value) {
+    localStorage.setItem(`intro_shown_${introChapter.value.id}`, '1')
+  }
+  showChapterIntro.value = false
+  introChapter.value = null
   page.value = 'playing'
 }
 
 function onWin(stars: number, time: number, stardust: number) {
-  if (!currentLevel.value) return
+  if (!currentLevel.value || !currentChapter.value) return
   
   // 保存进度
   completeLevel(currentLevel.value.id, stars, time, stardust)
   
-  // 解锁物理卡 —— 关卡ID到卡牌ID的映射
-  // 普通关: '1-1' → '1-1', '1-2' → '1-2' 等
-  // Boss关: '1-5-boss' → '1-5'
+  // 解锁物理卡
   let cardId = currentLevel.value.id
   if (cardId.endsWith('-boss')) {
     cardId = cardId.replace('-boss', '')
@@ -58,10 +88,47 @@ function onLose() {
 function onBackFromGame() {
   page.value = 'menu'
   currentLevel.value = null
+  currentChapter.value = null
 }
 
 function onCardClose() {
   showCardPopup.value = false
+  // 故事模式：通关后自动进入下一关
+  if (currentLevel.value && currentChapter.value) {
+    const nextLevel = getNextLevel(currentLevel.value, currentChapter.value)
+    if (nextLevel) {
+      currentLevel.value = nextLevel
+      page.value = 'playing'
+      return
+    }
+  }
+  // 没有下一关，回大厅
+  page.value = 'menu'
+  currentLevel.value = null
+  currentChapter.value = null
+}
+
+/** 获取当前关卡的下一关，没有则返回null */
+function getNextLevel(current: LevelDef, chapter: ChapterDef): LevelDef | null {
+  const allLevels = [...chapter.levels, chapter.boss]
+  const idx = allLevels.findIndex(l => l.id === current.id)
+  if (idx >= 0 && idx < allLevels.length - 1) {
+    const next = allLevels[idx + 1]
+    // 只有下一关已解锁才能自动进入
+    if (isLevelUnlocked(next, chapter)) return next
+  }
+  return null
+}
+
+function isLevelUnlocked(level: LevelDef, chapter: ChapterDef): boolean {
+  const chapterIndex = chapters.findIndex(c => c.id === chapter.id)
+  if (chapterIndex === 0) {
+    const allLevels = [...chapters[0].levels, chapters[0].boss]
+    const idx = allLevels.findIndex(l => l.id === level.id)
+    if (idx === 0) return true
+    return progress.levels[allLevels[idx - 1].id]?.completed ?? false
+  }
+  return true
 }
 
 function onOpenCards() {
@@ -96,6 +163,7 @@ function onCloseSkins() {
       v-else-if="page === 'playing' && currentLevel"
       :level="currentLevel"
       :skin-id="progress.skinId"
+      :bg-gradient="currentBgGradient"
       @win="onWin"
       @lose="onLose"
       @back="onBackFromGame"
@@ -111,6 +179,13 @@ function onCloseSkins() {
     <SkinPicker
       v-if="page === 'skins'"
       @close="onCloseSkins"
+    />
+
+    <!-- 章节介绍弹窗 -->
+    <ChapterIntro
+      v-if="showChapterIntro && introChapter"
+      :chapter="introChapter"
+      @start="onChapterIntroStart"
     />
 
     <!-- 物理卡弹窗 -->
@@ -132,7 +207,7 @@ html, body, #app {
   overflow: hidden;
 }
 body {
-  background: #0a0a2e;
+  background: #050515;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 

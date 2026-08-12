@@ -140,10 +140,15 @@ export function useGameLoop() {
     return Math.max(0, Math.min(3, s))
   }
   
-  async function startLevel(level: LevelDef, skinId: string = 'default') {
+  async function startLevel(level: LevelDef, skinId: string = 'default', bgGradient?: [string, string]) {
     currentLevel.value = level
     const rt = createRuntime(level, skinId)
     runtime.value = rt
+    
+    // 设置章节背景色
+    if (renderer && bgGradient) {
+      renderer.setBgGradient(bgGradient)
+    }
     
     // 先设为playing，让HUD/D-Pad显示，canvas-area被挤压到正确尺寸
     gameState.value = 'playing'
