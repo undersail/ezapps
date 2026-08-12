@@ -29,6 +29,9 @@ export class SceneRenderer {
     this.generateStars()
   }
   
+  getWidth(): number { return this.width }
+  getHeight(): number { return this.height }
+  
   setWorldSize(worldWidth: number, worldHeight: number): void {
     // 统一缩放，保持物体不变形
     const scaleX = this.width / worldWidth

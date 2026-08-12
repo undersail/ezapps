@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { PhysicsEngine } from '../engine/PhysicsEngine'
 import { SceneRenderer } from '../scenes/SceneRenderer'
 import { useInput, type InputState } from './useInput'
@@ -140,12 +140,31 @@ export function useGameLoop() {
     return Math.max(0, Math.min(3, s))
   }
   
-  function startLevel(level: LevelDef, skinId: string = 'default') {
+  async function startLevel(level: LevelDef, skinId: string = 'default') {
     currentLevel.value = level
     const rt = createRuntime(level, skinId)
     runtime.value = rt
     
-    // 根据Canvas宽高比计算扩展后的世界尺寸和内容偏移
+    // 先设为playing，让HUD/D-Pad显示，canvas-area被挤压到正确尺寸
+    gameState.value = 'playing'
+    
+    // 等待Vue渲染完成，canvas-area尺寸稳定
+    await nextTick()
+    
+    // 重新设置canvas物理尺寸（因为HUD/D-Pad出现后canvas-area变小了）
+    if (canvasRef.value && renderer) {
+      const rect = canvasRef.value.getBoundingClientRect()
+      const dpr = window.devicePixelRatio || 1
+      canvasRef.value.width = rect.width * dpr
+      canvasRef.value.height = rect.height * dpr
+      const ctx = canvasRef.value.getContext('2d')
+      if (ctx) {
+        ctx.scale(dpr, dpr)
+        renderer.resize(rect.width, rect.height)
+      }
+    }
+    
+    // 根据Canvas实际尺寸计算扩展后的世界尺寸和内容偏移
     let worldW = level.worldWidth
     let worldH = level.worldHeight
     if (renderer) {
@@ -153,13 +172,11 @@ export function useGameLoop() {
       const vs = renderer.getVisibleWorldSize()
       worldW = vs.width
       worldH = vs.height
-      // 将所有物体坐标加上居中偏移，使世界内容在扩展后的可视范围中居中
       applyContentOffset(rt, vs.contentOffsetX, vs.contentOffsetY)
     }
     
     engine = new PhysicsEngine(level.physics, worldW, worldH)
     
-    gameState.value = 'playing'
     timeAccumulator = 0
     lastTime = performance.now()
     
@@ -193,6 +210,23 @@ export function useGameLoop() {
   }
   
   function gameLoop(timestamp: number) {
+    // 检查canvas CSS尺寸是否和renderer匹配，不匹配则重新设置
+    if (canvasRef.value && renderer) {
+      const rect = canvasRef.value.getBoundingClientRect()
+      const rw = Math.round(rect.width)
+      const rh = Math.round(rect.height)
+      if (rw !== Math.round(renderer.getWidth()) || rh !== Math.round(renderer.getHeight())) {
+        const dpr = window.devicePixelRatio || 1
+        canvasRef.value.width = rect.width * dpr
+        canvasRef.value.height = rect.height * dpr
+        const ctx = canvasRef.value.getContext('2d')
+        if (ctx) {
+          ctx.scale(dpr, dpr)
+          renderer.resize(rect.width, rect.height)
+        }
+      }
+    }
+    
     if (gameState.value !== 'playing' || !runtime.value || !engine || !renderer || !canvasRef.value) {
       rafId = requestAnimationFrame(gameLoop)
       return
