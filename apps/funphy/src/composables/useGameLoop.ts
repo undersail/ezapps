@@ -4,11 +4,24 @@ import { SceneRenderer } from '../scenes/SceneRenderer'
 import { useInput, type InputState } from './useInput'
 import { useSound } from './useSound'
 import * as Sound from '../utils/sound'
-import type { GameRuntime, LevelDef, FeiFei, Obstacle, Collectible, Trigger, Goal, SkinDef, StarCondition, Spring, Portal, Conveyor, Hazard } from '../engine/types'
+import type { GameRuntime, LevelDef, FeiFei, Obstacle, Collectible, Trigger, Goal, SkinDef, StarCondition, Spring, Portal, Conveyor, Hazard, ObstacleKind } from '../engine/types'
 import { skins } from '../data/skins'
 
 function clamp(v: number, min: number, max: number): number {
   return v < min ? min : (v > max ? max : v)
+}
+
+/** 章节默认障碍物形态（主题化）：数据未标注 kind 时按星球主题自动映射 */
+function defaultKindForChapter(levelId: string, type: string): ObstacleKind {
+  const ch = Number(levelId.split('-')[0]) || 1
+  switch (ch) {
+    case 2: return 'rock'                          // 重力星：月岩
+    case 3: return 'bounce'                        // 弹力星：橡胶
+    case 4: return type === 'moving' ? 'cloud' : 'ice'  // 阻力星：移动=云，静态=冰
+    case 5: return 'orb'                           // 引力星：行星
+    case 6: return 'crystal'                       // 能量星：能量晶
+    default: return type === 'moving' ? 'rock' : 'metal'  // 惯性星：移动=小行星，静态=金属
+  }
 }
 
 export function useGameLoop() {
@@ -68,6 +81,7 @@ export function useGameLoop() {
       color: o.color || '#4a5568',
       rounded: o.rounded ?? false,
       phase: Math.random() * Math.PI * 2,
+      kind: o.kind ?? defaultKindForChapter(level.id, o.type),
     }))
     
     const collectibles: Collectible[] = level.collectibles.map(c => ({

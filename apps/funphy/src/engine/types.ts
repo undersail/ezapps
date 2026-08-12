@@ -43,6 +43,9 @@ export interface FeiFei extends Entity {
 // 障碍物类型（platform=单向平台：仅从上方碰撞）
 export type ObstacleType = 'static' | 'moving' | 'wall' | 'platform'
 
+// 障碍物视觉形态（主题化，缺省按章节自动映射）
+export type ObstacleKind = 'rock' | 'metal' | 'crystal' | 'ice' | 'cloud' | 'bounce' | 'orb' | 'water'
+
 // 障碍物定义
 export interface ObstacleDef {
   id: string
@@ -58,6 +61,7 @@ export interface ObstacleDef {
   // 样式
   color?: string
   rounded?: boolean
+  kind?: ObstacleKind  // 视觉形态（缺省按章节主题映射）
 }
 
 // 运行时障碍物
@@ -76,6 +80,7 @@ export interface Obstacle {
   color: string
   rounded: boolean
   phase: number  // 移动相位
+  kind: ObstacleKind  // 视觉形态（运行时解析，缺省按章节映射）
 }
 
 // 收集品类型

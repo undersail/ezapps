@@ -4,6 +4,16 @@ function clamp(v: number, min: number, max: number): number {
   return v < min ? min : (v > max ? max : v)
 }
 
+// 收集品主题色（按章节：星尘/月尘/彩球/气泡/星光/能量块）
+const COLLECT_GLOW: Record<number, string> = {
+  1: '#ffd700',
+  2: '#38bdf8',
+  3: '#f472b6',
+  4: '#67e8f9',
+  5: '#c084fc',
+  6: '#4ade80',
+}
+
 export class SceneRenderer {
   /** 一屏视口高度基准（世界单位）：低于此高度的世界不垂直滚动 */
   private static readonly DEFAULT_VIEW_HEIGHT = 75
@@ -194,9 +204,10 @@ export class SceneRenderer {
     }
     
     // 收集品（视口裁剪）
+    const chapter = Number(runtime.level.id.split('-')[0]) || 1
     for (const col of runtime.collectibles) {
       if (inView(col.x - 8, col.y - 8, 16, 16)) {
-        this.drawCollectible(col)
+        this.drawCollectible(col, chapter)
       }
     }
     
@@ -297,6 +308,18 @@ export class SceneRenderer {
       return
     }
     
+    // 主题形态（kind 驱动，星球主题可视化）
+    switch (obs.kind) {
+      case 'rock': this.drawRock(obs); return
+      case 'metal': this.drawMetal(obs); return
+      case 'crystal': this.drawCrystal(obs); return
+      case 'ice': this.drawIce(obs); return
+      case 'cloud': this.drawCloud(obs); return
+      case 'bounce': this.drawBounce(obs); return
+      case 'orb': this.drawOrb(obs); return
+      case 'water': this.drawWater(obs); return
+    }
+    
     ctx.fillStyle = obs.color || '#4a5568'
     
     if (obs.rounded) {
@@ -322,7 +345,205 @@ export class SceneRenderer {
     ctx.fillRect(obs.x, obs.y, obs.width, 2)
   }
   
-  private drawCollectible(col: Collectible): void {
+  // ============ 主题形态绘制 ============
+  
+  /** 主题色：数据标注的非默认色优先，否则用 kind 专属色板 */
+  private themeColor(obs: Obstacle): string {
+    const c = obs.color
+    if (c && !['#6b7280', '#475569', '#64748b', '#4a5568', '#94a3b8'].includes(c)) return c
+    switch (obs.kind) {
+      case 'rock': return '#8b7a6b'      // 岩石棕灰
+      case 'metal': return '#64748b'     // 金属蓝灰
+      case 'crystal': return '#4ade80'   // 能量绿
+      case 'bounce': return '#a78bfa'    // 橡胶紫
+      case 'orb': return '#fb923c'       // 行星橙
+      case 'ice': return '#67e8f9'       // 冰青
+      case 'cloud': return '#e2e8f0'     // 云白
+      case 'water': return '#22d3ee'     // 水青
+      default: return c || '#4a5568'
+    }
+  }
+  
+  /** 岩石：不规则多边形 + 棱角高光（小行星/月岩） */
+  private drawRock(obs: Obstacle): void {
+    const ctx = this.ctx
+    const x = obs.x, y = obs.y, w = obs.width, h = obs.height
+    // 伪随机顶点（基于位置 seed，形状稳定）
+    const seed = (obs.id.charCodeAt(0) * 31 + obs.id.charCodeAt(1) * 7) % 10
+    const pts: [number, number][] = []
+    const n = 6
+    for (let i = 0; i < n; i++) {
+      const t = i / n
+      const wob = ((seed + i * 3) % 5 - 2) * 0.12
+      pts.push([x + w * (t + wob * 0.5), y + h * (0.3 + ((seed * 7 + i * 13) % 5) * 0.12)])
+    }
+    ctx.fillStyle = this.themeColor(obs)
+    ctx.beginPath()
+    ctx.moveTo(pts[0][0], pts[0][1])
+    for (let i = 1; i < n; i++) ctx.lineTo(pts[i][0], pts[i][1])
+    ctx.closePath()
+    ctx.fill()
+    // 棱角高光
+    ctx.fillStyle = 'rgba(255,255,255,0.15)'
+    ctx.beginPath()
+    ctx.moveTo(pts[0][0], pts[0][1])
+    ctx.lineTo(pts[1][0], pts[1][1])
+    ctx.lineTo((pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2 - h * 0.08)
+    ctx.closePath()
+    ctx.fill()
+  }
+  
+  /** 金属：直角方板 + 四角铆钉 + 顶部高光（空间站/机械） */
+  private drawMetal(obs: Obstacle): void {
+    const ctx = this.ctx
+    ctx.fillStyle = this.themeColor(obs)
+    ctx.fillRect(obs.x, obs.y, obs.width, obs.height)
+    // 顶部高光
+    ctx.fillStyle = 'rgba(255,255,255,0.2)'
+    ctx.fillRect(obs.x, obs.y, obs.width, 2)
+    // 底部阴影
+    ctx.fillStyle = 'rgba(0,0,0,0.15)'
+    ctx.fillRect(obs.x, obs.y + obs.height - 2, obs.width, 2)
+    // 四角铆钉
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'
+    const d = Math.min(2, obs.height / 4)
+    for (const [dx, dy] of [[2, 2], [obs.width - 2 - d, 2], [2, obs.height - 2 - d], [obs.width - 2 - d, obs.height - 2 - d]]) {
+      ctx.beginPath()
+      ctx.arc(obs.x + dx, obs.y + dy, d / 2, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+  
+  /** 晶体：菱形 + 半透明 + 发光脉动（月晶/能量晶） */
+  private drawCrystal(obs: Obstacle): void {
+    const ctx = this.ctx
+    const pulse = Math.sin(Date.now() / 400 + obs.x) * 0.15 + 0.5
+    const cx = obs.x + obs.width / 2
+    const cy = obs.y + obs.height / 2
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.rotate(Math.PI / 4)
+    ctx.fillStyle = this.themeColor(obs)
+    ctx.globalAlpha = 0.55 + pulse * 0.3
+    ctx.fillRect(-obs.width / 2, -obs.height / 2, obs.width, obs.height)
+    ctx.globalAlpha = 1
+    ctx.strokeStyle = obs.color || '#4ade80'
+    ctx.lineWidth = 1.5
+    ctx.strokeRect(-obs.width / 2, -obs.height / 2, obs.width, obs.height)
+    ctx.restore()
+    // 中心亮点
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'
+    ctx.beginPath()
+    ctx.arc(cx, cy, 1.5, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  
+  /** 冰面：半透明 + 白色斜纹高光 */
+  private drawIce(obs: Obstacle): void {
+    const ctx = this.ctx
+    ctx.fillStyle = 'rgba(103, 232, 249, 0.45)'
+    ctx.fillRect(obs.x, obs.y, obs.width, obs.height)
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    for (let i = -obs.height; i < obs.width; i += 6) {
+      ctx.moveTo(obs.x + i, obs.y + obs.height)
+      ctx.lineTo(obs.x + i + obs.height, obs.y)
+    }
+    ctx.stroke()
+    ctx.strokeStyle = 'rgba(165, 243, 252, 0.6)'
+    ctx.strokeRect(obs.x + 0.5, obs.y + 0.5, obs.width - 1, obs.height - 1)
+  }
+  
+  /** 云层：三圆云朵 + 半透明 */
+  private drawCloud(obs: Obstacle): void {
+    const ctx = this.ctx
+    const cy = obs.y + obs.height / 2
+    ctx.fillStyle = 'rgba(226, 232, 240, 0.55)'
+    ctx.beginPath()
+    ctx.arc(obs.x + obs.width * 0.3, cy, obs.height * 0.55, 0, Math.PI * 2)
+    ctx.arc(obs.x + obs.width * 0.55, cy - obs.height * 0.15, obs.height * 0.65, 0, Math.PI * 2)
+    ctx.arc(obs.x + obs.width * 0.75, cy, obs.height * 0.5, 0, Math.PI * 2)
+    ctx.fill()
+    // 底部平整
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.4)'
+    ctx.fillRect(obs.x, cy + obs.height * 0.2, obs.width, obs.height * 0.3)
+  }
+  
+  /** 橡胶：圆角亮色 + 高光弧（弹力游乐场） */
+  private drawBounce(obs: Obstacle): void {
+    const ctx = this.ctx
+    ctx.fillStyle = this.themeColor(obs)
+    const r = Math.min(4, obs.height / 3)
+    ctx.beginPath()
+    ctx.moveTo(obs.x + r, obs.y)
+    ctx.lineTo(obs.x + obs.width - r, obs.y)
+    ctx.quadraticCurveTo(obs.x + obs.width, obs.y, obs.x + obs.width, obs.y + r)
+    ctx.lineTo(obs.x + obs.width, obs.y + obs.height - r)
+    ctx.quadraticCurveTo(obs.x + obs.width, obs.y + obs.height, obs.x + obs.width - r, obs.y + obs.height)
+    ctx.lineTo(obs.x + r, obs.y + obs.height)
+    ctx.quadraticCurveTo(obs.x, obs.y + obs.height, obs.x, obs.y + obs.height - r)
+    ctx.lineTo(obs.x, obs.y + r)
+    ctx.quadraticCurveTo(obs.x, obs.y, obs.x + r, obs.y)
+    ctx.closePath()
+    ctx.fill()
+    // 高光弧
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.arc(obs.x + obs.width * 0.4, obs.y + obs.height * 0.35, obs.height * 0.25, Math.PI * 1.1, Math.PI * 1.6)
+    ctx.stroke()
+  }
+  
+  /** 行星体：大圆 + 表面弧线 + 光环（引力星） */
+  private drawOrb(obs: Obstacle): void {
+    const ctx = this.ctx
+    const cx = obs.x + obs.width / 2
+    const cy = obs.y + obs.height / 2
+    const R = Math.min(obs.width, obs.height) / 2
+    ctx.fillStyle = this.themeColor(obs)
+    ctx.beginPath()
+    ctx.arc(cx, cy, R, 0, Math.PI * 2)
+    ctx.fill()
+    // 表面弧线（经线感）
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, R * 0.85, R * 0.35, 0.4, 0, Math.PI * 2)
+    ctx.stroke()
+    // 光环
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, R * 1.35, R * 0.5, -0.3, 0, Math.PI * 2)
+    ctx.stroke()
+    // 高光点
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'
+    ctx.beginPath()
+    ctx.arc(cx - R * 0.3, cy - R * 0.3, R * 0.15, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  
+  /** 水墙：半透明青 + 流动波纹 */
+  private drawWater(obs: Obstacle): void {
+    const ctx = this.ctx
+    ctx.fillStyle = 'rgba(34, 211, 238, 0.35)'
+    ctx.fillRect(obs.x, obs.y, obs.width, obs.height)
+    // 流动波纹
+    ctx.strokeStyle = 'rgba(165, 243, 252, 0.5)'
+    ctx.lineWidth = 1
+    const off = (Date.now() / 50) % 8
+    ctx.beginPath()
+    for (let wy = obs.y + 4; wy < obs.y + obs.height - 2; wy += 6) {
+      for (let wx = obs.x - 8; wx < obs.x + obs.width + 8; wx += 16) {
+        ctx.moveTo(wx + ((wy + off) % 8), wy)
+        ctx.lineTo(wx + 6 + ((wy + off) % 8), wy)
+      }
+    }
+    ctx.stroke()
+  }
+  
+  private drawCollectible(col: Collectible, chapter: number): void {
     const ctx = this.ctx
     
     if (col.collected) {
@@ -337,7 +558,7 @@ export class SceneRenderer {
         ctx.translate(col.x, col.y)
         ctx.scale(scale, scale)
         if (col.type === 'stardust') {
-          this.drawStardustShape(ctx, 0, 0)
+          this.drawStardustShape(ctx, 0, 0, chapter)
         }
         ctx.restore()
       }
@@ -348,16 +569,17 @@ export class SceneRenderer {
     const bob = Math.sin(Date.now() / 300 + col.x) * 1.5
     
     if (col.type === 'stardust') {
-      // 发光效果
+      // 发光效果（按章主题色）
+      const glowColor = COLLECT_GLOW[chapter] || '#ffd700'
       ctx.save()
       ctx.globalAlpha = 0.3
       ctx.beginPath()
       ctx.arc(col.x, col.y + bob, 6, 0, Math.PI * 2)
-      ctx.fillStyle = '#ffd700'
+      ctx.fillStyle = glowColor
       ctx.fill()
       ctx.restore()
       
-      this.drawStardustShape(ctx, col.x, col.y + bob)
+      this.drawStardustShape(ctx, col.x, col.y + bob, chapter)
     } else if (col.type === 'checkpoint') {
       // 检查点
       ctx.save()
@@ -380,20 +602,86 @@ export class SceneRenderer {
     }
   }
   
-  private drawStardustShape(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-    // 五角星
-    ctx.fillStyle = '#ffd700'
-    ctx.beginPath()
-    for (let i = 0; i < 5; i++) {
-      const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2
-      const r = 4
-      const px = x + Math.cos(angle) * r
-      const py = y + Math.sin(angle) * r
-      if (i === 0) ctx.moveTo(px, py)
-      else ctx.lineTo(px, py)
+  /** 主题化收集品：每章的"星尘"形态不同 */
+  private drawStardustShape(ctx: CanvasRenderingContext2D, x: number, y: number, chapter: number): void {
+    switch (chapter) {
+      case 2:  // 月尘：浅蓝六边形
+        ctx.fillStyle = '#38bdf8'
+        ctx.beginPath()
+        for (let i = 0; i < 6; i++) {
+          const a = (i * Math.PI) / 3 - Math.PI / 2
+          const px = x + Math.cos(a) * 4
+          const py = y + Math.sin(a) * 4
+          if (i === 0) ctx.moveTo(px, py)
+          else ctx.lineTo(px, py)
+        }
+        ctx.closePath()
+        ctx.fill()
+        return
+      case 3:  // 彩球：粉色圆珠
+        ctx.fillStyle = '#f472b6'
+        ctx.beginPath()
+        ctx.arc(x, y, 4, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = 'rgba(255,255,255,0.5)'
+        ctx.beginPath()
+        ctx.arc(x - 1, y - 1, 1.5, 0, Math.PI * 2)
+        ctx.fill()
+        return
+      case 4:  // 气泡：青色圆泡（半透明）
+        ctx.strokeStyle = '#67e8f9'
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        ctx.arc(x, y, 4, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.fillStyle = 'rgba(103, 232, 249, 0.3)'
+        ctx.fill()
+        ctx.fillStyle = 'rgba(255,255,255,0.6)'
+        ctx.beginPath()
+        ctx.arc(x - 1.5, y - 1.5, 1, 0, Math.PI * 2)
+        ctx.fill()
+        return
+      case 5:  // 星光：紫色六芒星
+        ctx.fillStyle = '#c084fc'
+        ctx.beginPath()
+        for (let i = 0; i < 6; i++) {
+          const a = (i * Math.PI) / 3 - Math.PI / 2
+          const r = i % 2 === 0 ? 4.5 : 2
+          const px = x + Math.cos(a) * r
+          const py = y + Math.sin(a) * r
+          if (i === 0) ctx.moveTo(px, py)
+          else ctx.lineTo(px, py)
+        }
+        ctx.closePath()
+        ctx.fill()
+        return
+      case 6:  // 能量块：绿色菱形
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.rotate(Math.PI / 4)
+        ctx.fillStyle = '#4ade80'
+        ctx.fillRect(-2.8, -2.8, 5.6, 5.6)
+        ctx.restore()
+        ctx.fillStyle = 'rgba(255,255,255,0.6)'
+        ctx.beginPath()
+        ctx.arc(x - 1, y - 1, 1, 0, Math.PI * 2)
+        ctx.fill()
+        return
+      default:  // 星尘：金色五角星（第一章）
+        ctx.fillStyle = '#ffd700'
+        ctx.beginPath()
+        for (let i = 0; i < 5; i++) {
+          const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2
+          const r = 4
+          const px = x + Math.cos(angle) * r
+          const py = y + Math.sin(angle) * r
+          if (i === 0) ctx.moveTo(px, py)
+          else ctx.lineTo(px, py)
+        }
+        ctx.closePath()
+        ctx.fill()
+        return
     }
-    ctx.closePath()
-    ctx.fill()
   }
   
   /** 弹力垫：橙色，画向上箭头 */
