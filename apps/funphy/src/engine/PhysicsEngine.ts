@@ -17,7 +17,19 @@ export class PhysicsEngine {
     this.worldHeight = height
   }
 
+  /**
+   * 主更新入口：子步进（每步 ≤0.5 帧单位），
+   * 高速移动时防穿透（tunneling），且保持总冲量一致。
+   */
   update(runtime: GameRuntime, dt: number): void {
+    const steps = Math.max(1, Math.ceil(dt / 0.5))
+    const h = dt / steps
+    for (let i = 0; i < steps; i++) {
+      this.step(runtime, h)
+    }
+  }
+
+  private step(runtime: GameRuntime, dt: number): void {
     const { feifei, obstacles, collectibles, triggers, goal } = runtime
     
     // 1. 更新移动障碍物
@@ -58,13 +70,31 @@ export class PhysicsEngine {
     
     // 触发区域效果
     for (const trigger of triggers) {
+      // 引力井：以区域中心为圆心的圆形力场，向井心拉扯（force>0）或推离（force<0）
+      if (trigger.type === 'gravity_well') {
+        const cx = trigger.x + trigger.width / 2
+        const cy = trigger.y + trigger.height / 2
+        const R = Math.max(trigger.width, trigger.height) / 2
+        const dx = cx - feifei.pos.x
+        const dy = cy - feifei.pos.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist > 0.5 && dist < R) {
+          const strength = trigger.params.force ?? 0.05
+          fx += (dx / dist) * strength
+          fy += (dy / dist) * strength
+        }
+        continue
+      }
+
       if (this.isInTrigger(feifei, trigger)) {
         if (trigger.type === 'boost') {
           const boost = trigger.params.force || 0.1
           fy -= boost  // 向上加速
         } else if (trigger.type === 'slow') {
-          feifei.vel.x *= 0.95
-          feifei.vel.y *= 0.95
+          // 按步长缩放，保证子步进下总减速效果与原来一致（dt=1 时即 0.95）
+          const slowFactor = 1 - 0.05 * dt
+          feifei.vel.x *= slowFactor
+          feifei.vel.y *= slowFactor
         } else if (trigger.type === 'wind') {
           fx += trigger.params.forceX || 0
           fy += trigger.params.forceY || 0

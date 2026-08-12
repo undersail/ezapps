@@ -24,8 +24,10 @@ export function useGameLoop() {
   let engine: PhysicsEngine | null = null
   let renderer: SceneRenderer | null = null
   let rafId = 0
-  let timeAccumulator = 0
+  let timeAccumulator = 0   // 固定步长累积器
   let lastTime = 0
+  const PHYSICS_FRAME = 1        // 物理步长（帧单位，对应 60Hz 固定节拍）
+  const MAX_PHYSICS_STEPS = 5    // 单帧最大物理步数（防 spiral of death）
   
   function createRuntime(level: LevelDef, skinId: string): GameRuntime {
     const feifei: FeiFei = {
@@ -240,6 +242,10 @@ export function useGameLoop() {
     
     const rt = runtime.value
     
+    // 帧率无关：以 60fps 为基准计算实际流逝时间（帧单位），上限 5 帧防跳变
+    const realDt = lastTime === 0 ? 1 : Math.min((timestamp - lastTime) / 16.667, 5)
+    lastTime = timestamp
+    
     // 同步输入到飞飞
     rt.feifei.thrusting.up = input.up
     rt.feifei.thrusting.down = input.down
@@ -263,8 +269,15 @@ export function useGameLoop() {
       return
     }
     
-    // 物理更新
-    engine.update(rt, 1)
+    // 固定步长物理更新（60Hz 节拍）：帧率再高物理也不会变快
+    timeAccumulator += realDt
+    let steps = 0
+    while (timeAccumulator >= PHYSICS_FRAME && steps < MAX_PHYSICS_STEPS) {
+      engine.update(rt, PHYSICS_FRAME)
+      timeAccumulator -= PHYSICS_FRAME
+      steps++
+    }
+    if (steps >= MAX_PHYSICS_STEPS) timeAccumulator = 0  // 积压过多直接丢弃（防死亡螺旋）
     
     // 消费事件 → 播放音效
     if (soundState.enabled) {
