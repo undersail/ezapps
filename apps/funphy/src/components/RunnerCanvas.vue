@@ -13,6 +13,19 @@
             <div class="legend-item"><span class="legend-dot green"></span> 能量块（补充能量）</div>
             <div class="legend-item"><span class="legend-dot gold"></span> 太阳能区（持续充能）</div>
           </div>
+          <!-- 飞船库：装备升级 -->
+          <div class="shipyard">
+            <div class="shipyard-title">🛠 飞船库 · 💎 {{ totalGems }}</div>
+            <div class="upgrade-row" v-for="k in (['engine', 'armor', 'battery'] as const)" :key="k">
+              <div class="upgrade-info">
+                <div class="upgrade-name">{{ UPGRADE_NAME[k] }} {{ upgradeState(k) }}</div>
+                <div class="upgrade-desc">{{ upgradeDesc[k] }}</div>
+              </div>
+              <button class="upgrade-btn" @click="doUpgrade(k)" :disabled="upgrades.progress.upgrades[k] >= UPGRADE_COST[k].length || upgrades.progress.gems < UPGRADE_COST[k][upgrades.progress.upgrades[k]]">
+                ⬆
+              </button>
+            </div>
+          </div>
           <button class="btn-primary" @click="handleStart">🚀 开始探险</button>
         </div>
       </div>
@@ -82,7 +95,7 @@
       <div class="overlay" v-if="gameState === 'won'">
         <div class="overlay-card win-card">
           <h2>🎉 通关！</h2>
-          <p class="result-line">💎 收集宝石 {{ gems }} / {{ runtime?.level.goal.gems }}</p>
+          <p class="result-line">💎 本关宝石 {{ gems }}（累计 {{ totalGems }}）</p>
           <p class="result-line">⚡ 剩余能量 {{ energy }}%</p>
           <p class="result-line">⏱ 用时 {{ fmtTime }}</p>
           <button class="btn-primary" @click="handleNext">返回大厅</button>
@@ -122,6 +135,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRunnerLoop } from '../composables/useRunnerLoop'
+import { useUpgrades, UPGRADE_COST, UPGRADE_NAME } from '../composables/useUpgrades'
 import { SceneRenderer } from '../scenes/SceneRenderer'
 import { skins } from '../data/skins'
 import { runnerLevels } from '../data/runner/ocean'
@@ -133,8 +147,26 @@ const {
   soundEnabled, toggleSound,
   startLevel, retryLevel, backToMenu,
   togglePause, resumeGame,
-  setStickTouch, setViewSize,
+  setStickTouch, setViewSize, upgrades,
 } = useRunnerLoop()
+
+const totalGems = computed(() => upgrades.progress.gems)
+
+// 升级状态文案
+function upgradeState(kind: 'engine' | 'armor' | 'battery') {
+  const lv = upgrades.progress.upgrades[kind]
+  const costs = UPGRADE_COST[kind]
+  if (lv >= costs.length) return `Lv${lv}（满级）`
+  return `Lv${lv} → Lv${lv + 1}（💎${costs[lv]}）`
+}
+function doUpgrade(kind: 'engine' | 'armor' | 'battery') {
+  upgrades.upgrade(kind)
+}
+const upgradeDesc: Record<'engine' | 'armor' | 'battery', string> = {
+  engine: '推力+8% / 能耗-6%',
+  armor: '护甲+1',
+  battery: '能量上限+10',
+}
 
 const fmtTime = computed(() => {
   const t = elapsedTime.value
@@ -515,6 +547,42 @@ canvas {
 .legend-dot.white { background: #f8fafc; box-shadow: 0 0 6px rgba(248, 250, 252, 0.6); }
 .legend-dot.green { background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.6); }
 .legend-dot.gold { background: #fde047; box-shadow: 0 0 6px rgba(253, 224, 71, 0.6); }
+
+/* 飞船库（装备升级） */
+.shipyard {
+  margin-bottom: 16px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  padding-top: 12px;
+}
+.shipyard-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-align: left;
+}
+.upgrade-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+}
+.upgrade-info { text-align: left; }
+.upgrade-name { font-size: 0.78rem; }
+.upgrade-desc { font-size: 0.65rem; color: rgba(255,255,255,0.5); }
+.upgrade-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.15);
+  color: #7dd3fc;
+  font-size: 0.9rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.upgrade-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.upgrade-btn:not(:disabled):active { transform: scale(0.9); }
 
 /* ==== 单摇杆 ==== */
 .controls-area {

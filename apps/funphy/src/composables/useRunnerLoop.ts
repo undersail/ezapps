@@ -5,6 +5,7 @@ import type { RunnerLevelDef, RunnerRuntime } from '../engine/runnerTypes'
 import { spawnRunnerEntities } from '../engine/runnerTypes'
 import * as Sound from '../utils/sound'
 import { useSound } from './useSound'
+import { useUpgrades } from './useUpgrades'
 
 const VIEW_HEIGHT = 75          // 视口高（世界单位）
 const SHIP_RADIUS = 3
@@ -12,6 +13,7 @@ const START_ARMOR = 3
 
 export function useRunnerLoop() {
   const canvasRef = ref<HTMLCanvasElement | null>(null)
+  const upgrades = useUpgrades()
   const gameState = ref<'menu' | 'playing' | 'paused' | 'won' | 'lost'>('menu')
   const runtime = ref<RunnerRuntime | null>(null) as Ref<RunnerRuntime | null>
   const failText = ref('')
@@ -44,11 +46,20 @@ export function useRunnerLoop() {
   }
 
   function createRuntime(level: RunnerLevelDef): RunnerRuntime {
+    // 装备效果注入（动力/护甲/能量仓升级）
+    const eff = upgrades.applyUpgrades({
+      thrust: level.physics.thrust,
+      energyDrain: level.energyDrain,
+      armor: START_ARMOR,
+      maxEnergy: 100,
+    })
     return {
       state: 'playing',
       level,
-      ship: { x: 70, y: 55, vx: 0, vy: 0, armor: START_ARMOR, invincible: 0 },
-      energy: 100,
+      ship: { x: 70, y: 55, vx: 0, vy: 0, armor: eff.armor, invincible: 0 },
+      maxEnergy: eff.maxEnergy,
+      effDrain: eff.energyDrain,
+      energy: eff.maxEnergy,
       gems: 0,
       progress: 0,
       flowSpeed: level.baseFlow,
@@ -96,12 +107,12 @@ export function useRunnerLoop() {
     if (thr < 0) rt.flowSpeed = level.baseFlow * (1 + thr * 0.7)  // 刹车减速
     // 能量消耗（推进时）
     if (thr > 0) {
-      rt.energy = Math.max(0, rt.energy - level.energyDrain * thr * dt)
+      rt.energy = Math.max(0, rt.energy - rt.effDrain * thr * dt)
     }
     // 太阳能回能
     for (const z of level.solarZones) {
       if (ship.x > z.x && ship.x < z.x + z.width && ship.y > z.y && ship.y < z.y + z.height) {
-        rt.energy = Math.min(100, rt.energy + 3 * dt)
+        rt.energy = Math.min(rt.maxEnergy, rt.energy + 3 * dt)
       }
     }
 
@@ -152,7 +163,7 @@ export function useRunnerLoop() {
     for (const eb of rt.energyBlocks) {
       if (!eb.collected && circleRectHit(ship.x, ship.y, SHIP_RADIUS + 1, eb.x - 3, eb.y - 3, 6, 6)) {
         eb.collected = true
-        rt.energy = Math.min(100, rt.energy + 20)
+        rt.energy = Math.min(rt.maxEnergy, rt.energy + 20)
         rt.events.push('energy')
       }
     }
@@ -163,6 +174,7 @@ export function useRunnerLoop() {
       rt.state = 'won'
       rt.events.push('win')
       gameState.value = 'won'   // 同步 UI 状态（弹通关窗）
+      upgrades.addGems(rt.gems) // 通关结算宝石（累计）
     }
 
     // ===== HUD 同步 =====
@@ -287,5 +299,6 @@ export function useRunnerLoop() {
     startLevel, retryLevel, backToMenu,
     togglePause, resumeGame,
     setStickTouch, setViewSize,
+    upgrades,
   }
 }

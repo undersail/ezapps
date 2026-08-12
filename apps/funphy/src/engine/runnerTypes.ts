@@ -89,7 +89,9 @@ export interface RunnerRuntime {
     armor: number            // 护甲
     invincible: number       // 无敌帧（受击后 1s）
   }
-  energy: number             // 能量 0~100
+  maxEnergy: number          // 能量上限（能量仓升级增加）
+  effDrain: number           // 实际能耗率（动力升级降低）
+  energy: number             // 能量 0~maxEnergy
   gems: number               // 本关宝石
   progress: number           // 累计里程
   flowSpeed: number          // 当前流速（base + 推杆）
