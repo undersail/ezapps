@@ -835,25 +835,18 @@ export class SceneRenderer {
   
   private drawFeiFei(feifei: FeiFei, skin: SkinDef): void {
     const ctx = this.ctx
-    const { pos, expression, thrusting, thrustDir } = feifei
+    const { pos, expression } = feifei
     
     // 被撞闪烁
     if (feifei.hitTimer > 0 && feifei.hitTimer % 4 < 2) return
     
     ctx.save()
     ctx.translate(pos.x, pos.y)
+    // V2：船头固定朝上，不随速度旋转
     
-    // 计算朝向角度（基于速度方向）
-    const speed = Math.sqrt(feifei.vel.x ** 2 + feifei.vel.y ** 2)
-    let angle = 0
-    if (speed > 0.1) {
-      angle = Math.atan2(feifei.vel.y, feifei.vel.x)
-    }
-    ctx.rotate(angle)
-    
-    // 尾焰
-    const isThrusting = (thrustDir.x !== 0 || thrustDir.y !== 0)
-      || thrusting.up || thrusting.down || thrusting.left || thrusting.right
+    // 尾焰（向下喷射 = 向上推进）
+    const isThrusting = (feifei.thrustDir.x !== 0 || feifei.thrustDir.y !== 0)
+      || feifei.thrusting.up || feifei.thrusting.down || feifei.thrusting.left || feifei.thrusting.right
     if (isThrusting || expression === 'thrust') {
       this.drawFlame(ctx, skin, feifei)
     }
@@ -868,26 +861,31 @@ export class SceneRenderer {
   }
   
   private drawFlame(ctx: CanvasRenderingContext2D, skin: SkinDef, feifei: FeiFei): void {
+    const r = feifei.radius
     const flicker = Math.random() * 0.3 + 0.7
     // 冲刺时尾焰加长加亮
     const dashBoost = feifei.dashTimer > 0 ? 2.2 : 1
-    const flameLen = (8 + Math.random() * 4) * flicker * dashBoost
+    const flameLen = (7 + Math.random() * 4) * flicker * dashBoost
     
     ctx.save()
     
-    // 尾焰在机身后面
-    const gradient = ctx.createLinearGradient(-feifei.radius - flameLen, 0, -feifei.radius, 0)
-    gradient.addColorStop(0, 'rgba(255,255,255,0)')
+    // 尾焰从底部喷口向下喷射
+    const nozzleY = r * 1.5
+    const gradient = ctx.createLinearGradient(0, nozzleY, 0, nozzleY + flameLen)
+    gradient.addColorStop(0, skin.flameColor)
     gradient.addColorStop(0.5, skin.flameColor + (feifei.dashTimer > 0 ? 'cc' : '88'))
-    gradient.addColorStop(1, skin.flameColor)
+    gradient.addColorStop(1, 'rgba(255,255,255,0)')
     
+    // 双喷口尾焰
     ctx.fillStyle = gradient
-    ctx.beginPath()
-    ctx.moveTo(-feifei.radius, -3 * dashBoost)
-    ctx.lineTo(-feifei.radius - flameLen, 0)
-    ctx.lineTo(-feifei.radius, 3 * dashBoost)
-    ctx.closePath()
-    ctx.fill()
+    for (const off of [-r * 0.28, r * 0.28]) {
+      ctx.beginPath()
+      ctx.moveTo(off - 1.5, nozzleY)
+      ctx.lineTo(off, nozzleY + flameLen)
+      ctx.lineTo(off + 1.5, nozzleY)
+      ctx.closePath()
+      ctx.fill()
+    }
     
     ctx.restore()
   }
@@ -895,53 +893,115 @@ export class SceneRenderer {
   private drawBody(ctx: CanvasRenderingContext2D, skin: SkinDef, feifei: FeiFei): void {
     const r = feifei.radius
     
-    // 机身 - 圆润的航天飞机形状
+    // ===== X 形机翼（先画，在机身下层） =====
     ctx.fillStyle = skin.bodyColor
+    ctx.globalAlpha = 0.85
+    // 水平双翼
     ctx.beginPath()
-    // 机头
-    ctx.moveTo(r + 2, 0)
-    // 上半
-    ctx.quadraticCurveTo(r, -r * 0.6, r * 0.3, -r * 0.7)
-    ctx.quadraticCurveTo(-r * 0.3, -r * 0.65, -r, -r * 0.4)
-    // 尾部
-    ctx.lineTo(-r, r * 0.4)
-    // 下半
-    ctx.quadraticCurveTo(-r * 0.3, r * 0.65, r * 0.3, r * 0.7)
-    ctx.quadraticCurveTo(r, r * 0.6, r + 2, 0)
+    ctx.moveTo(-r * 0.25, -r * 0.5)
+    ctx.lineTo(-r * 1.9, -r * 0.15)
+    ctx.lineTo(-r * 1.9, r * 0.25)
+    ctx.lineTo(-r * 0.25, r * 0.1)
     ctx.closePath()
     ctx.fill()
-    
-    // 高光
-    ctx.fillStyle = 'rgba(255,255,255,0.3)'
     ctx.beginPath()
-    ctx.ellipse(r * 0.2, -r * 0.2, r * 0.4, r * 0.15, -0.3, 0, Math.PI * 2)
-    ctx.fill()
-    
-    // 机翼
-    ctx.fillStyle = skin.bodyColor
-    ctx.globalAlpha = 0.8
-    // 上翼
-    ctx.beginPath()
-    ctx.moveTo(-r * 0.5, -r * 0.5)
-    ctx.lineTo(-r * 0.8, -r * 0.9)
-    ctx.lineTo(-r * 0.2, -r * 0.4)
+    ctx.moveTo(r * 0.25, -r * 0.5)
+    ctx.lineTo(r * 1.9, -r * 0.15)
+    ctx.lineTo(r * 1.9, r * 0.25)
+    ctx.lineTo(r * 0.25, r * 0.1)
     ctx.closePath()
     ctx.fill()
-    // 下翼
+    // 倾斜双翼（前掠）
     ctx.beginPath()
-    ctx.moveTo(-r * 0.5, r * 0.5)
-    ctx.lineTo(-r * 0.8, r * 0.9)
-    ctx.lineTo(-r * 0.2, r * 0.4)
+    ctx.moveTo(-r * 0.3, r * 0.3)
+    ctx.lineTo(-r * 1.5, r * 1.1)
+    ctx.lineTo(-r * 1.1, r * 1.4)
+    ctx.lineTo(-r * 0.15, r * 0.6)
+    ctx.closePath()
+    ctx.fill()
+    ctx.beginPath()
+    ctx.moveTo(r * 0.3, r * 0.3)
+    ctx.lineTo(r * 1.5, r * 1.1)
+    ctx.lineTo(r * 1.1, r * 1.4)
+    ctx.lineTo(r * 0.15, r * 0.6)
     ctx.closePath()
     ctx.fill()
     ctx.globalAlpha = 1
+    // 翼尖灯（推进时亮）
+    const thrusting = feifei.dashTimer > 0
+    ctx.fillStyle = thrusting ? '#fde68a' : 'rgba(253, 230, 138, 0.4)'
+    for (const wx of [-r * 1.9, r * 1.9]) {
+      ctx.beginPath()
+      ctx.arc(wx, r * 0.05, 0.8, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    
+    // ===== 能量环（机身中部光环） =====
+    const energyPulse = Math.sin(Date.now() / 250) * 0.2 + 0.6
+    ctx.strokeStyle = feifei.dashTimer > 0
+      ? `rgba(253, 224, 71, ${energyPulse + 0.3})`
+      : `rgba(96, 165, 250, ${energyPulse * 0.7})`
+    ctx.lineWidth = feifei.dashTimer > 0 ? 2 : 1.2
+    ctx.beginPath()
+    ctx.ellipse(0, r * 0.15, r * 1.35, r * 0.5, 0, 0, Math.PI * 2)
+    ctx.stroke()
+    
+    // ===== 机身（垂直泪滴，船头朝上） =====
+    ctx.fillStyle = skin.bodyColor
+    ctx.beginPath()
+    ctx.moveTo(0, -r * 2.0)                          // 船头尖
+    ctx.quadraticCurveTo(r * 1.15, -r * 0.8, r * 0.95, r * 0.5)   // 右舷
+    ctx.lineTo(r * 0.6, r * 1.6)                     // 右下（引擎区）
+    ctx.lineTo(-r * 0.6, r * 1.6)                    // 左下
+    ctx.quadraticCurveTo(-r * 1.15, -r * 0.8, 0, -r * 2.0)        // 左舷回船头
+    ctx.closePath()
+    ctx.fill()
+    
+    // 船头高光条
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'
+    ctx.beginPath()
+    ctx.moveTo(0, -r * 2.0)
+    ctx.quadraticCurveTo(r * 0.45, -r * 0.8, r * 0.3, r * 0.3)
+    ctx.lineTo(r * 0.15, r * 0.3)
+    ctx.quadraticCurveTo(r * 0.25, -r * 0.8, 0, -r * 1.8)
+    ctx.closePath()
+    ctx.fill()
+    
+    // 深色边缘（左侧）
+    ctx.fillStyle = 'rgba(0,0,0,0.18)'
+    ctx.beginPath()
+    ctx.moveTo(0, -r * 2.0)
+    ctx.quadraticCurveTo(-r * 1.15, -r * 0.8, -r * 0.95, r * 0.5)
+    ctx.lineTo(-r * 0.6, r * 1.6)
+    ctx.lineTo(-r * 0.45, r * 1.6)
+    ctx.quadraticCurveTo(-r * 0.9, -r * 0.75, 0, -r * 1.7)
+    ctx.closePath()
+    ctx.fill()
+    
+    // ===== 底部引擎喷口（双喷口） =====
+    ctx.fillStyle = '#334155'
+    ctx.fillRect(-r * 0.42, r * 1.45, r * 0.36, r * 0.35)
+    ctx.fillRect(r * 0.06, r * 1.45, r * 0.36, r * 0.35)
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.6)'
+    ctx.fillRect(-r * 0.42, r * 1.45, r * 0.36, r * 0.1)
+    ctx.fillRect(r * 0.06, r * 1.45, r * 0.36, r * 0.1)
   }
   
   private drawExpression(ctx: CanvasRenderingContext2D, expression: FeiFeiExpression, feifei: FeiFei): void {
     const r = feifei.radius
-    const eyeY = -r * 0.1
-    const eyeX = r * 0.3
-    const eyeSize = 2.5
+    // V2：表情画在上部驾驶舱窗内
+    const eyeY = -r * 0.75
+    const eyeX = r * 0.15
+    const eyeSize = 2.2
+    
+    // 驾驶舱窗框（半透明）
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.25)'
+    ctx.beginPath()
+    ctx.arc(r * 0.12, -r * 0.7, r * 0.75, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(125, 211, 252, 0.5)'
+    ctx.lineWidth = 0.8
+    ctx.stroke()
     
     // 眼睛
     ctx.fillStyle = '#fff'
@@ -949,16 +1009,16 @@ export class SceneRenderer {
     ctx.arc(eyeX, eyeY, eyeSize, 0, Math.PI * 2)
     ctx.fill()
     ctx.beginPath()
-    ctx.arc(eyeX, eyeY + r * 0.3, eyeSize, 0, Math.PI * 2)
+    ctx.arc(eyeX, eyeY + r * 0.35, eyeSize * 0.8, 0, Math.PI * 2)
     ctx.fill()
     
     // 瞳孔
     ctx.fillStyle = '#1a1a2e'
     ctx.beginPath()
-    ctx.arc(eyeX + 0.5, eyeY, 1.5, 0, Math.PI * 2)
+    ctx.arc(eyeX + 0.5, eyeY, 1.3, 0, Math.PI * 2)
     ctx.fill()
     ctx.beginPath()
-    ctx.arc(eyeX + 0.5, eyeY + r * 0.3, 1.5, 0, Math.PI * 2)
+    ctx.arc(eyeX + 0.5, eyeY + r * 0.35, 1.1, 0, Math.PI * 2)
     ctx.fill()
     
     // 嘴巴
@@ -966,24 +1026,24 @@ export class SceneRenderer {
       // 加速：张嘴
       ctx.fillStyle = '#1a1a2e'
       ctx.beginPath()
-      ctx.arc(eyeX + 1, eyeY + r * 0.15, 2, 0, Math.PI)
+      ctx.arc(eyeX + 1, eyeY + r * 0.2, 1.8, 0, Math.PI)
       ctx.fill()
     } else if (expression === 'hit') {
       // 撞击：X嘴
       ctx.strokeStyle = '#1a1a2e'
       ctx.lineWidth = 1.5
       ctx.beginPath()
-      ctx.moveTo(eyeX - 1, eyeY + r * 0.1)
-      ctx.lineTo(eyeX + 3, eyeY + r * 0.2)
-      ctx.moveTo(eyeX + 3, eyeY + r * 0.1)
-      ctx.lineTo(eyeX - 1, eyeY + r * 0.2)
+      ctx.moveTo(eyeX - 1, eyeY + r * 0.15)
+      ctx.lineTo(eyeX + 3, eyeY + r * 0.25)
+      ctx.moveTo(eyeX + 3, eyeY + r * 0.15)
+      ctx.lineTo(eyeX - 1, eyeY + r * 0.25)
       ctx.stroke()
     } else if (expression === 'win') {
       // 通关：开心
       ctx.strokeStyle = '#1a1a2e'
       ctx.lineWidth = 1.5
       ctx.beginPath()
-      ctx.arc(eyeX + 1, eyeY + r * 0.1, 3, 0, Math.PI)
+      ctx.arc(eyeX + 1, eyeY + r * 0.15, 2.5, 0, Math.PI)
       ctx.stroke()
     }
   }
