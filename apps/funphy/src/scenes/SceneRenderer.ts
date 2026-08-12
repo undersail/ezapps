@@ -276,7 +276,7 @@ export class SceneRenderer {
   
   private drawFeiFei(feifei: FeiFei, skin: SkinDef): void {
     const ctx = this.ctx
-    const { pos, expression, thrusting } = feifei
+    const { pos, expression, thrusting, thrustDir } = feifei
     
     // 被撞闪烁
     if (feifei.hitTimer > 0 && feifei.hitTimer % 4 < 2) return
@@ -293,7 +293,8 @@ export class SceneRenderer {
     ctx.rotate(angle)
     
     // 尾焰
-    const isThrusting = thrusting.up || thrusting.down || thrusting.left || thrusting.right
+    const isThrusting = (thrustDir.x !== 0 || thrustDir.y !== 0)
+      || thrusting.up || thrusting.down || thrusting.left || thrusting.right
     if (isThrusting || expression === 'thrust') {
       this.drawFlame(ctx, skin, feifei)
     }

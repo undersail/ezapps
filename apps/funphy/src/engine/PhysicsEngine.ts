@@ -36,12 +36,17 @@ export class PhysicsEngine {
     let fx = 0
     let fy = 0
     
-    // 推力
+    // 推力：优先使用摇杆方向（thrustDir），否则回退到4方向
     const thrust = this.config.thrust
-    if (feifei.thrusting.up)    fy -= thrust
-    if (feifei.thrusting.down)  fy += thrust
-    if (feifei.thrusting.left)  fx -= thrust
-    if (feifei.thrusting.right) fx += thrust
+    if (feifei.thrustDir.x !== 0 || feifei.thrustDir.y !== 0) {
+      fx += thrust * feifei.thrustDir.x
+      fy += thrust * feifei.thrustDir.y
+    } else {
+      if (feifei.thrusting.up)    fy -= thrust
+      if (feifei.thrusting.down)  fy += thrust
+      if (feifei.thrusting.left)  fx -= thrust
+      if (feifei.thrusting.right) fx += thrust
+    }
     
     // 重力
     fy += this.config.gravity
@@ -87,11 +92,15 @@ export class PhysicsEngine {
     // 6. 碰撞检测 - 障碍物
     for (const obs of obstacles) {
       if (this.circleRectCollision(feifei, obs)) {
+        const prevSpeed = Math.sqrt(feifei.vel.x ** 2 + feifei.vel.y ** 2)
         this.resolveObstacleCollision(feifei, obs)
-        runtime.collisions++
-        feifei.hitTimer = 15
-        feifei.expression = 'hit'
-        runtime.events.push('hit')
+        // 只有速度超过阈值才算有效碰撞（防止落地后持续报警音）
+        if (prevSpeed > 0.5) {
+          runtime.collisions++
+          feifei.hitTimer = 15
+          feifei.expression = 'hit'
+          runtime.events.push('hit')
+        }
       }
     }
     
@@ -133,7 +142,8 @@ export class PhysicsEngine {
       feifei.expression = 'normal'
     }
     
-    const isThrusting = feifei.thrusting.up || feifei.thrusting.down || feifei.thrusting.left || feifei.thrusting.right
+    const isThrusting = (feifei.thrustDir.x !== 0 || feifei.thrustDir.y !== 0)
+      || feifei.thrusting.up || feifei.thrusting.down || feifei.thrusting.left || feifei.thrusting.right
     if (feifei.expression === 'normal' && isThrusting) {
       feifei.expression = 'thrust'
     } else if (feifei.expression === 'thrust' && !isThrusting) {

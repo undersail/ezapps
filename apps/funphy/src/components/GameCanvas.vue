@@ -26,6 +26,7 @@ const {
   collisions,
   input,
   setDirection,
+  setJoystick,
   setPause,
   initCanvas,
   startLevel,
@@ -53,7 +54,7 @@ watch(() => props.level, async (newLevel) => {
   }
 })
 
-// 触屏 D-Pad
+// 键盘方向（桌面端）
 function onDPadDown(dir: 'up' | 'down' | 'left' | 'right') {
   setDirection(dir, true)
 }
@@ -82,6 +83,104 @@ function handleRetry() {
 function handleResume() {
   resumeGame()
 }
+
+// === 摇杆逻辑 ===
+const joystickBase = ref<HTMLDivElement | null>(null)
+const JOYSTICK_RADIUS = 56  // 摇杆底座半径
+const KNOB_RADIUS = 22      // 摇杆把手半径
+const knobX = ref(0)
+const knobY = ref(0)
+let joystickTouchId: number | null = null
+let joystickCenterX = 0
+let joystickCenterY = 0
+
+function onJoystickTouchStart(e: TouchEvent) {
+  if (joystickTouchId !== null) return
+  const touch = e.changedTouches[0]
+  joystickTouchId = touch.identifier
+  const rect = joystickBase.value!.getBoundingClientRect()
+  joystickCenterX = rect.left + rect.width / 2
+  joystickCenterY = rect.top + rect.height / 2
+  updateJoystick(touch.clientX, touch.clientY)
+  e.preventDefault()
+}
+
+function onJoystickTouchMove(e: TouchEvent) {
+  if (joystickTouchId === null) return
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const touch = e.changedTouches[i]
+    if (touch.identifier === joystickTouchId) {
+      updateJoystick(touch.clientX, touch.clientY)
+      e.preventDefault()
+      break
+    }
+  }
+}
+
+function onJoystickTouchEnd(e: TouchEvent) {
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const touch = e.changedTouches[i]
+    if (touch.identifier === joystickTouchId) {
+      joystickTouchId = null
+      knobX.value = 0
+      knobY.value = 0
+      setJoystick(0, 0, false)
+      break
+    }
+  }
+}
+
+// 鼠标支持（桌面端测试）
+let mouseDown = false
+function onJoystickMouseDown(e: MouseEvent) {
+  mouseDown = true
+  const rect = joystickBase.value!.getBoundingClientRect()
+  joystickCenterX = rect.left + rect.width / 2
+  joystickCenterY = rect.top + rect.height / 2
+  updateJoystick(e.clientX, e.clientY)
+}
+
+function onJoystickMouseMove(e: MouseEvent) {
+  if (!mouseDown) return
+  updateJoystick(e.clientX, e.clientY)
+}
+
+function onJoystickMouseUp() {
+  mouseDown = false
+  knobX.value = 0
+  knobY.value = 0
+  setJoystick(0, 0, false)
+}
+
+function updateJoystick(clientX: number, clientY: number) {
+  let dx = clientX - joystickCenterX
+  let dy = clientY - joystickCenterY
+  const dist = Math.sqrt(dx * dx + dy * dy)
+  const maxDist = JOYSTICK_RADIUS - KNOB_RADIUS
+  
+  if (dist > maxDist) {
+    dx = dx / dist * maxDist
+    dy = dy / dist * maxDist
+  }
+  
+  knobX.value = dx
+  knobY.value = dy
+  
+  // 归一化方向向量（-1 ~ 1）
+  const normX = dx / maxDist
+  const normY = dy / maxDist
+  setJoystick(normX, normY, Math.abs(normX) > 0.1 || Math.abs(normY) > 0.1)
+}
+
+// 全局鼠标松开
+onMounted(() => {
+  window.addEventListener('mouseup', onJoystickMouseUp)
+  window.addEventListener('mousemove', onJoystickMouseMove)
+})
+onUnmounted(() => {
+  window.removeEventListener('mouseup', onJoystickMouseUp)
+  window.removeEventListener('mousemove', onJoystickMouseMove)
+})
 </script>
 
 <template>
@@ -99,7 +198,7 @@ function handleResume() {
       </div>
     </div>
 
-    <!-- Canvas: flex-grow fills all space between HUD and D-Pad -->
+    <!-- Canvas -->
     <div class="canvas-area">
       <canvas ref="canvasEl" class="game-canvas"></canvas>
     </div>
@@ -109,7 +208,7 @@ function handleResume() {
       <div class="overlay-card">
         <h2>⏸ 暂停</h2>
         <button class="btn-primary" @click="handleResume">继续</button>
-        <button class="btn-secondary" @click="handleBack">返回选关</button>
+        <button class="btn-secondary" @click="handleBack">返回</button>
       </div>
     </div>
 
@@ -137,26 +236,35 @@ function handleResume() {
       <div class="overlay-card lose-card">
         <h2>😵 时间到！</h2>
         <button class="btn-primary" @click="handleRetry">再试一次</button>
-        <button class="btn-secondary" @click="handleBack">返回选关</button>
+        <button class="btn-secondary" @click="handleBack">返回</button>
       </div>
     </div>
 
-    <!-- 触屏 D-Pad -->
-    <div class="dpad-area" v-if="gameState === 'playing'">
-      <div class="dpad">
-        <div class="dpad-row">
-          <button class="dpad-btn" @touchstart.prevent="onDPadDown('up')" @touchend.prevent="onDPadUp('up')" @mousedown.prevent="onDPadDown('up')" @mouseup.prevent="onDPadUp('up')">▲</button>
-        </div>
-        <div class="dpad-row">
-          <button class="dpad-btn" @touchstart.prevent="onDPadDown('left')" @touchend.prevent="onDPadUp('left')" @mousedown.prevent="onDPadDown('left')" @mouseup.prevent="onDPadUp('left')">◀</button>
-          <button class="dpad-btn center" disabled>●</button>
-          <button class="dpad-btn" @touchstart.prevent="onDPadDown('right')" @touchend.prevent="onDPadUp('right')" @mousedown.prevent="onDPadDown('right')" @mouseup.prevent="onDPadUp('right')">▶</button>
-        </div>
-        <div class="dpad-row">
-          <button class="dpad-btn" @touchstart.prevent="onDPadDown('down')" @touchend.prevent="onDPadUp('down')" @mousedown.prevent="onDPadDown('down')" @mouseup.prevent="onDPadUp('down')">▼</button>
-        </div>
+    <!-- 摇杆控制区 -->
+    <div class="joystick-area" v-if="gameState === 'playing'">
+      <div
+        ref="joystickBase"
+        class="joystick-base"
+        @touchstart.prevent="onJoystickTouchStart"
+        @touchmove.prevent="onJoystickTouchMove"
+        @touchend.prevent="onJoystickTouchEnd"
+        @touchcancel.prevent="onJoystickTouchEnd"
+        @mousedown.prevent="onJoystickMouseDown"
+      >
+        <!-- 方向指示 -->
+        <div class="joystick-arrow up">▲</div>
+        <div class="joystick-arrow down">▼</div>
+        <div class="joystick-arrow left">◀</div>
+        <div class="joystick-arrow right">▶</div>
+        <!-- 摇杆把手 -->
+        <div
+          class="joystick-knob"
+          :style="{
+            transform: `translate(${knobX}px, ${knobY}px)`,
+          }"
+        ></div>
       </div>
-      <div class="keyboard-hint-desktop" v-if="gameState === 'playing'">
+      <div class="keyboard-hint-desktop">
         WASD / 方向键 操控 · ESC 暂停
       </div>
     </div>
@@ -200,7 +308,6 @@ function handleResume() {
   font-size: 1rem;
 }
 
-/* Canvas area: fills all space between HUD and D-Pad */
 .canvas-area {
   flex: 1 1 0;
   min-height: 0;
@@ -284,52 +391,53 @@ function handleResume() {
   cursor: pointer;
 }
 
-/* D-Pad area: fixed at bottom, not overlapping canvas */
-.dpad-area {
+/* === 摇杆 === */
+.joystick-area {
   flex-shrink: 0;
-  padding: 8px 0 12px;
+  padding: 8px 0 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
   z-index: 10;
 }
 
-.dpad {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.dpad-row {
-  display: flex;
-  gap: 4px;
-}
-
-.dpad-btn {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  color: white;
-  font-size: 1.2rem;
-  cursor: pointer;
+.joystick-base {
+  position: relative;
+  width: 136px;
+  height: 136px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: none;
 }
 
-.dpad-btn:active {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
+.joystick-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin-left: -22px;
+  margin-top: -22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.35), rgba(147,51,234,0.5));
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  transition: transform 0.05s ease-out;
+  pointer-events: none;
 }
 
-.dpad-btn.center {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
-  cursor: default;
+.joystick-arrow {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+  pointer-events: none;
 }
+.joystick-arrow.up    { top: 6px;   left: 50%; transform: translateX(-50%); }
+.joystick-arrow.down  { bottom: 6px; left: 50%; transform: translateX(-50%); }
+.joystick-arrow.left  { left: 6px;  top: 50%;  transform: translateY(-50%); }
+.joystick-arrow.right { right: 6px; top: 50%;  transform: translateY(-50%); }
 
 .keyboard-hint-desktop {
   font-size: 0.7rem;
@@ -337,18 +445,23 @@ function handleResume() {
   margin-top: 4px;
 }
 
-/* Desktop: hide D-Pad, show keyboard hint */
+/* Desktop: show keyboard hint, hide joystick arrows */
 @media (min-width: 768px) {
-  .dpad-area {
-    padding: 4px 0;
+  .joystick-base {
+    width: 120px;
+    height: 120px;
   }
-  .dpad { display: none; }
-  .keyboard-hint-desktop { display: block; }
+  .joystick-knob {
+    width: 38px;
+    height: 38px;
+    margin-left: -19px;
+    margin-top: -19px;
+  }
+  .joystick-arrow { display: none; }
 }
 
-/* Mobile: show D-Pad, hide keyboard hint */
+/* Mobile: hide keyboard hint */
 @media (max-width: 767px) {
   .keyboard-hint-desktop { display: none; }
-  .dpad { display: flex; }
 }
 </style>

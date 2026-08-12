@@ -8,7 +8,7 @@ import type { GameRuntime, LevelDef, FeiFei, Obstacle, Collectible, Trigger, Goa
 import { skins } from '../data/skins'
 
 export function useGameLoop() {
-  const { input, setDirection, setPause } = useInput()
+  const { input, setDirection, setJoystick, setPause } = useInput()
   const { soundEnabled: soundState } = useSound()
   
   const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -36,6 +36,7 @@ export function useGameLoop() {
       active: true,
       expression: 'normal',
       thrusting: { up: false, down: false, left: false, right: false },
+      thrustDir: { x: 0, y: 0 },
       skinId,
       hitTimer: 0,
       winTimer: 0,
@@ -245,6 +246,15 @@ export function useGameLoop() {
     rt.feifei.thrusting.left = input.left
     rt.feifei.thrusting.right = input.right
     
+    // 摇杆方向 → thrustDir（优先于4方向）
+    if (input.joystickActive) {
+      rt.feifei.thrustDir.x = input.joystickX
+      rt.feifei.thrustDir.y = input.joystickY
+    } else {
+      rt.feifei.thrustDir.x = 0
+      rt.feifei.thrustDir.y = 0
+    }
+    
     // 暂停
     if (input.pausePressed) {
       gameState.value = 'paused'
@@ -348,6 +358,7 @@ export function useGameLoop() {
     collisions,
     input,
     setDirection,
+    setJoystick,
     setPause,
     initCanvas,
     startLevel,

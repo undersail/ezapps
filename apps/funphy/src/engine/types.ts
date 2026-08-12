@@ -29,6 +29,7 @@ export type FeiFeiExpression = 'normal' | 'thrust' | 'hit' | 'win'
 export interface FeiFei extends Entity {
   expression: FeiFeiExpression
   thrusting: { up: boolean, down: boolean, left: boolean, right: boolean }
+  thrustDir: Vec2  // 摇杆方向向量（归一化 * magnitude），用于连续方向推力
   skinId: string
   hitTimer: number  // 被撞后的闪烁计时
   winTimer: number  // 通关动画计时

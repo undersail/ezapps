@@ -44,18 +44,17 @@ function getChapterMaxStars(chapter: ChapterDef) {
   return getChapterLevels(chapter).length * 3
 }
 
-// === 折线图节点位置计算 ===
+// === 直线图节点位置计算 ===
 const SVG_W = 340
 const CX = SVG_W / 2
-const ZIGZAG_DX = 60      // 锯齿水平偏移量
-const LEVEL_V_GAP = 38    // 小关垂直间距（密集）
+const LEVEL_V_GAP = 32    // 小关垂直间距（密集）
 const MILESTONE_R = 30    // 里程碑半径
 const LEVEL_R = 9         // 小关半径
 const BOSS_R = 13         // Boss半径
 const PAD_TOP = 60        // 顶部留白（防止截断）
 const PAD_BOTTOM = 80     // 底部留白（防止截断）
-const MS_TO_FIRST = 48    // 里程碑到第一个小关的间距
-const LAST_TO_NEXT = 56   // 最后一个小关到下一个里程碑的间距
+const MS_TO_FIRST = 42    // 里程碑到第一个小关的间距
+const LAST_TO_NEXT = 70   // 最后一个小关到下一个里程碑的间距
 
 // 节点类型
 interface MapNode {
@@ -90,7 +89,7 @@ const allNodes = computed(() => {
       stars: 0,
     })
 
-    // 小关节点：锯齿布局（左右交替）
+    // 小关节点：直线布局（全部居中，从上到下）
     if (unlocked) {
       const levels = getChapterLevels(chapter)
       for (let li = 0; li < levels.length; li++) {
@@ -98,13 +97,8 @@ const allNodes = computed(() => {
         const status = getLevelStatus(level, ci)
         const isBoss = level.isBoss
 
-        // 锯齿交替：0=左, 1=右, 2=左, 3=右, 4(Boss)=居中
-        let x: number
-        if (isBoss) {
-          x = CX
-        } else {
-          x = li % 2 === 0 ? CX - ZIGZAG_DX : CX + ZIGZAG_DX
-        }
+        // 所有节点都在中间垂直线上
+        const x = CX
 
         const y = curY + MS_TO_FIRST + li * LEVEL_V_GAP
 
@@ -136,7 +130,7 @@ const svgHeight = computed(() => {
   return lastNode.y + PAD_BOTTOM
 })
 
-// 逐段折线（用于画连接线，区分点亮/暗色）
+// 逐段直线（用于画连接线，区分点亮/暗色）
 const pathSegments = computed(() => {
   const segs: { x1: number; y1: number; x2: number; y2: number; lit: boolean }[] = []
   for (let i = 0; i < allNodes.value.length - 1; i++) {
@@ -267,7 +261,7 @@ function onNodeClick(node: MapNode) {
           >{{ area.chapter.emoji }}</text>
         </g>
 
-        <!-- ===== 折线连接（逐段绘制） ===== -->
+        <!-- ===== 直线连接（逐段绘制） ===== -->
         <g v-for="(seg, si) in pathSegments" :key="`seg-${si}`">
           <!-- 暗色底线 -->
           <line
@@ -313,9 +307,9 @@ function onNodeClick(node: MapNode) {
           <text :x="node.x" :y="node.y + 16" text-anchor="middle"
             font-size="9" :fill="isChapterUnlocked(node.chapterIndex) ? '#c4b5fd' : '#475569'"
           >{{ node.chapter.title }}</text>
-          <!-- 星星统计 -->
+          <!-- 星星统计（移到里程碑左下侧，避免与正下方第一个小关重叠） -->
           <text v-if="isChapterUnlocked(node.chapterIndex)"
-            :x="node.x" :y="node.y + MILESTONE_R + 16" text-anchor="middle"
+            :x="node.x - MILESTONE_R - 8" :y="node.y + MILESTONE_R + 12" text-anchor="end"
             font-size="9" fill="#fbbf24">
             ⭐{{ getChapterStars(node.chapter) }}/{{ getChapterMaxStars(node.chapter) }}
           </text>
@@ -365,18 +359,18 @@ function onNodeClick(node: MapNode) {
           <text v-else :x="node.x" :y="node.y + 1"
             text-anchor="middle" dominant-baseline="middle" font-size="8" fill="#c4b5fd">⭐</text>
 
-          <!-- 关卡名（在节点侧方显示，避免重叠） -->
+          <!-- 关卡名（在节点下方居中显示） -->
           <text
-            :x="node.x + (node.x <= CX ? -LEVEL_R - 6 : LEVEL_R + 6)"
-            :y="node.y + 3"
-            :text-anchor="node.x <= CX ? 'end' : 'start'"
+            :x="node.x"
+            :y="node.y + (node.type === 'boss' ? BOSS_R : LEVEL_R) + 12"
+            text-anchor="middle"
             font-size="8"
             :fill="node.status === 'locked' ? '#475569' : '#94a3b8'"
           >{{ node.level?.name }}</text>
 
-          <!-- 星星评分 -->
+          <!-- 星星评分（移到节点右下侧，避免与居中显示的关卡名重叠） -->
           <g v-if="node.status === 'completed' && node.level" 
-            :transform="`translate(${node.x - 12}, ${node.y + (node.type === 'boss' ? BOSS_R + 8 : LEVEL_R + 8)})`">
+            :transform="`translate(${node.x + (node.type === 'boss' ? BOSS_R : LEVEL_R) + 7}, ${node.y + (node.type === 'boss' ? BOSS_R + 8 : LEVEL_R + 8)})`">
             <text v-for="i in 3" :key="i" :x="(i - 1) * 9" font-size="7"
               :fill="i <= node.stars ? '#fbbf24' : '#475569'"
             >{{ i <= node.stars ? '★' : '☆' }}</text>

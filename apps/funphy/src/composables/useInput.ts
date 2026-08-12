@@ -7,6 +7,10 @@ export interface InputState {
   right: boolean
   pause: boolean
   pausePressed: boolean
+  // 摇杆方向（归一化向量 + magnitude）
+  joystickX: number  // -1 ~ 1
+  joystickY: number  // -1 ~ 1
+  joystickActive: boolean
 }
 
 export function useInput() {
@@ -17,6 +21,9 @@ export function useInput() {
     right: false,
     pause: false,
     pausePressed: false,
+    joystickX: 0,
+    joystickY: 0,
+    joystickActive: false,
   })
   
   let keys = new Set<string>()
@@ -49,6 +56,13 @@ export function useInput() {
     input[dir] = active
   }
   
+  // 摇杆回调
+  function setJoystick(x: number, y: number, active: boolean) {
+    input.joystickX = x
+    input.joystickY = y
+    input.joystickActive = active
+  }
+  
   function setPause() {
     input.pausePressed = true
     setTimeout(() => { input.pausePressed = false }, 100)
@@ -64,5 +78,5 @@ export function useInput() {
     window.removeEventListener('keyup', onKeyUp)
   })
   
-  return { input, setDirection, setPause }
+  return { input, setDirection, setJoystick, setPause }
 }
