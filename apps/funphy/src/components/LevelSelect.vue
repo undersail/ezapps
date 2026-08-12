@@ -10,8 +10,11 @@ const emit = defineEmits<{
   (e: 'select', level: LevelDef, chapter: ChapterDef): void
   (e: 'openCards'): void
   (e: 'openSkins'): void
-  (e: 'goHome'): void
 }>()
+
+function goHome() {
+  window.location.href = '/funphy/../'
+}
 
 function isChapterUnlocked(chapterIndex: number): boolean {
   if (chapterIndex === 0) return true
@@ -205,7 +208,7 @@ function onNodeClick(node: MapNode) {
 <template>
   <div class="world-map">
     <header class="wm-header">
-      <button class="back-home-btn" @click="emit('goHome')">🏠</button>
+      <button class="back-home-btn" @click="goHome">🏠</button>
       <h1>🚀 飞飞历险记</h1>
       <div class="wm-stats">
         <span>✨ {{ progress.stardust }}</span>
@@ -315,10 +318,11 @@ function onNodeClick(node: MapNode) {
           <text :x="node.x" :y="node.y + 16" text-anchor="middle"
             font-size="9" :fill="isChapterUnlocked(node.chapterIndex) ? '#c4b5fd' : '#475569'"
           >{{ node.chapter.title }}</text>
-          <!-- 星星统计（移到里程碑左下侧，避免与正下方第一个小关重叠） -->
+          <!-- 星星统计（里程碑右侧，大字号） -->
           <text v-if="isChapterUnlocked(node.chapterIndex)"
-            :x="node.x - MILESTONE_R - 8" :y="node.y + MILESTONE_R + 12" text-anchor="end"
-            font-size="9" fill="#fbbf24">
+            :x="node.x + MILESTONE_R + 10" :y="node.y + 4"
+            text-anchor="start"
+            font-size="12" fill="#fbbf24">
             ⭐{{ getChapterStars(node.chapter) }}/{{ getChapterMaxStars(node.chapter) }}
           </text>
           <text v-else

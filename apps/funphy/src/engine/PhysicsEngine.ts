@@ -104,6 +104,20 @@ export class PhysicsEngine {
       }
     }
     
+    // 6.5 碰撞后静止检测：如果飞飞速度被归零但紧贴障碍物，抵消重力以防微弹
+    if (feifei.vel.x === 0 && feifei.vel.y === 0) {
+      for (const obs of obstacles) {
+        // 检查飞飞是否紧贴障碍物表面（极小间隙）
+        const gap = this.getGapToObstacle(feifei, obs)
+        if (gap < 2) {
+          // 飞飞紧贴障碍物，抵消重力分量（防止重力拉回形成微弹）
+          // 重力已在上面的合力计算中加入了fy，这里需要从vel中减去
+          feifei.vel.y -= this.config.gravity * dt
+          break
+        }
+      }
+    }
+    
     // 7. 收集品检测
     for (const col of collectibles) {
       if (!col.collected) {
@@ -225,16 +239,19 @@ export class PhysicsEngine {
       // 正常推出
       const nx = dx / dist
       const ny = dy / dist
-      feifei.pos.x = nearestX + nx * (r + 0.5)
-      feifei.pos.y = nearestY + ny * (r + 0.5)
+      // 推出距离：确保飞飞完全离开障碍物表面，留出足够间隙防止重力拉回
+      const pushDist = r + 1.0
+      feifei.pos.x = nearestX + nx * pushDist
+      feifei.pos.y = nearestY + ny * pushDist
       
-      // 计算法向速度分量
+      // 计算法向速度分量（指向障碍物表面方向为负）
       const dot = feifei.vel.x * nx + feifei.vel.y * ny
+      
+      // 速度处理：如果法向速度朝向障碍物（dot < 0）
       if (dot < 0) {
-        // 法向速度极小时直接归零（防止微弹循环导致抖动和报警音）
-        const REST_THRESHOLD = 0.3
+        // 法向速度极小时：消除法向分量（贴面静止），保留切向速度
+        const REST_THRESHOLD = 0.5
         if (Math.abs(dot) < REST_THRESHOLD) {
-          // 消除法向速度分量，保留切向速度
           feifei.vel.x -= dot * nx
           feifei.vel.y -= dot * ny
         } else {
@@ -249,7 +266,7 @@ export class PhysicsEngine {
       
       // 碰撞后速度极小时直接归零（彻底防止抖动）
       const speedAfter = Math.sqrt(feifei.vel.x ** 2 + feifei.vel.y ** 2)
-      if (speedAfter < 0.1) {
+      if (speedAfter < 0.15) {
         feifei.vel.x = 0
         feifei.vel.y = 0
       }
@@ -261,5 +278,24 @@ export class PhysicsEngine {
            feifei.pos.x < trigger.x + trigger.width &&
            feifei.pos.y > trigger.y && 
            feifei.pos.y < trigger.y + trigger.height
+  }
+  
+  /** 计算飞飞到障碍物表面的最小间隙距离（正数=有间隙，0=贴合，负数=穿透） */
+  private getGapToObstacle(feifei: FeiFei, obs: Obstacle): number {
+    const cx = feifei.pos.x
+    const cy = feifei.pos.y
+    const r = feifei.radius
+    const rx = obs.x
+    const ry = obs.y
+    const rw = obs.width
+    const rh = obs.height
+    
+    const nearestX = Math.max(rx, Math.min(cx, rx + rw))
+    const nearestY = Math.max(ry, Math.min(cy, ry + rh))
+    const dx = cx - nearestX
+    const dy = cy - nearestY
+    const dist = Math.sqrt(dx * dx + dy * dy)
+    
+    return dist - r
   }
 }
