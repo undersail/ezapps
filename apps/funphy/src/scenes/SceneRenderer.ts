@@ -1,4 +1,7 @@
-import type { GameRuntime, FeiFei, FeiFeiExpression, Obstacle, Collectible, Trigger, Goal, SkinDef, Spring, Portal, Conveyor, Hazard } from '../engine/types'
+import type { GameRuntime, FeiFei, FeiFeiExpression, Obstacle, Collectible, Trigger, Goal, SkinDef, Spring, Portal, Conveyor, Hazard, ObstacleKind } from '../engine/types'
+import type { RunnerRuntime } from '../engine/runnerTypes'
+
+const RUNNER_SHIP_RADIUS = 3
 
 function clamp(v: number, min: number, max: number): number {
   return v < min ? min : (v > max ? max : v)
@@ -271,6 +274,142 @@ export class SceneRenderer {
     ctx.arc(0, 0, 13 + pulse * 4, 0, Math.PI * 2)
     ctx.stroke()
     ctx.restore()
+  }
+  
+  // ============ V2 跑酷渲染（垂直跑酷：障碍下落流 + 自由飞船） ============
+  
+  /** 渲染跑酷关卡（固定视口，飞船自由移动，障碍从顶部下落） */
+  renderRunner(runtime: RunnerRuntime, skin: SkinDef): void {
+    const ctx = this.ctx
+    ctx.clearRect(0, 0, this.width, this.height)
+    
+    const VIEW_H = 75
+    const VIEW_W = 140
+    const scale = this.height / VIEW_H
+    const panX = (this.width - VIEW_W * scale) / 2
+    const panY = (this.height - VIEW_H * scale) / 2
+    
+    // 背景渐变
+    const [c1, c2] = runtime.level.bgGradient
+    const grad = ctx.createLinearGradient(0, 0, 0, this.height)
+    grad.addColorStop(0, c1)
+    grad.addColorStop(1, c2)
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, this.width, this.height)
+    
+    ctx.save()
+    ctx.translate(panX, panY)
+    ctx.scale(scale, scale)
+    
+    // 视口背景边框（深海氛围：底部暗）
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'
+    ctx.fillRect(0, VIEW_H - 12, VIEW_W, 12)
+    
+    // 太阳能区（金色光柱）
+    for (const z of runtime.level.solarZones) {
+      const pulse = Math.sin(Date.now() / 400) * 0.15 + 0.35
+      ctx.fillStyle = `rgba(253, 224, 71, ${pulse})`
+      ctx.fillRect(z.x, z.y, z.width, z.height)
+      ctx.strokeStyle = 'rgba(253, 224, 71, 0.7)'
+      ctx.lineWidth = 1
+      ctx.strokeRect(z.x, z.y, z.width, z.height)
+    }
+    
+    // 障碍（复用主题形态绘制）
+    for (const o of runtime.obstacles) {
+      if (!o.active) continue
+      const fake: Obstacle = {
+        id: o.id,
+        type: 'static',
+        x: o.x - o.width / 2,
+        y: o.y - o.height / 2,
+        width: o.width,
+        height: o.height,
+        originX: 0,
+        originY: 0,
+        color: o.color || '',
+        rounded: false,
+        phase: 0,
+        kind: o.style,
+      }
+      switch (o.style) {
+        case 'rock': this.drawRock(fake); break
+        case 'metal': this.drawMetal(fake); break
+        case 'cloud': this.drawCloud(fake); break
+        case 'orb': this.drawOrb(fake); break
+        case 'crystal': this.drawCrystal(fake); break
+        case 'ice': this.drawIce(fake); break
+        default: this.drawRock(fake)
+      }
+    }
+    
+    // 宝石（珍珠：白色圆珠）
+    for (const g of runtime.gemsArr) {
+      if (g.collected) continue
+      const bob = Math.sin(Date.now() / 300 + g.x) * 1
+      ctx.fillStyle = '#f8fafc'
+      ctx.beginPath()
+      ctx.arc(g.x, g.y + bob, 2.4, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = 'rgba(255,255,255,0.9)'
+      ctx.beginPath()
+      ctx.arc(g.x - 0.8, g.y + bob - 0.8, 0.9, 0, Math.PI * 2)
+      ctx.fill()
+      // 光晕
+      ctx.globalAlpha = 0.25
+      ctx.fillStyle = '#f8fafc'
+      ctx.beginPath()
+      ctx.arc(g.x, g.y + bob, 4.5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.globalAlpha = 1
+    }
+    
+    // 能量块（绿色菱形发光）
+    for (const eb of runtime.energyBlocks) {
+      if (eb.collected) continue
+      ctx.save()
+      ctx.translate(eb.x, eb.y)
+      ctx.rotate(Math.PI / 4)
+      ctx.fillStyle = '#4ade80'
+      ctx.fillRect(-2.2, -2.2, 4.4, 4.4)
+      ctx.restore()
+      ctx.globalAlpha = 0.3
+      ctx.fillStyle = '#4ade80'
+      ctx.beginPath()
+      ctx.arc(eb.x, eb.y, 5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.globalAlpha = 1
+    }
+    
+    // 飞船（新造型：船头朝上垂直飞船）
+    const ship = runtime.ship
+    const fakeFeifei: FeiFei = {
+      id: 'feifei',
+      pos: { x: ship.x, y: ship.y },
+      vel: { x: ship.vx, y: ship.vy },
+      radius: RUNNER_SHIP_RADIUS,
+      active: true,
+      expression: ship.invincible > 0 ? 'hit' : 'normal',
+      thrusting: { up: false, down: false, left: false, right: false },
+      thrustDir: { x: 0, y: 0 },
+      skinId: 'default',
+      hitTimer: 0,
+      winTimer: 0,
+      dashTimer: 0,
+      dashCooldown: 0,
+      dashDirX: 0,
+      dashDirY: 0,
+    }
+    // 推进时尾焰
+    if (runtime.throttle > 0.05) fakeFeifei.thrusting.up = true
+    this.drawFeiFei(fakeFeifei, skin)
+    
+    ctx.restore()
+  }
+  
+  /** 获取跑酷视口尺寸（世界单位）和缩放 */
+  getRunnerViewSize(): { width: number; height: number; scale: number } {
+    return { width: 140, height: 75, scale: this.height / 75 }
   }
   
   private drawBackground(runtime: GameRuntime): void {
