@@ -176,6 +176,8 @@ export interface ChapterDef {
 export type GameState = 'menu' | 'playing' | 'paused' | 'won' | 'lost'
 
 // 游戏运行时数据
+export type GameEvent = 'collect' | 'bounce' | 'hit' | 'win' | 'thrust_start'
+
 export interface GameRuntime {
   state: GameState
   level: LevelDef
@@ -190,6 +192,7 @@ export interface GameRuntime {
   totalStardust: number
   stars: number
   skinId: string
+  events: GameEvent[]  // 每帧产生的事件，游戏循环消费后清空
 }
 
 // 物理卡

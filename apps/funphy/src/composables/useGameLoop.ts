@@ -2,11 +2,14 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { PhysicsEngine } from '../engine/PhysicsEngine'
 import { SceneRenderer } from '../scenes/SceneRenderer'
 import { useInput, type InputState } from './useInput'
+import { useSound } from './useSound'
+import * as Sound from '../utils/sound'
 import type { GameRuntime, LevelDef, FeiFei, Obstacle, Collectible, Trigger, Goal, SkinDef, StarCondition } from '../engine/types'
 import { skins } from '../data/skins'
 
 export function useGameLoop() {
   const { input, setDirection, setPause } = useInput()
+  const { soundEnabled: soundState } = useSound()
   
   const canvasRef = ref<HTMLCanvasElement | null>(null)
   const gameState = ref<'menu' | 'playing' | 'paused' | 'won' | 'lost'>('menu')
@@ -97,6 +100,7 @@ export function useGameLoop() {
       totalStardust: totalSd,
       stars: 0,
       skinId,
+      events: [],
     }
   }
   
@@ -178,6 +182,17 @@ export function useGameLoop() {
     
     // 物理更新
     engine.update(rt, 1)
+    
+    // 消费事件 → 播放音效
+    if (soundState.enabled) {
+      for (const event of rt.events) {
+        if (event === 'collect') Sound.playCollect()
+        else if (event === 'bounce') Sound.playBounce()
+        else if (event === 'hit') Sound.playHit()
+        else if (event === 'win') Sound.playWin()
+      }
+    }
+    rt.events.length = 0
     
     // 更新UI数据
     elapsedTime.value = rt.time

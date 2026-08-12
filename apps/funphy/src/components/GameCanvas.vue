@@ -90,8 +90,10 @@ function handleResume() {
       </div>
     </div>
 
-    <!-- Canvas -->
-    <canvas ref="canvasEl" class="game-canvas"></canvas>
+    <!-- Canvas: flex-grow fills all space between HUD and D-Pad -->
+    <div class="canvas-area">
+      <canvas ref="canvasEl" class="game-canvas"></canvas>
+    </div>
 
     <!-- 暂停界面 -->
     <div class="overlay" v-if="gameState === 'paused'">
@@ -131,23 +133,23 @@ function handleResume() {
     </div>
 
     <!-- 触屏 D-Pad -->
-    <div class="dpad" v-if="gameState === 'playing'">
-      <div class="dpad-row">
-        <button class="dpad-btn" @touchstart.prevent="onDPadDown('up')" @touchend.prevent="onDPadUp('up')" @mousedown.prevent="onDPadDown('up')" @mouseup.prevent="onDPadUp('up')">▲</button>
+    <div class="dpad-area" v-if="gameState === 'playing'">
+      <div class="dpad">
+        <div class="dpad-row">
+          <button class="dpad-btn" @touchstart.prevent="onDPadDown('up')" @touchend.prevent="onDPadUp('up')" @mousedown.prevent="onDPadDown('up')" @mouseup.prevent="onDPadUp('up')">▲</button>
+        </div>
+        <div class="dpad-row">
+          <button class="dpad-btn" @touchstart.prevent="onDPadDown('left')" @touchend.prevent="onDPadUp('left')" @mousedown.prevent="onDPadDown('left')" @mouseup.prevent="onDPadUp('left')">◀</button>
+          <button class="dpad-btn center" disabled>●</button>
+          <button class="dpad-btn" @touchstart.prevent="onDPadDown('right')" @touchend.prevent="onDPadUp('right')" @mousedown.prevent="onDPadDown('right')" @mouseup.prevent="onDPadUp('right')">▶</button>
+        </div>
+        <div class="dpad-row">
+          <button class="dpad-btn" @touchstart.prevent="onDPadDown('down')" @touchend.prevent="onDPadUp('down')" @mousedown.prevent="onDPadDown('down')" @mouseup.prevent="onDPadUp('down')">▼</button>
+        </div>
       </div>
-      <div class="dpad-row">
-        <button class="dpad-btn" @touchstart.prevent="onDPadDown('left')" @touchend.prevent="onDPadUp('left')" @mousedown.prevent="onDPadDown('left')" @mouseup.prevent="onDPadUp('left')">◀</button>
-        <button class="dpad-btn center" disabled>●</button>
-        <button class="dpad-btn" @touchstart.prevent="onDPadDown('right')" @touchend.prevent="onDPadUp('right')" @mousedown.prevent="onDPadDown('right')" @mouseup.prevent="onDPadUp('right')">▶</button>
+      <div class="keyboard-hint-desktop" v-if="gameState === 'playing'">
+        WASD / 方向键 操控 · ESC 暂停
       </div>
-      <div class="dpad-row">
-        <button class="dpad-btn" @touchstart.prevent="onDPadDown('down')" @touchend.prevent="onDPadUp('down')" @mousedown.prevent="onDPadDown('down')" @mouseup.prevent="onDPadUp('down')">▼</button>
-      </div>
-    </div>
-
-    <!-- 桌面键盘提示 -->
-    <div class="keyboard-hint" v-if="gameState === 'playing'">
-      WASD / 方向键 操控 · ESC 暂停
     </div>
   </div>
 </template>
@@ -164,10 +166,7 @@ function handleResume() {
 }
 
 .hud {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -190,6 +189,14 @@ function handleResume() {
   border-radius: 6px;
   cursor: pointer;
   font-size: 1rem;
+}
+
+/* Canvas area: fills all space between HUD and D-Pad */
+.canvas-area {
+  flex: 1 1 0;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
 }
 
 .game-canvas {
@@ -268,12 +275,17 @@ function handleResume() {
   cursor: pointer;
 }
 
-.dpad {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+/* D-Pad area: fixed at bottom, not overlapping canvas */
+.dpad-area {
+  flex-shrink: 0;
+  padding: 8px 0 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   z-index: 10;
+}
+
+.dpad {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -310,22 +322,24 @@ function handleResume() {
   cursor: default;
 }
 
-.keyboard-hint {
-  position: absolute;
-  bottom: 8px;
-  right: 12px;
+.keyboard-hint-desktop {
   font-size: 0.7rem;
   color: rgba(255, 255, 255, 0.3);
-  z-index: 5;
+  margin-top: 4px;
 }
 
+/* Desktop: hide D-Pad, show keyboard hint */
 @media (min-width: 768px) {
+  .dpad-area {
+    padding: 4px 0;
+  }
   .dpad { display: none; }
-  .keyboard-hint { display: block; }
+  .keyboard-hint-desktop { display: block; }
 }
 
+/* Mobile: show D-Pad, hide keyboard hint */
 @media (max-width: 767px) {
-  .keyboard-hint { display: none; }
+  .keyboard-hint-desktop { display: none; }
   .dpad { display: flex; }
 }
 </style>

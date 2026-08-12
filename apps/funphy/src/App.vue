@@ -35,8 +35,13 @@ function onWin(stars: number, time: number, stardust: number) {
   // 保存进度
   completeLevel(currentLevel.value.id, stars, time, stardust)
   
-  // 解锁物理卡
-  const cardId = currentLevel.value.id
+  // 解锁物理卡 —— 关卡ID到卡牌ID的映射
+  // 普通关: '1-1' → '1-1', '1-2' → '1-2' 等
+  // Boss关: '1-5-boss' → '1-5'
+  let cardId = currentLevel.value.id
+  if (cardId.endsWith('-boss')) {
+    cardId = cardId.replace('-boss', '')
+  }
   const card = physicsCards.find(c => c.id === cardId)
   if (card) {
     isNewCard.value = !progress.cards.includes(card.id)

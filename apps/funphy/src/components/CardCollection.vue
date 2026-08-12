@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { physicsCards } from '../data/physicsCards'
 import { useGameProgress } from '../composables/useGameProgress'
-import type { PhysicsCard } from '../engine/types'
+import PhysicsCard from './PhysicsCard.vue'
+import type { PhysicsCard as PhysicsCardType } from '../engine/types'
 
 const { progress } = useGameProgress()
 
@@ -9,12 +11,21 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
-function isUnlocked(card: PhysicsCard): boolean {
+// 选中查看的卡片
+const selectedCard = ref<PhysicsCardType | null>(null)
+
+function isUnlocked(card: PhysicsCardType): boolean {
   return progress.cards.includes(card.id)
 }
 
-function getCardLevelId(card: PhysicsCard): string {
-  return card.isBoss ? `${card.chapter}-5-boss` : `${card.chapter}-${card.level}`
+function onCardClick(card: PhysicsCardType) {
+  if (isUnlocked(card)) {
+    selectedCard.value = card
+  }
+}
+
+function closeDetail() {
+  selectedCard.value = null
 }
 </script>
 
@@ -33,11 +44,13 @@ function getCardLevelId(card: PhysicsCard): string {
           :key="card.id"
           class="cc-card"
           :class="{ unlocked: isUnlocked(card), boss: card.isBoss, locked: !isUnlocked(card) }"
+          @click="onCardClick(card)"
         >
           <template v-if="isUnlocked(card)">
             <div class="cc-card-name">{{ card.intuitionName }}</div>
             <div class="cc-card-formal">{{ card.formalName }}</div>
             <div class="cc-card-desc">{{ card.intuitionDesc }}</div>
+            <div class="cc-card-tap">👆 点击查看</div>
           </template>
           <template v-else>
             <div class="cc-card-locked">🔒</div>
@@ -46,6 +59,15 @@ function getCardLevelId(card: PhysicsCard): string {
         </div>
       </div>
     </div>
+
+    <!-- 卡片详情弹窗 -->
+    <PhysicsCard
+      v-if="selectedCard"
+      :card="selectedCard"
+      :is-new="false"
+      @close="closeDetail"
+      @open-collection="closeDetail"
+    />
   </div>
 </template>
 
@@ -104,10 +126,19 @@ function getCardLevelId(card: PhysicsCard): string {
 .cc-card.unlocked {
   border-color: rgba(147, 51, 234, 0.5);
   background: rgba(147, 51, 234, 0.08);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cc-card.unlocked:hover {
+  background: rgba(147, 51, 234, 0.15);
+  transform: translateY(-1px);
 }
 .cc-card.boss.unlocked {
   border-color: rgba(245, 158, 11, 0.5);
   background: rgba(245, 158, 11, 0.08);
+}
+.cc-card.boss.unlocked:hover {
+  background: rgba(245, 158, 11, 0.15);
 }
 .cc-card.locked {
   opacity: 0.5;
@@ -120,6 +151,7 @@ function getCardLevelId(card: PhysicsCard): string {
 .cc-card-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
 .cc-card-formal { font-size: 0.7rem; color: #94a3b8; margin-bottom: 4px; }
 .cc-card-desc { font-size: 0.75rem; color: #a78bfa; line-height: 1.4; }
+.cc-card-tap { font-size: 0.65rem; color: #64748b; margin-top: 6px; text-align: center; }
 
 .cc-card-locked { font-size: 1.5rem; }
 .cc-card-locked-text { font-size: 0.7rem; color: #64748b; text-align: center; margin-top: 4px; }

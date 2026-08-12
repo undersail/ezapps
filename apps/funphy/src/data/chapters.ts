@@ -14,7 +14,7 @@ const inertiaStar: ChapterDef = {
       difficulty: 1,
       worldWidth: 100,
       worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.15, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
       goal: { x: 90, y: 37, radius: 5 },
       obstacles: [],
@@ -24,7 +24,7 @@ const inertiaStar: ChapterDef = {
         { id: 's3', type: 'stardust', x: 70, y: 30 },
       ],
       triggers: [],
-      starConditions: { time: [25, 40, 60] },
+      starConditions: { time: [35, 50, 70] },
       isBoss: false,
     },
     // 1-2 躲避小行星
@@ -34,7 +34,7 @@ const inertiaStar: ChapterDef = {
       difficulty: 2,
       worldWidth: 120,
       worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.18, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.08, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 37 },
       goal: { x: 110, y: 37, radius: 5 },
       obstacles: [
@@ -62,7 +62,7 @@ const inertiaStar: ChapterDef = {
       difficulty: 2,
       worldWidth: 80,
       worldHeight: 60,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.12, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.06, boundsBehavior: 'bounce' },
       feifei: { x: 10, y: 30 },
       goal: { x: 70, y: 30, radius: 5, maxSpeed: 1.0 },
       obstacles: [
@@ -85,7 +85,7 @@ const inertiaStar: ChapterDef = {
       difficulty: 3,
       worldWidth: 100,
       worldHeight: 75,
-      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.15, boundsBehavior: 'bounce' },
+      physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, boundsBehavior: 'bounce' },
       feifei: { x: 50, y: 37 },
       goal: { x: 90, y: 10, radius: 5 },
       obstacles: [
@@ -119,7 +119,7 @@ const inertiaStar: ChapterDef = {
     difficulty: 4,
     worldWidth: 120,
     worldHeight: 90,
-    physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.15, boundsBehavior: 'bounce' },
+    physics: { gravity: 0, drag: 0, bounce: 0.7, thrust: 0.07, boundsBehavior: 'bounce' },
     feifei: { x: 10, y: 80 },
     goal: { x: 110, y: 10, radius: 5 },
     obstacles: [

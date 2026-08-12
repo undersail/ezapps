@@ -70,7 +70,13 @@ export class PhysicsEngine {
     feifei.pos.y += feifei.vel.y * dt
     
     // 5. 边界处理
+    const prevVx = feifei.vel.x
+    const prevVy = feifei.vel.y
     this.handleBounds(feifei)
+    // 边界反弹音效
+    if (feifei.vel.x !== prevVx || feifei.vel.y !== prevVy) {
+      runtime.events.push('bounce')
+    }
     
     // 6. 碰撞检测 - 障碍物
     for (const obs of obstacles) {
@@ -79,6 +85,7 @@ export class PhysicsEngine {
         runtime.collisions++
         feifei.hitTimer = 15
         feifei.expression = 'hit'
+        runtime.events.push('hit')
       }
     }
     
@@ -94,6 +101,7 @@ export class PhysicsEngine {
           if (col.type === 'stardust') {
             runtime.stardust++
           }
+          runtime.events.push('collect')
         }
       }
     }
@@ -108,6 +116,7 @@ export class PhysicsEngine {
         runtime.state = 'won'
         feifei.expression = 'win'
         feifei.winTimer = 60
+        runtime.events.push('win')
       }
     }
     
