@@ -122,13 +122,18 @@ function getNextLevel(current: LevelDef, chapter: ChapterDef): LevelDef | null {
 
 function isLevelUnlocked(level: LevelDef, chapter: ChapterDef): boolean {
   const chapterIndex = chapters.findIndex(c => c.id === chapter.id)
-  if (chapterIndex === 0) {
-    const allLevels = [...chapters[0].levels, chapters[0].boss]
-    const idx = allLevels.findIndex(l => l.id === level.id)
-    if (idx === 0) return true
-    return progress.levels[allLevels[idx - 1].id]?.completed ?? false
+  // 第1章默认解锁
+  if (chapterIndex === -1) return false
+  // 非第一章：需要前一章Boss通关
+  if (chapterIndex > 0) {
+    const prevBoss = chapters[chapterIndex - 1].boss
+    if (!progress.levels[prevBoss.id]?.completed) return false
   }
-  return true
+  // 章节内：第一关解锁，后续需前一关通关
+  const allLevels = [...chapter.levels, chapter.boss]
+  const idx = allLevels.findIndex(l => l.id === level.id)
+  if (idx === 0) return true
+  return progress.levels[allLevels[idx - 1].id]?.completed ?? false
 }
 
 function onOpenCards() {
