@@ -32,12 +32,12 @@
 
       <!-- HUD 顶部：三栏卡片布局 -->
       <div class="runner-hud" v-if="gameState === 'playing' || gameState === 'paused' || gameState === 'won' || gameState === 'lost'">
-        <!-- 左：护甲 + 宝石 -->
+        <!-- 左：护甲（上行）+ 宝石（下行） -->
         <div class="hud-group hud-left">
-          <span class="armor-display">
+          <div class="armor-display">
             <span v-for="i in 3" :key="i" class="armor-heart" :class="{ empty: i > armor }">❤️</span>
-          </span>
-          <span class="gem-display">💎 {{ gems }}</span>
+          </div>
+          <div class="gem-display">💎 {{ gems }}</div>
         </div>
         <!-- 中：时间 + 里程 -->
         <div class="hud-group hud-center">
@@ -74,7 +74,7 @@
       </div>
 
       <!-- 暂停界面 -->
-      <div class="overlay" v-if="gameState === 'paused'">
+      <div class="overlay" v-if="gameState === 'paused' && !showShipyard">
         <div class="overlay-card">
           <h2>⏸ 已暂停</h2>
           <button class="btn-primary" @click="resumeGame">继续</button>
@@ -103,8 +103,31 @@
       </div>
     </div>
 
-    <!-- 单摇杆控制区 -->
-    <div class="controls-area" v-if="gameState === 'playing'">
+      <!-- 右侧功能按钮列（游戏中） -->
+      <div class="side-btns" v-if="gameState === 'playing'">
+        <button class="side-btn" @click="openShipyard" aria-label="升级装备">🛠</button>
+        <button class="side-btn" @click="handleBack" aria-label="返回大厅">✈️</button>
+      </div>
+
+      <!-- 升级弹窗（暂停游戏） -->
+      <div class="overlay" v-if="showShipyard">
+        <div class="overlay-card">
+          <h2>🛠 飞船库 · 💎 {{ totalGems }}</h2>
+          <div class="shipyard" style="margin-bottom: 8px;">
+            <div class="upgrade-row" v-for="k in (['engine', 'armor', 'battery'] as const)" :key="k">
+              <div class="upgrade-info">
+                <div class="upgrade-name">{{ UPGRADE_NAME[k] }} {{ upgradeState(k) }}</div>
+                <div class="upgrade-desc">{{ upgradeDesc[k] }}</div>
+              </div>
+              <button class="upgrade-btn" @click="doUpgrade(k)" :disabled="upgrades.progress.upgrades[k] >= UPGRADE_COST[k].length || upgrades.progress.gems < UPGRADE_COST[k][upgrades.progress.upgrades[k]]">⬆</button>
+            </div>
+          </div>
+          <button class="btn-secondary" @click="closeShipyard">关闭</button>
+        </div>
+      </div>
+
+      <!-- 单摇杆控制区 -->
+      <div class="controls-area" v-if="gameState === 'playing'">
       <div class="stick-wrap">
         <div
           ref="joystickBase"
@@ -345,6 +368,17 @@ function handleBack() {
 function handleStart() {
   startLevel(runnerLevels[0])
 }
+
+// 升级弹窗（打开时暂停游戏）
+const showShipyard = ref(false)
+function openShipyard() {
+  showShipyard.value = true
+  if (gameState.value === 'playing') togglePause()
+}
+function closeShipyard() {
+  showShipyard.value = false
+  if (gameState.value === 'paused') resumeGame()
+}
 </script>
 
 <style scoped>
@@ -394,9 +428,11 @@ canvas {
   backdrop-filter: blur(4px);
   pointer-events: auto;
 }
-.armor-heart { font-size: 0.95rem; }
+.armor-display { display: flex; gap: 2px; line-height: 1; }
+.armor-heart { font-size: 0.8rem; }
 .armor-heart.empty { opacity: 0.25; filter: grayscale(1); }
-.gem-display { font-size: 0.9rem; font-weight: 600; }
+.gem-display { font-size: 0.85rem; font-weight: 600; line-height: 1.2; }
+.hud-left { flex-direction: column; align-items: flex-start; gap: 2px !important; }
 .hud-center { gap: 10px; }
 .stat { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: #e2e8f0; min-width: 44px; }
 .progress-wrap { display: flex; align-items: center; gap: 6px; }
@@ -584,44 +620,20 @@ canvas {
 .upgrade-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .upgrade-btn:not(:disabled):active { transform: scale(0.9); }
 
-/* ==== 单摇杆 ==== */
+/* ==== 单摇杆（统一左侧悬浮，横竖屏一致） ==== */
 .controls-area {
-  flex-shrink: 0;
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  z-index: 10;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 10px 0 16px;
-  z-index: 10;
-}
-/* 横屏/桌面：摇杆悬浮左下角，游戏区全屏 */
-@media (min-width: 768px) and (orientation: landscape), (min-width: 900px) {
-  .controls-area {
-    position: absolute;
-    left: 14px;
-    bottom: 14px;
-    padding: 0;
-  }
-  .joystick-base {
-    width: 108px;
-    height: 108px;
-  }
-  .joystick-knob {
-    width: 38px;
-    height: 38px;
-    margin: -19px 0 0 -19px;
-  }
-  .stick-hint { display: none; }
-}
-.stick-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
 }
 .joystick-base {
   position: relative;
-  width: 128px;
-  height: 128px;
+  width: 112px;
+  height: 112px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
   border: 2px solid rgba(148, 163, 184, 0.25);
@@ -630,16 +642,22 @@ canvas {
   -webkit-user-select: none;
 }
 .joystick-knob {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, rgba(148, 163, 184, 0.9), rgba(100, 116, 139, 0.7));
   border: 1px solid rgba(255,255,255,0.3);
   position: absolute;
   top: 50%;
   left: 50%;
-  margin: -22px 0 0 -22px;
+  margin: -20px 0 0 -20px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+}
+.stick-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 .joy-arrow {
   position: absolute;
@@ -652,6 +670,29 @@ canvas {
 .joy-arrow.left { left: 8px; top: 50%; transform: translateY(-50%); }
 .joy-arrow.right { right: 8px; top: 50%; transform: translateY(-50%); }
 .stick-hint { font-size: 0.7rem; color: rgba(255,255,255,0.45); }
+
+/* ==== 右侧功能按钮列 ==== */
+.side-btns {
+  position: absolute;
+  right: 12px;
+  top: 86px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 6;
+}
+.side-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  font-size: 1.15rem;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+.side-btn:active { transform: scale(0.9); }
 
 .keyboard-hint-desktop {
   display: none;
