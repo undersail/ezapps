@@ -37,9 +37,9 @@
           </div>
           <div class="energy-wrap">
             <div class="energy-bar">
-              <div class="energy-fill" :style="{ width: energy + '%', background: energyColor }"></div>
+              <div class="energy-fill" :class="{ low: energy <= 15 }" :style="{ width: energy + '%', background: energyColor }"></div>
             </div>
-            <span class="energy-num">⚡{{ energy }}%</span>
+            <span class="energy-num" :class="{ low: energy <= 15 }">⚡{{ energy }}%</span>
           </div>
         </div>
         <!-- 右：暂停 + 声音 -->
@@ -47,6 +47,12 @@
           <button class="hud-btn" @click="toggleSound" aria-label="声音">{{ soundEnabled ? '🔊' : '🔇' }}</button>
           <button class="hud-btn" @click="togglePause" aria-label="暂停">⏸</button>
         </div>
+      </div>
+
+      <!-- 过场卡片（探险模式开场介绍，3s 自动消失/点击跳过） -->
+      <div class="intro-card" v-if="showIntro && gameState === 'playing'" @click="dismissIntro">
+        <div class="intro-text">{{ introText }}</div>
+        <div class="intro-skip">点击跳过</div>
       </div>
 
       <!-- 悬浮教学提示 -->
@@ -114,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRunnerLoop } from '../composables/useRunnerLoop'
 import { SceneRenderer } from '../scenes/SceneRenderer'
 import { skins } from '../data/skins'
@@ -138,6 +144,27 @@ const fmtTime = computed(() => {
 })
 
 const energyColor = computed(() => energy.value > 40 ? '#4ade80' : energy.value > 15 ? '#facc15' : '#ef4444')
+
+// ===== 过场卡片（探险模式开场介绍） =====
+const showIntro = ref(false)
+const introText = ref('')
+let introTimer = 0
+watch(gameState, (s) => {
+  if (s === 'playing' && runtime.value?.level.introCard) {
+    introText.value = runtime.value.level.introCard
+    showIntro.value = true
+    // 3 秒自动消失
+    clearTimeout(introTimer)
+    introTimer = window.setTimeout(() => { showIntro.value = false }, 3000)
+  } else {
+    showIntro.value = false
+  }
+})
+function dismissIntro() {
+  clearTimeout(introTimer)
+  showIntro.value = false
+}
+onUnmounted(() => clearTimeout(introTimer))
 
 // ===== 画布自适应（ResizeObserver） =====
 const canvasAreaRef = ref<HTMLElement | null>(null)
@@ -406,6 +433,47 @@ canvas {
   z-index: 5;
   pointer-events: none;
   white-space: nowrap;
+}
+
+/* ==== 过场卡片 ==== */
+.intro-card {
+  position: absolute;
+  right: 12px;
+  bottom: 14px;
+  max-width: 260px;
+  background: rgba(2, 6, 23, 0.82);
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  border-left: 3px solid #38bdf8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  z-index: 6;
+  cursor: pointer;
+  animation: intro-in 0.4s ease;
+  backdrop-filter: blur(4px);
+}
+.intro-text {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: #e2e8f0;
+  white-space: pre-line;
+}
+.intro-skip {
+  margin-top: 6px;
+  font-size: 0.68rem;
+  color: rgba(148, 163, 184, 0.6);
+  text-align: right;
+}
+@keyframes intro-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 低能量闪烁 */
+.energy-fill.low { animation: energy-blink 0.6s infinite; }
+.energy-num.low { color: #ef4444; animation: energy-blink 0.6s infinite; }
+@keyframes energy-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 /* ==== 大厅（V2-5 前极简版） ==== */

@@ -6,6 +6,7 @@ export const ocean1: RunnerLevelDef = {
   id: '1-1',
   chapter: 1,
   name: '海面初航',
+  introCard: '🌊 阳光穿过海面，鱼群在礁石间穿梭。\n收集珍珠升级两栖船体，为冲出海洋做准备！',
   length: 1350,              // 累计里程（baseFlow 0.25 下约 90 秒通关）
   baseFlow: 0.25,            // 基础流速（慢，教学）
   flowRange: 0.8,            // 推杆满速 +0.8

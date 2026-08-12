@@ -64,6 +64,7 @@ export interface RunnerLevelDef {
   id: string
   chapter: number
   name: string
+  introCard?: string         // 关卡开场卡片文案（探险模式，3s 自动消失/可跳过）
   length: number             // 通关里程（累计推进）
   baseFlow: number           // 基础流速（单位/帧）→ 障碍下落基准
   flowRange: number          // 推杆满速增加的流速
