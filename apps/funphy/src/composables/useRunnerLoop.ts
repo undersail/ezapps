@@ -12,7 +12,7 @@ const START_ARMOR = 3
 
 export function useRunnerLoop() {
   const canvasRef = ref<HTMLCanvasElement | null>(null)
-  const gameState = ref<'playing' | 'paused' | 'won' | 'lost'>('playing')
+  const gameState = ref<'menu' | 'playing' | 'paused' | 'won' | 'lost'>('menu')
   const runtime = ref<RunnerRuntime | null>(null) as Ref<RunnerRuntime | null>
   const failText = ref('')
 
@@ -191,7 +191,7 @@ export function useRunnerLoop() {
           for (const e of rt.events) {
             if (e === 'hit') Sound.playHit()
             else if (e === 'gem') Sound.playCollect()
-            else if (e === 'energy') Sound.playBounce()
+            else if (e === 'energy') Sound.playCollect()   // 能量块：清脆提示音
             else if (e === 'win') Sound.playWin()
           }
           rt.events.length = 0
@@ -223,6 +223,7 @@ export function useRunnerLoop() {
   function backToMenu(): void {
     cancelAnimationFrame(rafId)
     runtime.value = null
+    gameState.value = 'menu'   // 返回大厅
   }
 
   // 键盘（桌面模式）：←→ 移动，↑ 加速，↓ 刹车

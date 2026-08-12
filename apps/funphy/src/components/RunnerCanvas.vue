@@ -3,6 +3,20 @@
     <div class="canvas-area" ref="canvasAreaRef">
       <canvas ref="canvasRef"></canvas>
 
+      <!-- 大厅界面（V2-5 前极简版） -->
+      <div class="menu-overlay" v-if="gameState === 'menu'">
+        <div class="menu-card">
+          <h1>🚀 飞飞历险记</h1>
+          <p class="menu-story">驾驶全能飞船，从海洋出发，穿越大陆与天空，冲向广袤宇宙！</p>
+          <div class="menu-legend">
+            <div class="legend-item"><span class="legend-dot white"></span> 宝石（升级装备）</div>
+            <div class="legend-item"><span class="legend-dot green"></span> 能量块（补充能量）</div>
+            <div class="legend-item"><span class="legend-dot gold"></span> 太阳能区（持续充能）</div>
+          </div>
+          <button class="btn-primary" @click="handleStart">🚀 开始探险</button>
+        </div>
+      </div>
+
       <!-- HUD 顶部：三栏卡片布局 -->
       <div class="runner-hud" v-if="gameState === 'playing' || gameState === 'paused' || gameState === 'won' || gameState === 'lost'">
         <!-- 左：护甲 + 宝石 -->
@@ -37,7 +51,7 @@
 
       <!-- 悬浮教学提示 -->
       <div class="runner-tip" v-if="gameState === 'playing' && runtime && runtime.progress < 30">
-        🕹 摇杆：←→ 移动 · ↑ 加速 · ↓ 刹车
+        🕹 摇杆：←→ 移动 · ↑ 加速 · ↓ 刹车 · ⚪宝石 ⚢能量
       </div>
 
       <!-- 暂停界面 -->
@@ -65,7 +79,7 @@
           <p class="result-line">💎 收集宝石 {{ gems }} / {{ runtime?.level.goal.gems }}</p>
           <p class="result-line">⚡ 剩余能量 {{ energy }}%</p>
           <p class="result-line">⏱ 用时 {{ fmtTime }}</p>
-          <button class="btn-primary" @click="handleNext">继续</button>
+          <button class="btn-primary" @click="handleNext">返回大厅</button>
         </div>
       </div>
     </div>
@@ -155,8 +169,20 @@ function setupCanvas() {
 function renderLoop() {
   const canvas = canvasRef.value
   const rt = runtime.value
-  if (canvas && renderer && rt) {
-    renderer.renderRunner(rt, skins[0])
+  if (canvas && renderer) {
+    if (rt) {
+      renderer.renderRunner(rt, skins[0])
+    } else {
+      // 大厅背景（深蓝渐变 + 星空感）
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height)
+        grad.addColorStop(0, '#0a0a2e')
+        grad.addColorStop(1, '#1a1a4e')
+        ctx.fillStyle = grad
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+      }
+    }
   }
   renderRaf = requestAnimationFrame(renderLoop)
 }
@@ -172,8 +198,7 @@ onMounted(() => {
     resizeObserver.observe(area)
   }
   renderRaf = requestAnimationFrame(renderLoop)
-  // 自动开始第一关（V2-1 测试入口）
-  startLevel(runnerLevels[0])
+  // 显示大厅（不再自动开局，点"开始探险"进入）
 })
 
 onUnmounted(() => {
@@ -257,6 +282,9 @@ function handleNext() {
 }
 function handleBack() {
   backToMenu()
+}
+function handleStart() {
+  startLevel(runnerLevels[0])
 }
 </script>
 
@@ -342,6 +370,29 @@ canvas {
   color: #fff;
 }
 
+/* 窄屏 HUD 紧凑化（移动优先默认，防右侧按钮被挤出） */
+.runner-hud { padding: 6px 8px; gap: 4px; }
+.hud-group { padding: 3px 7px; gap: 5px; }
+.armor-heart { font-size: 0.8rem; }
+.progress-bar { width: 56px; }
+.energy-bar { width: 44px; }
+.progress-num { display: none; }
+.energy-num { font-size: 0.65rem; min-width: 34px; }
+.stat { font-size: 0.75rem; min-width: 36px; }
+.hud-btn { padding: 2px 6px; font-size: 0.8rem; }
+/* 宽屏恢复大尺寸 */
+@media (min-width: 768px) {
+  .runner-hud { padding: 8px 12px; gap: 8px; }
+  .hud-group { padding: 4px 10px; gap: 8px; }
+  .armor-heart { font-size: 0.95rem; }
+  .progress-bar { width: 90px; }
+  .energy-bar { width: 70px; }
+  .progress-num { display: inline; }
+  .energy-num { font-size: 0.7rem; min-width: 40px; }
+  .stat { font-size: 0.85rem; min-width: 44px; }
+  .hud-btn { padding: 3px 8px; font-size: 0.85rem; }
+}
+
 .runner-tip {
   position: absolute;
   top: 52px;
@@ -356,6 +407,46 @@ canvas {
   pointer-events: none;
   white-space: nowrap;
 }
+
+/* ==== 大厅（V2-5 前极简版） ==== */
+.menu-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+.menu-card {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 20px;
+  padding: 32px 40px;
+  text-align: center;
+  max-width: 340px;
+  backdrop-filter: blur(6px);
+}
+.menu-card h1 { margin: 0 0 10px; font-size: 1.8rem; }
+.menu-story { margin: 0 0 18px; color: rgba(255,255,255,0.75); font-size: 0.9rem; line-height: 1.5; }
+.menu-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+  text-align: left;
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.85);
+}
+.legend-item { display: flex; align-items: center; gap: 8px; }
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-dot.white { background: #f8fafc; box-shadow: 0 0 6px rgba(248, 250, 252, 0.6); }
+.legend-dot.green { background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.6); }
+.legend-dot.gold { background: #fde047; box-shadow: 0 0 6px rgba(253, 224, 71, 0.6); }
 
 /* ==== 单摇杆 ==== */
 .controls-area {
