@@ -246,29 +246,27 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
       })
     }
     if (def.gem) {
-      // size 默认 s（1分）；大块（l）50% 高处生成 + 消失倒计时
+      // size 默认 s（1分）；大块（l）从顶部出现 + 5 秒倒计时（消失）
       // 难度概率升级：T1 0% / T2-T3 10% / T4 20% / T5 25% / T6 30%
       const diffLv = level.difficulty === 'T6' ? 0.3 : level.difficulty === 'T5' ? 0.25 : level.difficulty === 'T4' ? 0.2 : level.difficulty === 'T3' || level.difficulty === 'T2' ? 0.1 : 0
       const size = def.size || (Math.random() < diffLv ? 'l' : 's')
-      const high = size === 'l' && Math.random() < 0.5
       runtime.gemsArr.push({
         id: `g_${def.at}_${def.x}`,
         x: sx,
-        y: high ? 8 + Math.random() * 14 : -45,   // 高处：直接出现在视口上部 y 8~22
+        y: -45,   // 一律从顶部出现，倒计时才有意义
         collected: false,
         size,
         expiresIn: def.expiresIn ?? (size === 'l' ? 5 : 0),
       })
     }
     if (def.energy) {
-      // size 默认 m（25%）；大块（l）50% 高处生成 + 消失倒计时
+      // size 默认 m（25%）；大块（l）从顶部出现 + 5 秒倒计时（消失）
       const diffLv = level.difficulty === 'T6' ? 0.3 : level.difficulty === 'T5' ? 0.25 : level.difficulty === 'T4' ? 0.2 : level.difficulty === 'T3' || level.difficulty === 'T2' ? 0.1 : 0
       const size = def.size || (Math.random() < diffLv ? 'l' : 'm')
-      const high = size === 'l' && Math.random() < 0.5
       runtime.energyBlocks.push({
         id: `e_${def.at}_${def.x}`,
         x: sx,
-        y: high ? 8 + Math.random() * 14 : -45,
+        y: -45,   // 一律从顶部出现，倒计时才有意义
         collected: false,
         size,
         expiresIn: def.expiresIn ?? (size === 'l' ? 5 : 0),
