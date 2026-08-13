@@ -452,8 +452,8 @@ export class SceneRenderer {
         ctx.restore()
       }
       ctx.globalAlpha = 1
-      // 大块倒计时数字（剩余 <=5 显示，闪烁提醒）
-      if (g.expiresIn > 0 && g.expiresIn <= 5) {
+      // 大块倒计时数字（全程显示，最后 3 秒变红闪烁）
+      if (g.expiresIn > 0) {
         ctx.fillStyle = g.expiresIn <= 3 && alpha < 1 ? '#ff6b6b' : '#fff'
         ctx.font = 'bold 5px sans-serif'
         ctx.textAlign = 'center'
@@ -495,8 +495,8 @@ export class SceneRenderer {
         ctx.fill()
       }
       ctx.globalAlpha = 1
-      // 倒计时数字（剩余 <=5 显示）
-      if (eb.expiresIn > 0 && eb.expiresIn <= 5) {
+      // 倒计时数字（全程显示）
+      if (eb.expiresIn > 0) {
         ctx.fillStyle = eb.expiresIn <= 3 && alpha < 1 ? '#ff6b6b' : '#fff'
         ctx.font = 'bold 5px sans-serif'
         ctx.textAlign = 'center'
