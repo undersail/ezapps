@@ -150,6 +150,28 @@ export function useRunnerLoop() {
       for (const o of rt.obstacles) {
         if (!o.active) continue
         if (circleRectHit(ship.x, ship.y, SHIP_RADIUS, o.x - o.width / 2, o.y - o.height / 2, o.width, o.height)) {
+          o.active = false
+          // 问号盲盒块：不扣甲，随机奖励/惩罚
+          if (o.kind === 'mystery') {
+            const roll = Math.random()
+            if (roll < 0.2) {           // 20% 大礼包：宝石+6
+              rt.gems += 6
+              rt.events.push('gem')
+            } else if (roll < 0.4) {    // 20% 能量+35%
+              rt.energy = Math.min(rt.maxEnergy, rt.energy + rt.maxEnergy * 0.35)
+              rt.events.push('energy')
+            } else if (roll < 0.55) {   // 15% 护甲+1
+              if (ship.armor < 5) ship.armor++
+              rt.events.push('gem')
+            } else if (roll < 0.7) {    // 15% 惩罚：能量-15%
+              rt.energy = Math.max(0, rt.energy - rt.maxEnergy * 0.15)
+              rt.events.push('hit')
+            } else {                    // 30% 惩罚：扣 1 甲（有护甲时）
+              if (ship.armor > 0) ship.armor--
+              rt.events.push('hit')
+            }
+            continue
+          }
           ship.armor--
           ship.invincible = rt.effInvincible   // 无敌帧（护甲升级缩短硬直）
           o.active = false

@@ -427,10 +427,12 @@ function setStickFromOffset(dx: number, dy: number) {
   let ny = dy / maxDist
   const mag = Math.sqrt(nx * nx + ny * ny)
   if (mag > 1) { nx /= mag; ny /= mag }
-  // 死区 0.15 + 重映射
+  // 死区 0.15 + 重映射 + 响应曲线（小推杆更敏感，跟手）
   const active = mag > 0.15
   const remap = active ? (mag - 0.15) / 0.85 : 0
-  const norm = active ? remap / mag : 0
+  const n = active ? remap / mag : 0
+  // 混合曲线：0.35 线性 + 0.65 平方（小推杆快速响应，大推杆满速）
+  const norm = active ? 0.35 * n + 0.65 * n * n : 0
   stickX.value = nx * norm
   stickY.value = -ny * norm   // 上推(dy<0) → 正（加速），下拉 → 负（刹车）
   knobX.value = nx * maxDist

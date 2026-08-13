@@ -130,7 +130,7 @@ export function useUpgrades() {
   function controlParams(): { lerp: number; invincible: number; dashCooldown: number } {
     const u = progress.upgrades
     return {
-      lerp: 0.18 + u.engine * 0.04,            // 加速响应 0.18→0.34（更跟手）
+      lerp: 0.28 + u.engine * 0.04,            // 加速响应 0.28→0.44（更跟手）
       invincible: Math.max(25, 55 - u.armor * 10),  // 受击无敌帧 55→25
       dashCooldown: Math.max(45, 90 - u.engine * 15), // 冲刺冷却 90→45
     }

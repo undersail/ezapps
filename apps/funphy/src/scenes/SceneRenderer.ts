@@ -7,6 +7,16 @@ function clamp(v: number, min: number, max: number): number {
   return v < min ? min : (v > max ? max : v)
 }
 
+// hex 颜色变亮（升级船体变色用）
+function hexLighten(hex: string, ratio: number): string {
+  const m = hex.replace('#', '')
+  const num = parseInt(m.length === 3 ? m.split('').map(c => c + c).join('') : m, 16)
+  const r = clamp(Math.round(((num >> 16) & 255) + (255 - ((num >> 16) & 255)) * ratio), 0, 255)
+  const g = clamp(Math.round(((num >> 8) & 255) + (255 - ((num >> 8) & 255)) * ratio), 0, 255)
+  const b = clamp(Math.round((num & 255) + (255 - (num & 255)) * ratio), 0, 255)
+  return `rgb(${r},${g},${b})`
+}
+
 // 收集品主题色（按章节：星尘/月尘/彩球/气泡/星光/能量块）
 const COLLECT_GLOW: Record<number, string> = {
   1: '#ffd700',
@@ -341,17 +351,46 @@ export class SceneRenderer {
         phase: 0,
         kind: o.style,
       }
+      // 问号盲盒块（紫色方块 + 白色问号 + 脉冲）
+      if (o.kind === 'mystery') {
+        const pulse = Math.sin(Date.now() / 250) * 0.15 + 0.5
+        ctx.save()
+        ctx.translate(o.x, o.y)
+        // 紫色圆角方块
+        ctx.fillStyle = `rgba(147, 51, 234, ${pulse})`
+        this.roundRectPath(-o.width / 2, -o.height / 2, o.width, o.height, 2)
+        ctx.fill()
+        ctx.strokeStyle = 'rgba(216, 180, 254, 0.8)'
+        ctx.lineWidth = 0.8
+        ctx.stroke()
+        // 白色问号
+        ctx.fillStyle = '#fff'
+        ctx.font = `bold ${o.height * 0.7}px sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('?', 0, o.height * 0.05)
+        ctx.restore()
+        continue
+      }
       // 章节专属障碍形态（元素库）
-      if (chapter === 1 && o.kind === 'falling') { this.drawFishObstacle(fake); continue }
-      if (chapter === 3 && o.kind === 'falling') { this.drawBirdObstacle(fake); continue }
-      switch (o.style) {
-        case 'rock': this.drawRock(fake); break
-        case 'metal': this.drawMetal(fake); break
-        case 'cloud': this.drawCloud(fake); break
-        case 'orb': this.drawOrb(fake); break
-        case 'crystal': this.drawCrystal(fake); break
-        case 'ice': this.drawIce(fake); break
-        default: this.drawRock(fake)
+      if (chapter === 1 && o.kind === 'falling') { this.drawFishObstacle(fake); }
+      else if (chapter === 3 && o.kind === 'falling') { this.drawBirdObstacle(fake); }
+      else {
+        switch (o.style) {
+          case 'rock': this.drawRock(fake); break
+          case 'metal': this.drawMetal(fake); break
+          case 'cloud': this.drawCloud(fake); break
+          case 'orb': this.drawOrb(fake); break
+          case 'crystal': this.drawCrystal(fake); break
+          case 'ice': this.drawIce(fake); break
+          default: this.drawRock(fake)
+        }
+      }
+      // 大障碍（宽度>=12）描金边：高危警告信号
+      if (o.width >= 12) {
+        ctx.strokeStyle = 'rgba(253, 224, 71, 0.6)'
+        ctx.lineWidth = 1
+        ctx.strokeRect(o.x - o.width / 2, o.y - o.height / 2, o.width, o.height)
       }
     }
     
@@ -1460,9 +1499,16 @@ export class SceneRenderer {
   
   private drawBody(ctx: CanvasRenderingContext2D, skin: SkinDef, feifei: FeiFei): void {
     const r = feifei.radius
+    const upg = feifei.upgradeLevels || { engine: 0, armor: 0, battery: 0 }
+    const totalLv = upg.engine + upg.armor + upg.battery
+    // 船体颜色随总等级明显变化（升级可见）
+    // 0-2级：原色 | 3-5级：变亮 | 6+级：金色旗舰
+    let bodyColor = skin.bodyColor
+    if (totalLv >= 6) bodyColor = '#f59e0b'
+    else if (totalLv >= 3) bodyColor = hexLighten(skin.bodyColor, 0.3)
     
     // ===== X 形机翼（先画，在机身下层） =====
-    ctx.fillStyle = skin.bodyColor
+    ctx.fillStyle = bodyColor
     ctx.globalAlpha = 0.85
     // 水平双翼
     ctx.beginPath()
@@ -1505,7 +1551,6 @@ export class SceneRenderer {
     }
     
     // ===== 能量环（机身中部光环，能量仓升级更亮更粗） =====
-    const upg = feifei.upgradeLevels || { engine: 0, armor: 0, battery: 0 }
     const batteryBoost = 1 + upg.battery * 0.15
     const energyPulse = Math.sin(Date.now() / 250) * 0.2 + 0.6
     ctx.strokeStyle = feifei.dashTimer > 0
@@ -1517,7 +1562,7 @@ export class SceneRenderer {
     ctx.stroke()
     
     // ===== 机身（垂直泪滴，船头朝上） =====
-    ctx.fillStyle = skin.bodyColor
+    ctx.fillStyle = bodyColor
     ctx.beginPath()
     ctx.moveTo(0, -r * 2.0)                          // 船头尖
     ctx.quadraticCurveTo(r * 1.15, -r * 0.8, r * 0.95, r * 0.5)   // 右舷

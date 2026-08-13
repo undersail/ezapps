@@ -4,7 +4,7 @@ import type { ObstacleKind, PhysicsConfig } from './types'
 // 障碍物（下落流）
 export interface RunnerObstacle {
   id: string
-  kind: 'falling' | 'dive' | 'spin' | 'static'   // 下落方式
+  kind: 'falling' | 'dive' | 'spin' | 'static' | 'mystery'   // 下落方式（mystery=问号盲盒）
   style: ObstacleKind                              // 视觉形态（复用主题化体系）
   x: number
   y: number
@@ -61,6 +61,7 @@ export interface RunnerSpawnDef {
   }
   gem?: boolean              // 生成宝石
   energy?: boolean           // 生成能量块
+  mystery?: boolean          // 问号盲盒块（撞击随机奖励/惩罚）
   size?: 's' | 'm' | 'l'     // 大小档（宝石分值 1/3/6，能量块 12%/25%/40%）
   expiresIn?: number         // 秒，>0 时高处生成+消失倒计时（大块专属）
 }
@@ -147,17 +148,32 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
         y: -45,   // 生成点上移：全油门时也有 ~1.1s 反应时间
         width: def.obstacle.width,
         height: def.obstacle.height,
-        fallSpeed: def.obstacle.fallSpeed,
+        // 下落速度波动（±25%，同一关内快慢混合）
+        fallSpeed: def.obstacle.fallSpeed * (0.8 + Math.random() * 0.5),
         sway: def.obstacle.sway,
         swaySpeed: def.obstacle.swaySpeed,
         color: def.obstacle.color,
         active: true,
       })
     }
+    if (def.mystery) {
+      // 问号盲盒块：慢速下落，撞击随机奖励/惩罚
+      runtime.obstacles.push({
+        id: `m_${def.at}_${def.x}`,
+        kind: 'mystery',
+        style: 'orb',
+        x: sx,
+        y: -45,
+        width: 10,
+        height: 10,
+        fallSpeed: 0.35 * (0.9 + Math.random() * 0.2),
+        active: true,
+      })
+    }
     if (def.gem) {
       // size 默认 s（1分）；大块（l）50% 高处生成 + 消失倒计时
-      // 难度概率升级：T1 0% / T2-T3 5% / T4 10% / T5 15% / T6 20%
-      const diffLv = level.difficulty === 'T6' ? 0.2 : level.difficulty === 'T5' ? 0.15 : level.difficulty === 'T4' ? 0.1 : level.difficulty === 'T3' || level.difficulty === 'T2' ? 0.05 : 0
+      // 难度概率升级：T1 0% / T2-T3 10% / T4 15% / T5 20% / T6 25%
+      const diffLv = level.difficulty === 'T6' ? 0.25 : level.difficulty === 'T5' ? 0.2 : level.difficulty === 'T4' ? 0.15 : level.difficulty === 'T3' || level.difficulty === 'T2' ? 0.1 : 0
       const size = def.size || (Math.random() < diffLv ? 'l' : 's')
       const high = size === 'l' && Math.random() < 0.5
       runtime.gemsArr.push({
@@ -170,8 +186,8 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
       })
     }
     if (def.energy) {
-      // size 默认 m（25%）；大块（l）50% 高处生成 + 消失倒计时
-      const diffLv = level.difficulty === 'T6' ? 0.2 : level.difficulty === 'T5' ? 0.15 : level.difficulty === 'T4' ? 0.1 : level.difficulty === 'T3' || level.difficulty === 'T2' ? 0.05 : 0
+      // 难度概率升级：T1 0% / T2-T3 10% / T4 15% / T5 20% / T6 25%
+      const diffLv = level.difficulty === 'T6' ? 0.25 : level.difficulty === 'T5' ? 0.2 : level.difficulty === 'T4' ? 0.15 : level.difficulty === 'T3' || level.difficulty === 'T2' ? 0.1 : 0
       const size = def.size || (Math.random() < diffLv ? 'l' : 'm')
       const high = size === 'l' && Math.random() < 0.5
       runtime.energyBlocks.push({
