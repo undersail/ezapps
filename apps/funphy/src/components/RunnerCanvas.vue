@@ -418,14 +418,16 @@ onUnmounted(() => {
 // ===== 单摇杆（左右移动 + 上下加速/刹车） =====
 const knobX = ref(0)
 const knobY = ref(0)
-const JOY_RADIUS = 52
-const KNOB_R = 22
+// 大屏（≥768px）摇杆/按钮放大
+const isLargeScreen = () => window.innerWidth >= 768
+const joyRadius = () => (isLargeScreen() ? 66 : 52)    // 摇杆活动半径
+const knobR = () => (isLargeScreen() ? 28 : 22)        // 摇杆帽半径
 let stickTouchId: number | null = null
 let stickCenterX = 0
 let stickCenterY = 0
 
 function setStickFromOffset(dx: number, dy: number) {
-  const maxDist = JOY_RADIUS - KNOB_R
+  const maxDist = joyRadius() - knobR()
   let nx = dx / maxDist
   let ny = dy / maxDist
   const mag = Math.sqrt(nx * nx + ny * ny)
@@ -1125,5 +1127,15 @@ canvas {
   padding: 8px 22px;
   cursor: pointer;
   width: 100%;
+}
+
+/* 大屏放大（≥768px）：摇杆/按钮整体变大（置于样式末尾，避免被覆盖） */
+@media (min-width: 768px) {
+  .joystick-base { width: 144px; height: 144px; }
+  .joystick-knob { width: 52px; height: 52px; }
+  .dash-fab { width: 84px; height: 84px; font-size: 2.2rem; }
+  .side-btn { width: 58px; height: 58px; font-size: 1.5rem; }
+  .side-btns { right: 18px; top: 76px; gap: 12px; }
+  .stick-hint { font-size: 0.78rem; }
 }
 </style>
