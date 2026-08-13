@@ -47,19 +47,23 @@ export function useRunnerLoop() {
   }
 
   function createRuntime(level: RunnerLevelDef): RunnerRuntime {
-    // 装备效果注入（动力/护甲/能量仓升级）
+    // 装备效果注入（动力/护甲/能量仓升级 + 操控参数）
     const eff = upgrades.applyUpgrades({
       thrust: level.physics.thrust,
       energyDrain: level.energyDrain,
       armor: START_ARMOR,
       maxEnergy: 100,
     })
+    const ctrl = upgrades.controlParams()
     return {
       state: 'playing',
       level,
       ship: { x: 70, y: 55, vx: 0, vy: 0, armor: eff.armor, invincible: 0 },
       maxEnergy: eff.maxEnergy,
       effDrain: eff.energyDrain,
+      effLerp: ctrl.lerp,
+      effInvincible: ctrl.invincible,
+      dashCooldownMax: ctrl.dashCooldown,
       dashTimer: 0,
       dashCooldown: 0,
       energy: eff.maxEnergy,
@@ -92,16 +96,16 @@ export function useRunnerLoop() {
     rt.time += dt
 
     // ===== 单摇杆 → 位移（左右）+ 油门（上下） =====
-    // 左右：水平移动
+    // 左右：水平移动（lerp = 加速响应，引擎升级更跟手）
     const targetVx = stickX.value * level.moveSpeed
-    ship.vx += (targetVx - ship.vx) * 0.18
+    ship.vx += (targetVx - ship.vx) * rt.effLerp
     ship.x += ship.vx * dt * 60
     // 上下：加速（上推=上升+流速快）/ 刹车（下拉=下降+流速慢）
     const yStick = stickY.value
     // 重力（各章不同：海洋微/大陆强/轨道零）—— 上推需持续对抗
     ship.vy += level.physics.gravity * dt * 60
     const targetVy = -yStick * level.moveSpeed * 0.7
-    ship.vy += (targetVy - ship.vy) * 0.18
+    ship.vy += (targetVy - ship.vy) * rt.effLerp
     ship.y += ship.vy * dt * 60
 
     // 油门（派生自 stickY 上推；冲刺时全油门）
@@ -147,7 +151,7 @@ export function useRunnerLoop() {
         if (!o.active) continue
         if (circleRectHit(ship.x, ship.y, SHIP_RADIUS, o.x - o.width / 2, o.y - o.height / 2, o.width, o.height)) {
           ship.armor--
-          ship.invincible = 60
+          ship.invincible = rt.effInvincible   // 无敌帧（护甲升级缩短硬直）
           o.active = false
           // 弹开
           ship.vx = (ship.x < o.x ? -1 : 1) * 0.8
@@ -322,7 +326,7 @@ export function useRunnerLoop() {
     if (rt.dashCooldown > 0) return
     if (rt.energy <= 8) return  // 能量不足
     rt.dashTimer = 18
-    rt.dashCooldown = 90
+    rt.dashCooldown = rt.dashCooldownMax   // 冲刺冷却（引擎升级缩短）
     rt.energy = Math.max(0, rt.energy - 8)
     rt.events.push('dash')
     if (soundState.soundEnabled) Sound.playThrust()

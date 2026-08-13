@@ -14,6 +14,7 @@ export const ocean1: RunnerLevelDef = {
   moveSpeed: 0.85,           // 左摇杆位移上限（海洋较慢）
   energyDrain: 2.0,          // 满推力 2 能量/秒
   bgGradient: ['#042f3e', '#0a5a5e'],
+  difficulty: 'T1',
   solarZones: [
     { id: 'sun1', x: 40, y: 220, width: 30, height: 50 },   // 中部太阳能区（教学）
     { id: 'sun2', x: 120, y: 420, width: 26, height: 44 },  // 后段太阳能区
@@ -74,6 +75,7 @@ export const ocean2: RunnerLevelDef = {
   moveSpeed: 0.9,
   energyDrain: 2.2,
   bgGradient: ['#033a4a', '#0a6a6a'],
+  difficulty: 'T2',
   solarZones: [
     { id: 'sun1', x: 35, y: 500, width: 26, height: 40 },
     { id: 'sun2', x: 100, y: 1000, width: 24, height: 38 },
@@ -134,6 +136,7 @@ export const ocean3: RunnerLevelDef = {
   moveSpeed: 0.8,
   energyDrain: 2.0,
   bgGradient: ['#2a0a3e', '#3d1a5e'],
+  difficulty: 'T3',
   solarZones: [
     { id: 'sun1', x: 40, y: 300, width: 24, height: 40 },
     { id: 'sun2', x: 85, y: 700, width: 22, height: 36 },
@@ -190,6 +193,7 @@ export const ocean4: RunnerLevelDef = {
   moveSpeed: 0.95,
   energyDrain: 2.5,
   bgGradient: ['#021a30', '#063a52'],
+  difficulty: 'T4',
   solarZones: [
     { id: 'sun1', x: 60, y: 650, width: 24, height: 36 },
   ],
@@ -242,6 +246,7 @@ export const ocean5: RunnerLevelDef = {
   moveSpeed: 0.9,
   energyDrain: 2.2,
   bgGradient: ['#03303a', '#0b6a6a'],
+  difficulty: 'T6',
   solarZones: [
     { id: 'sun1', x: 50, y: 400, width: 28, height: 44 },
     { id: 'sun2', x: 90, y: 900, width: 26, height: 40 },

@@ -14,6 +14,7 @@ export const orbit1: RunnerLevelDef = {
   moveSpeed: 0.95,
   energyDrain: 2.2,
   bgGradient: ['#0a0a2e', '#1a1a4e'],
+  difficulty: 'T2',
   solarZones: [
     { id: 'sun1', x: 45, y: 450, width: 28, height: 44 },
     { id: 'sun2', x: 95, y: 1000, width: 26, height: 40 },
@@ -56,6 +57,7 @@ export const orbit2: RunnerLevelDef = {
   moveSpeed: 0.95,
   energyDrain: 2.3,
   bgGradient: ['#0e0e3a', '#202060'],
+  difficulty: 'T3',
   solarZones: [
     { id: 'sun1', x: 50, y: 600, width: 26, height: 42 },
     { id: 'sun2', x: 100, y: 1150, width: 24, height: 38 },
@@ -105,6 +107,7 @@ export const orbit3: RunnerLevelDef = {
   moveSpeed: 1.0,
   energyDrain: 2.4,
   bgGradient: ['#12123e', '#26266a'],
+  difficulty: 'T4',
   solarZones: [
     { id: 'sun1', x: 55, y: 800, width: 24, height: 38 },
   ],
@@ -153,6 +156,7 @@ export const orbit4: RunnerLevelDef = {
   moveSpeed: 1.05,
   energyDrain: 2.5,
   bgGradient: ['#16163e', '#2e2e6a'],
+  difficulty: 'T5',
   solarZones: [
     { id: 'sun1', x: 60, y: 900, width: 24, height: 40 },
   ],
@@ -198,6 +202,7 @@ export const orbit5: RunnerLevelDef = {
   moveSpeed: 1.0,
   energyDrain: 2.3,
   bgGradient: ['#1a1a4a', '#303070'],
+  difficulty: 'T6',
   solarZones: [
     { id: 'sun1', x: 50, y: 400, width: 28, height: 44 },
     { id: 'sun2', x: 90, y: 950, width: 26, height: 42 },

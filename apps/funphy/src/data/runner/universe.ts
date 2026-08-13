@@ -16,6 +16,7 @@ export const universe1: RunnerLevelDef = {
   moveSpeed: 1.05,
   energyDrain: 2.4,
   bgGradient: ['#0a0518', '#1a0a30'],
+  difficulty: 'T6',
   solarZones: [
     { id: 'sun1', x: 40, y: 150, width: 26, height: 40 },
     { id: 'sun2', x: 90, y: 350, width: 24, height: 38 },

@@ -90,6 +90,7 @@ export interface RunnerLevelDef {
   spawns: RunnerSpawnDef[]   // 按里程触发的生成序列
   goal: { gems: number }     // 通关目标（宝石）
   bgGradient: [string, string]
+  difficulty: 'T1' | 'T2' | 'T3' | 'T4' | 'T5' | 'T6'  // 难度档（资源分级/刺激度）
 }
 
 // 运行时状态
@@ -106,6 +107,9 @@ export interface RunnerRuntime {
   }
   maxEnergy: number          // 能量上限（能量仓升级增加）
   effDrain: number           // 实际能耗率（动力升级降低）
+  effLerp: number            // 加速响应系数（引擎升级更跟手 0.18→0.34）
+  effInvincible: number      // 受击无敌帧（护甲升级 55→25）
+  dashCooldownMax: number    // 冲刺冷却帧（引擎升级 90→45）
   dashTimer: number          // 冲刺剩余帧（>0 全油门）
   dashCooldown: number       // 冲刺冷却帧
   energy: number             // 能量 0~maxEnergy
@@ -152,7 +156,9 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
     }
     if (def.gem) {
       // size 默认 s（1分）；大块（l）50% 高处生成 + 消失倒计时
-      const size = def.size || 's'
+      // 难度概率升级：T1 0% / T2-T3 5% / T4 10% / T5 15% / T6 20%
+      const diffLv = level.difficulty === 'T6' ? 0.2 : level.difficulty === 'T5' ? 0.15 : level.difficulty === 'T4' ? 0.1 : level.difficulty === 'T3' || level.difficulty === 'T2' ? 0.05 : 0
+      const size = def.size || (Math.random() < diffLv ? 'l' : 's')
       const high = size === 'l' && Math.random() < 0.5
       runtime.gemsArr.push({
         id: `g_${def.at}_${def.x}`,
@@ -165,7 +171,8 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
     }
     if (def.energy) {
       // size 默认 m（25%）；大块（l）50% 高处生成 + 消失倒计时
-      const size = def.energy === true && def.size ? def.size : 'm'
+      const diffLv = level.difficulty === 'T6' ? 0.2 : level.difficulty === 'T5' ? 0.15 : level.difficulty === 'T4' ? 0.1 : level.difficulty === 'T3' || level.difficulty === 'T2' ? 0.05 : 0
+      const size = def.size || (Math.random() < diffLv ? 'l' : 'm')
       const high = size === 'l' && Math.random() < 0.5
       runtime.energyBlocks.push({
         id: `e_${def.at}_${def.x}`,

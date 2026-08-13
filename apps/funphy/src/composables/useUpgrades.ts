@@ -126,5 +126,15 @@ export function useUpgrades() {
     }
   }
 
-  return { progress, save, addGems, upgrade, unlockCard, completeLevel, isLevelDone, isLevelUnlocked, applyUpgrades }
+  /** 装备效果 → 操控参数（跟手性：加速响应/受击硬直/冲刺冷却） */
+  function controlParams(): { lerp: number; invincible: number; dashCooldown: number } {
+    const u = progress.upgrades
+    return {
+      lerp: 0.18 + u.engine * 0.04,            // 加速响应 0.18→0.34（更跟手）
+      invincible: Math.max(25, 55 - u.armor * 10),  // 受击无敌帧 55→25
+      dashCooldown: Math.max(45, 90 - u.engine * 15), // 冲刺冷却 90→45
+    }
+  }
+
+  return { progress, save, addGems, upgrade, unlockCard, completeLevel, isLevelDone, isLevelUnlocked, applyUpgrades, controlParams }
 }
