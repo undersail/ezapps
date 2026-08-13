@@ -129,7 +129,7 @@ export function useRunnerLoop() {
       if (thr > 0) drain += rt.effDrain * thr * 1.0                          // 加速：2.0（最高）
       if (Math.abs(xInput) > 0) drain += rt.effDrain * Math.abs(xInput) * 1.0 // 左右移动：2.0
       if (yInput < 0) drain += rt.effDrain * (-yInput) * 0.5                  // 刹车：1.0
-      drain += rt.effDrain * 0.25 * dt                                        // 待机：0.5（最低）
+      drain += rt.effDrain * 0.4 * dt                                         // 待机：0.8（最低）
       rt.energy = Math.max(0, rt.energy - drain * dt)
     }
     // 太阳能回能（y=激活里程，progress 到达后生效；飞船在 x 带内 y 上部区域充能）
