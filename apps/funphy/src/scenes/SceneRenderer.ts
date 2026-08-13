@@ -535,6 +535,17 @@ export class SceneRenderer {
     if (runtime.throttle > 0.05) fakeFeifei.thrusting.up = true
     this.drawFeiFei(fakeFeifei, skin)
     
+    // 飘字动效（盲盒结果等：上浮 + 淡出）
+    for (const ft of runtime.floatTexts) {
+      const alpha = Math.min(1, ft.life / 20)
+      ctx.globalAlpha = alpha
+      ctx.fillStyle = ft.color
+      ctx.font = 'bold 6px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(ft.text, ft.x, ft.y - (60 - ft.life) * 0.12)
+      ctx.globalAlpha = 1
+    }
+
     ctx.restore()
   }
   

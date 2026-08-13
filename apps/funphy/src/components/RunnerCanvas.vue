@@ -138,6 +138,7 @@
         <div class="tip-title">🕹 操作说明</div>
         <div class="tip-row">←→ 移动 · ↑ 加速 · ↓ 刹车</div>
         <div class="tip-row">⚪ 宝石=升级货币 · 🟢 能量块=补能</div>
+        <div class="tip-row">🟡 金边=大障碍（危险）· ❓ 盲盒=随机奖励</div>
       </div>
 
       <!-- 首次进入太阳能区提示（同款卡片） -->

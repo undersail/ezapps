@@ -127,6 +127,7 @@ export interface RunnerRuntime {
   time: number
   failReason: 'armor' | 'timeout' | null
   events: string[]           // 'hit' | 'gem' | 'energy' | 'win' | 'dash'
+  floatTexts: { x: number; y: number; text: string; color: string; life: number }[]  // 飘字动效（盲盒结果等）
 }
 
 // 盲盒块生成间隔（按难度档：T1 无 / T2-T3 500 / T4 400 / T5 330 / T6 280 里程）
@@ -307,4 +308,7 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
   }
   // 清理
   runtime.obstacles = runtime.obstacles.filter(o => o.active)
+  // 飘字生命周期
+  for (const ft of runtime.floatTexts) ft.life--
+  runtime.floatTexts = runtime.floatTexts.filter(ft => ft.life > 0)
 }

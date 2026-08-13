@@ -80,6 +80,7 @@ export function useRunnerLoop() {
       time: 0,
       failReason: null,
       events: [],
+      floatTexts: [],
     }
   }
 
@@ -156,21 +157,29 @@ export function useRunnerLoop() {
           // 问号盲盒块：不扣甲，随机奖励/惩罚
           if (o.kind === 'mystery') {
             const roll = Math.random()
+            const ft = (text: string, color: string) => {
+              rt.floatTexts.push({ x: ship.x, y: ship.y - 6, text, color, life: 60 })
+            }
             if (roll < 0.2) {           // 20% 大礼包：宝石+6
               rt.gems += 6
               rt.events.push('gem')
+              ft('+6 💎', '#ffd700')
             } else if (roll < 0.4) {    // 20% 能量+35%
               rt.energy = Math.min(rt.maxEnergy, rt.energy + rt.maxEnergy * 0.35)
               rt.events.push('energy')
+              ft('+35% ⚡', '#4ade80')
             } else if (roll < 0.55) {   // 15% 护甲+1
               if (ship.armor < 5) ship.armor++
               rt.events.push('gem')
+              ft('+🛡 护甲', '#38bdf8')
             } else if (roll < 0.7) {    // 15% 惩罚：能量-15%
               rt.energy = Math.max(0, rt.energy - rt.maxEnergy * 0.15)
               rt.events.push('hit')
+              ft('-15% ⚡', '#f87171')
             } else {                    // 30% 惩罚：扣 1 甲（有护甲时）
               if (ship.armor > 0) ship.armor--
               rt.events.push('hit')
+              ft('-🛡 护甲', '#f87171')
             }
             continue
           }
