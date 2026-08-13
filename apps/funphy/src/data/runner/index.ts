@@ -3,10 +3,11 @@ import { oceanLevels } from './ocean'
 import { landLevels } from './gravity_land'
 import { skyLevels } from './free_sky'
 import { orbitLevels } from './zero_orbit'
+import { planetLevels } from './planet_world'
 import type { RunnerLevelDef } from '../../engine/runnerTypes'
 
 // 全部关卡（按章节顺序，探险模式连续推进）
-export const runnerLevels: RunnerLevelDef[] = [...oceanLevels, ...landLevels, ...skyLevels, ...orbitLevels]
+export const runnerLevels: RunnerLevelDef[] = [...oceanLevels, ...landLevels, ...skyLevels, ...orbitLevels, ...planetLevels]
 
 // 章节元信息（大厅分组显示）
 export interface RunnerChapterMeta {
@@ -21,4 +22,5 @@ export const runnerChapters: RunnerChapterMeta[] = [
   { chapter: 2, title: '重力大陆', emoji: '⛰️', color: ['#3d2b1f', '#6b4a2f'] },
   { chapter: 3, title: '自由天空', emoji: '☁️', color: ['#1e3a5f', '#3d6a9e'] },
   { chapter: 4, title: '失重轨道', emoji: '🛰️', color: ['#0a0a2e', '#1a1a4e'] },
+  { chapter: 5, title: '行星世界', emoji: '🪐', color: ['#2a0a1a', '#4a1a2e'] },
 ]
