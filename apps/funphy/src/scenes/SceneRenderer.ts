@@ -312,14 +312,15 @@ export class SceneRenderer {
     ctx.fillStyle = 'rgba(0,0,0,0.25)'
     ctx.fillRect(0, VIEW_H - 12, VIEW_W, 12)
     
-    // 太阳能区（金色光柱）
+    // 太阳能区（金色光柱，y=激活里程，progress 到达后显示为视口顶部竖条）
     for (const z of runtime.level.solarZones) {
+      if (runtime.progress < z.y) continue   // 未到激活里程
       const pulse = Math.sin(Date.now() / 400) * 0.15 + 0.35
       ctx.fillStyle = `rgba(253, 224, 71, ${pulse})`
-      ctx.fillRect(z.x, z.y, z.width, z.height)
+      ctx.fillRect(z.x, 0, z.width, Math.min(z.height, VIEW_H))
       ctx.strokeStyle = 'rgba(253, 224, 71, 0.7)'
       ctx.lineWidth = 1
-      ctx.strokeRect(z.x, z.y, z.width, z.height)
+      ctx.strokeRect(z.x, 0, z.width, Math.min(z.height, VIEW_H))
     }
     
     // 障碍（复用主题形态绘制 + 章节专属元素库）

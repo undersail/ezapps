@@ -123,7 +123,7 @@
             <p class="card-detail-label">🏠 生活例子</p>
             <p class="card-detail-text">{{ selectedCard.lifeExample }}</p>
           </div>
-          <button class="btn-primary" @click="closeCardDetail">收下这张卡</button>
+          <button class="btn-primary" @click="closeCardDetail">收起卡片</button>
         </div>
       </div>
 
@@ -136,7 +136,12 @@
       <!-- 悬浮教学提示（首次游玩文字说明） -->
       <div class="runner-tip" v-if="gameState === 'playing' && runtime && runtime.progress < 30">
         🕹 摇杆：←→ 移动 · ↑ 加速 · ↓ 刹车
-        <div class="tip-sub">⚪ 宝石=升级货币 · 🟢 能量块=补能 · 🟡 金区=太阳能充能</div>
+        <div class="tip-sub">⚪ 宝石=升级货币 · 🟢 能量块=补能</div>
+      </div>
+
+      <!-- 首次进入太阳能区提示 -->
+      <div class="runner-tip solar-tip" v-if="solarTipVisible">
+        🟡 太阳能区：持续充能！<div class="tip-sub">待在里面就能慢慢回满能量</div>
       </div>
 
       <!-- 暂停界面 -->
@@ -245,7 +250,19 @@ const {
   togglePause, resumeGame,
   setStickTouch, setViewSize, upgrades, dash,
   currentLevelIndex, advanceLevel, setLevelIndex, lastNewCardId,
+  solarTip,
 } = useRunnerLoop()
+
+// 太阳能区提示（首次进入显示 3 秒）
+const solarTipVisible = ref(false)
+let solarTipTimer = 0
+watch(solarTip, (v) => {
+  if (v) {
+    solarTipVisible.value = true
+    clearTimeout(solarTipTimer)
+    solarTipTimer = window.setTimeout(() => { solarTipVisible.value = false }, 3000)
+  }
+})
 
 const totalGems = computed(() => upgrades.progress.gems)
 
@@ -644,6 +661,8 @@ canvas {
   pointer-events: none;
   white-space: nowrap;
 }
+.tip-sub { font-size: 0.62rem; color: rgba(255,255,255,0.6); margin-top: 2px; }
+.solar-tip { border-color: rgba(253, 224, 71, 0.4); }
 
 /* ==== 过场卡片（上部居中，显眼位置） ==== */
 .intro-card {
@@ -770,7 +789,7 @@ canvas {
 .physics-card.locked { opacity: 0.45; filter: grayscale(0.8); cursor: default; }
 
 /* 卡片详情弹窗 */
-.card-detail-card { max-width: 380px; text-align: center; }
+.card-detail-card { max-width: 300px; text-align: center; }
 .card-detail-icon { font-size: 2.4rem; }
 .card-detail-formal { margin: 0 0 12px; color: rgba(125, 211, 252, 0.9); font-size: 0.95rem; font-weight: 600; }
 .card-detail-body { text-align: left; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }

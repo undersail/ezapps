@@ -22,6 +22,7 @@ export function useRunnerLoop() {
   const stickX = ref(0)   // 摇杆 X：左右移动 -1~1
   const stickY = ref(0)   // 摇杆 Y：上推=加速(+1)，下拉=刹车(-1)
   const throttle = ref(0) // 派生：油门（stickY 上推为正）
+  const solarTip = ref(false)  // 首次进入太阳能区提示（每关一次）
 
   // HUD
   const armor = ref(START_ARMOR)
@@ -117,10 +118,13 @@ export function useRunnerLoop() {
     if (thr > 0) {
       rt.energy = Math.max(0, rt.energy - rt.effDrain * thr * dt)
     }
-    // 太阳能回能
+    // 太阳能回能（y=激活里程，progress 到达后生效；飞船在 x 带内 y 上部区域充能）
     for (const z of level.solarZones) {
-      if (ship.x > z.x && ship.x < z.x + z.width && ship.y > z.y && ship.y < z.y + z.height) {
+      if (rt.progress < z.y) continue   // 未到激活里程
+      if (ship.x > z.x && ship.x < z.x + z.width && ship.y < z.height) {
         rt.energy = Math.min(rt.maxEnergy, rt.energy + 3 * dt)
+        // 首次进入太阳区 → 提示
+        if (!solarTip.value) solarTip.value = true
       }
     }
 
@@ -239,6 +243,7 @@ export function useRunnerLoop() {
     gameState.value = 'playing'
     lastTime = 0
     timeAccumulator = 0
+    solarTip.value = false   // 每关重置太阳区提示
     // 重置输入
     stickX.value = 0
     stickY.value = 0
@@ -350,5 +355,6 @@ export function useRunnerLoop() {
     setStickTouch, setViewSize,
     upgrades, dash,
     currentLevelIndex, advanceLevel, setLevelIndex, lastNewCardId,
+    solarTip,
   }
 }
