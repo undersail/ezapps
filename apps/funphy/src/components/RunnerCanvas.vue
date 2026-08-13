@@ -509,8 +509,9 @@ canvas {
 .intro-card {
   position: absolute;
   top: 64px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin: 0 auto;          /* 用 margin 居中，transform 留给动画 */
   width: min(420px, 86%);
   background: rgba(2, 6, 23, 0.85);
   border: 1px solid rgba(125, 211, 252, 0.4);
@@ -536,7 +537,7 @@ canvas {
   text-align: right;
 }
 @keyframes intro-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -698,11 +699,11 @@ canvas {
 }
 .side-btn:active { transform: scale(0.9); }
 
-/* 右下冲刺键（与左下摇杆垂直居中对齐） */
+/* 右下冲刺键（与左下摇杆中心对称：摇杆中心距底 91px - 半径 32px） */
 .dash-fab {
   position: absolute;
   right: 18px;
-  bottom: 38px;   /* 摇杆中心距底 70px - 冲刺键半径 32px */
+  bottom: 59px;
   width: 64px;
   height: 64px;
   border-radius: 50%;
