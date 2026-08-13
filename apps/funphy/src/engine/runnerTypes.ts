@@ -242,8 +242,8 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
     }
     if (def.gem) {
       // size 默认 s（1分）；大块（l）50% 高处生成 + 消失倒计时
-      // 难度概率升级：T1 0% / T2-T3 10% / T4 15% / T5 20% / T6 25%
-      const diffLv = level.difficulty === 'T6' ? 0.25 : level.difficulty === 'T5' ? 0.2 : level.difficulty === 'T4' ? 0.15 : level.difficulty === 'T3' || level.difficulty === 'T2' ? 0.1 : 0
+      // 难度概率升级：T1 0% / T2-T3 10% / T4 20% / T5 25% / T6 30%
+      const diffLv = level.difficulty === 'T6' ? 0.3 : level.difficulty === 'T5' ? 0.25 : level.difficulty === 'T4' ? 0.2 : level.difficulty === 'T3' || level.difficulty === 'T2' ? 0.1 : 0
       const size = def.size || (Math.random() < diffLv ? 'l' : 's')
       const high = size === 'l' && Math.random() < 0.5
       runtime.gemsArr.push({
@@ -256,8 +256,8 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
       })
     }
     if (def.energy) {
-      // 难度概率升级：T1 0% / T2-T3 10% / T4 15% / T5 20% / T6 25%
-      const diffLv = level.difficulty === 'T6' ? 0.25 : level.difficulty === 'T5' ? 0.2 : level.difficulty === 'T4' ? 0.15 : level.difficulty === 'T3' || level.difficulty === 'T2' ? 0.1 : 0
+      // 难度概率升级：T1 0% / T2-T3 10% / T4 20% / T5 25% / T6 30%
+      const diffLv = level.difficulty === 'T6' ? 0.3 : level.difficulty === 'T5' ? 0.25 : level.difficulty === 'T4' ? 0.2 : level.difficulty === 'T3' || level.difficulty === 'T2' ? 0.1 : 0
       const size = def.size || (Math.random() < diffLv ? 'l' : 'm')
       const high = size === 'l' && Math.random() < 0.5
       runtime.energyBlocks.push({
@@ -288,7 +288,8 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
   }
   for (const g of runtime.gemsArr) {
     if (!g.collected) {
-      g.y += flow + 0.15
+      // 带倒计时的大块：慢速下落（存留 ~10 秒，玩家有时间发现）
+      g.y += g.expiresIn > 0 ? flow * 0.3 + 0.05 : flow + 0.15
       if (g.expiresIn > 0) {
         g.expiresIn -= 1 / 60
         if (g.expiresIn <= 0) g.collected = true   // 倒计时结束消失
@@ -298,7 +299,8 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
   }
   for (const eb of runtime.energyBlocks) {
     if (!eb.collected) {
-      eb.y += flow + 0.15
+      // 带倒计时的大块：慢速下落
+      eb.y += eb.expiresIn > 0 ? flow * 0.3 + 0.05 : flow + 0.15
       if (eb.expiresIn > 0) {
         eb.expiresIn -= 1 / 60
         if (eb.expiresIn <= 0) eb.collected = true

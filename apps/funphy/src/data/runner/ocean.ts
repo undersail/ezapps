@@ -84,7 +84,7 @@ export const ocean2: RunnerLevelDef = {
     // ==== 教学段（0-350） ====
     { at: 60, x: 50, gem: true },
     { at: 90, x: 60, obstacle: { kind: 'falling', style: 'rock', width: 9, height: 9, fallSpeed: 0.5, sway: 6, swaySpeed: 3 } },
-    { at: 150, x: 85, gem: true },
+    { at: 150, x: 85, gem: true, size: 'l' },
     { at: 200, x: 45, obstacle: { kind: 'falling', style: 'rock', width: 9, height: 9, fallSpeed: 0.55, sway: 8, swaySpeed: 3.5 } },
     { at: 260, x: 70, gem: true },
     { at: 310, x: 55, energy: true },
@@ -97,7 +97,7 @@ export const ocean2: RunnerLevelDef = {
     { at: 540, x: 90, gem: true },
     { at: 590, x: 35, obstacle: { kind: 'dive', style: 'rock', width: 8, height: 8, fallSpeed: 1.2 } },
     { at: 595, x: 75, obstacle: { kind: 'dive', style: 'rock', width: 8, height: 8, fallSpeed: 1.2 } },
-    { at: 640, x: 60, energy: true },
+    { at: 640, x: 60, energy: true, size: 'l' },
     { at: 690, x: 45, obstacle: { kind: 'falling', style: 'rock', width: 9, height: 9, fallSpeed: 0.65, sway: 12, swaySpeed: 4 } },
     { at: 700, x: 85, obstacle: { kind: 'falling', style: 'rock', width: 9, height: 9, fallSpeed: 0.65, sway: 12, swaySpeed: 4 } },
     { at: 730, x: 65, gem: true },
@@ -145,7 +145,7 @@ export const ocean3: RunnerLevelDef = {
     // ==== 教学段（0-250） ====
     { at: 50, x: 60, gem: true },
     { at: 90, x: 50, obstacle: { kind: 'falling', style: 'rock', width: 10, height: 12, fallSpeed: 0.4 } },
-    { at: 140, x: 80, gem: true },
+    { at: 140, x: 80, gem: true, size: 'l' },
     { at: 180, x: 65, obstacle: { kind: 'falling', style: 'rock', width: 11, height: 13, fallSpeed: 0.45, sway: 5, swaySpeed: 2.5 } },
     { at: 230, x: 45, energy: true },
     // ==== 常规段（250-750）：双柱窄通道 ====
@@ -158,7 +158,7 @@ export const ocean3: RunnerLevelDef = {
     { at: 470, x: 50, obstacle: { kind: 'falling', style: 'rock', width: 13, height: 13, fallSpeed: 0.55 } },
     { at: 540, x: 30, obstacle: { kind: 'falling', style: 'rock', width: 11, height: 13, fallSpeed: 0.55, sway: 8, swaySpeed: 3 } },
     { at: 545, x: 100, obstacle: { kind: 'falling', style: 'rock', width: 11, height: 13, fallSpeed: 0.55, sway: 8, swaySpeed: 3 } },
-    { at: 590, x: 65, energy: true },
+    { at: 590, x: 65, energy: true, size: 'l' },
     { at: 640, x: 40, obstacle: { kind: 'falling', style: 'rock', width: 12, height: 14, fallSpeed: 0.6 } },
     { at: 650, x: 90, obstacle: { kind: 'falling', style: 'rock', width: 12, height: 14, fallSpeed: 0.6 } },
     { at: 700, x: 68, gem: true },
@@ -201,7 +201,7 @@ export const ocean4: RunnerLevelDef = {
     // ==== 适应段（0-400）：急流速度适应 ====
     { at: 80, x: 50, gem: true },
     { at: 140, x: 70, obstacle: { kind: 'falling', style: 'rock', width: 9, height: 9, fallSpeed: 0.7, sway: 8, swaySpeed: 3.5 } },
-    { at: 220, x: 85, gem: true },
+    { at: 220, x: 85, gem: true, size: 'l' },
     { at: 300, x: 45, obstacle: { kind: 'falling', style: 'rock', width: 10, height: 10, fallSpeed: 0.75, sway: 10, swaySpeed: 4 } },
     { at: 380, x: 65, energy: true },
     // ==== 常规段（400-1000）：俯冲为主 ====
@@ -213,7 +213,7 @@ export const ocean4: RunnerLevelDef = {
     { at: 685, x: 100, obstacle: { kind: 'dive', style: 'rock', width: 10, height: 10, fallSpeed: 1.5 } },
     { at: 750, x: 68, gem: true },
     { at: 820, x: 50, obstacle: { kind: 'falling', style: 'rock', width: 11, height: 11, fallSpeed: 0.8, sway: 12, swaySpeed: 4.5 } },
-    { at: 900, x: 65, energy: true },
+    { at: 900, x: 65, energy: true, size: 'l' },
     { at: 960, x: 40, obstacle: { kind: 'dive', style: 'rock', width: 10, height: 10, fallSpeed: 1.5 } },
     { at: 965, x: 85, obstacle: { kind: 'dive', style: 'rock', width: 10, height: 10, fallSpeed: 1.5 } },
     // ==== 收尾段（1000-1600）：高密度急流 ====
@@ -255,7 +255,7 @@ export const ocean5: RunnerLevelDef = {
   spawns: [
     // ==== 开场（0-300） ====
     { at: 60, x: 50, gem: true },
-    { at: 100, x: 70, gem: true },
+    { at: 100, x: 70, gem: true, size: 'l' },
     { at: 140, x: 55, obstacle: { kind: 'falling', style: 'rock', width: 9, height: 9, fallSpeed: 0.55, sway: 8, swaySpeed: 3 } },
     { at: 200, x: 85, gem: true },
     { at: 260, x: 45, obstacle: { kind: 'falling', style: 'rock', width: 10, height: 10, fallSpeed: 0.6, sway: 10, swaySpeed: 3.5 } },
@@ -263,7 +263,7 @@ export const ocean5: RunnerLevelDef = {
     { at: 330, x: 68, gem: true },
     { at: 390, x: 40, obstacle: { kind: 'falling', style: 'rock', width: 10, height: 10, fallSpeed: 0.6, sway: 10, swaySpeed: 4 } },
     { at: 400, x: 90, obstacle: { kind: 'falling', style: 'rock', width: 10, height: 10, fallSpeed: 0.6, sway: 10, swaySpeed: 4 } },
-    { at: 460, x: 65, energy: true },
+    { at: 460, x: 65, energy: true, size: 'l' },
     { at: 520, x: 50, obstacle: { kind: 'dive', style: 'rock', width: 9, height: 9, fallSpeed: 1.3 } },
     { at: 525, x: 100, obstacle: { kind: 'dive', style: 'rock', width: 9, height: 9, fallSpeed: 1.3 } },
     { at: 590, x: 68, gem: true },

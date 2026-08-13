@@ -452,9 +452,9 @@ export class SceneRenderer {
         ctx.restore()
       }
       ctx.globalAlpha = 1
-      // 大块倒计时数字（剩余 <=3 显示）
-      if (g.expiresIn > 0 && g.expiresIn <= 3 && alpha === 1) {
-        ctx.fillStyle = '#fff'
+      // 大块倒计时数字（剩余 <=5 显示，闪烁提醒）
+      if (g.expiresIn > 0 && g.expiresIn <= 5) {
+        ctx.fillStyle = g.expiresIn <= 3 && alpha < 1 ? '#ff6b6b' : '#fff'
         ctx.font = 'bold 5px sans-serif'
         ctx.textAlign = 'center'
         ctx.fillText(String(Math.ceil(g.expiresIn)), g.x, gy - r - 2.5)
@@ -495,9 +495,9 @@ export class SceneRenderer {
         ctx.fill()
       }
       ctx.globalAlpha = 1
-      // 倒计时数字
-      if (eb.expiresIn > 0 && eb.expiresIn <= 3 && alpha === 1) {
-        ctx.fillStyle = '#fff'
+      // 倒计时数字（剩余 <=5 显示）
+      if (eb.expiresIn > 0 && eb.expiresIn <= 5) {
+        ctx.fillStyle = eb.expiresIn <= 3 && alpha < 1 ? '#ff6b6b' : '#fff'
         ctx.font = 'bold 5px sans-serif'
         ctx.textAlign = 'center'
         ctx.fillText(String(Math.ceil(eb.expiresIn)), eb.x, ey - s - 2.5)
