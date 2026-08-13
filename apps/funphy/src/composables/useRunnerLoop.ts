@@ -211,24 +211,28 @@ export function useRunnerLoop() {
         }
       }
     }
-    // 宝石（分值按大小档 1/3/6）
+    // 宝石（分值按大小档 1/3/6，全部飘字）
     for (const g of rt.gemsArr) {
       if (!g.collected && circleRectHit(ship.x, ship.y, SHIP_RADIUS, g.x - 3, g.y - 3, 6, 6)) {
         g.collected = true
         const v = gemValue(g.size)
         rt.gems += v
         rt.events.push('gem')
-        if (v >= 3) rt.floatTexts.push({ x: ship.x, y: ship.y - 6, text: `+${v} 💎`, color: v >= 6 ? '#ffd700' : '#c084fc', life: 45 })
+        rt.floatTexts.push({
+          x: ship.x, y: ship.y - 6, text: `+${v} 💎`,
+          color: v >= 6 ? '#ffd700' : v >= 3 ? '#c084fc' : '#f8fafc',
+          life: 45,
+        })
       }
     }
-    // 能量块（能量按大小档 12%/25%/40%）
+    // 能量块（能量按大小档 12%/25%/40%，全部飘字）
     for (const eb of rt.energyBlocks) {
       if (!eb.collected && circleRectHit(ship.x, ship.y, SHIP_RADIUS + 1, eb.x - 3, eb.y - 3, 6, 6)) {
         eb.collected = true
         const ev = energyValue(eb.size)
         rt.energy = Math.min(rt.maxEnergy, rt.energy + ev)
         rt.events.push('energy')
-        if (ev >= 25) rt.floatTexts.push({ x: ship.x, y: ship.y - 6, text: `+${ev}% ⚡`, color: '#4ade80', life: 45 })
+        rt.floatTexts.push({ x: ship.x, y: ship.y - 6, text: `+${ev}% ⚡`, color: ev >= 40 ? '#4ade80' : ev >= 25 ? '#86efac' : '#bbf7d0', life: 45 })
       }
     }
 
