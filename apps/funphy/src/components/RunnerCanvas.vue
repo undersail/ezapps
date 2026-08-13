@@ -435,28 +435,37 @@ canvas {
 .armor-heart { font-size: 0.8rem; }
 .armor-heart.empty { opacity: 0.25; filter: grayscale(1); }
 .gem-display { font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
-.hud-center { gap: 10px; }
-.stat { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: #e2e8f0; min-width: 44px; white-space: nowrap; }
-.progress-wrap { display: flex; align-items: center; gap: 6px; }
+/* HUD 布局：左/右固定，中栏 flex 自适应压缩（窄屏条变短不溢出） */
+.hud-left { flex-shrink: 0; }
+.hud-right { flex-shrink: 0; }
+.hud-center { flex: 1 1 auto; min-width: 0; gap: 8px; }
+.stat { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: #e2e8f0; white-space: nowrap; flex-shrink: 0; }
+.progress-wrap { flex: 1 1 auto; min-width: 24px; display: flex; align-items: center; gap: 5px; }
 .progress-bar {
-  width: 90px;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 90px;
+  min-width: 24px;
   height: 7px;
   border-radius: 4px;
   background: rgba(255,255,255,0.12);
   overflow: hidden;
 }
 .progress-fill { height: 100%; background: linear-gradient(90deg, #38bdf8, #818cf8); border-radius: 4px; transition: width 0.15s; }
-.progress-num { font-size: 0.7rem; color: rgba(255,255,255,0.6); min-width: 30px; }
-.energy-wrap { display: flex; align-items: center; gap: 6px; }
+.progress-num { font-size: 0.7rem; color: rgba(255,255,255,0.6); flex-shrink: 0; }
+.energy-wrap { flex: 1 1 auto; min-width: 24px; display: flex; align-items: center; gap: 5px; }
 .energy-bar {
-  width: 70px;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 70px;
+  min-width: 24px;
   height: 7px;
   border-radius: 4px;
   background: rgba(255,255,255,0.12);
   overflow: hidden;
 }
 .energy-fill { height: 100%; border-radius: 4px; transition: width 0.1s, background 0.3s; }
-.energy-num { font-size: 0.7rem; min-width: 40px; }
+.energy-num { font-size: 0.7rem; flex-shrink: 0; }
 .hud-btn {
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -482,11 +491,11 @@ canvas {
   .runner-hud { padding: 8px 12px; gap: 8px; }
   .hud-group { padding: 4px 10px; gap: 8px; }
   .armor-heart { font-size: 0.95rem; }
-  .progress-bar { width: 90px; }
-  .energy-bar { width: 70px; }
-  .progress-num { display: inline; }
-  .energy-num { font-size: 0.7rem; min-width: 40px; }
-  .stat { font-size: 0.85rem; min-width: 44px; }
+  .progress-bar { max-width: 110px; }
+  .energy-bar { max-width: 90px; }
+  .progress-num { font-size: 0.75rem; }
+  .energy-num { font-size: 0.75rem; }
+  .stat { font-size: 0.9rem; }
   .hud-btn { padding: 3px 8px; font-size: 0.85rem; }
 }
 
