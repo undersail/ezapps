@@ -61,6 +61,7 @@
                 </button>
               </div>
             </div>
+            <button class="cardbook-btn" @click="showCardbook = true">📚 物理卡册 {{ ownedCards }}/{{ physicsCards.length }}</button>
             <a class="home-link" href="/">🏠 返回 ezapps 主页</a>
           </div>
         </div>
@@ -95,6 +96,21 @@
         <div class="hud-group hud-right">
           <button class="hud-btn" @click="toggleSound" aria-label="声音">{{ soundEnabled ? '🔊' : '🔇' }}</button>
           <button class="hud-btn" @click="togglePause" aria-label="暂停">⏸</button>
+        </div>
+      </div>
+
+      <!-- 物理卡册弹窗 -->
+      <div class="overlay" v-if="showCardbook">
+        <div class="overlay-card cardbook-card">
+          <h2>📚 物理卡册 · {{ ownedCards }}/{{ physicsCards.length }}</h2>
+          <p class="cardbook-hint">通关关卡即可解锁对应物理卡</p>
+          <div class="cardbook-grid">
+            <div v-for="c in physicsCards" :key="c.id" class="physics-card" :class="{ locked: !upgrades.progress.cards.includes(c.id) }">
+              <div class="physics-card-name">{{ upgrades.progress.cards.includes(c.id) ? c.intuitionName : '🔒' }}</div>
+              <div class="physics-card-desc">{{ upgrades.progress.cards.includes(c.id) ? c.formalName : '通关 ' + c.id + ' 解锁' }}</div>
+            </div>
+          </div>
+          <button class="btn-secondary" @click="showCardbook = false">关闭</button>
         </div>
       </div>
 
@@ -239,6 +255,11 @@ const upgradeDesc: Record<'engine' | 'armor' | 'battery', string> = {
 // 无限模式最佳里程
 const bestDistanceText = computed(() => upgrades.progress.bestDistance > 0 ? `${upgrades.progress.bestDistance}` : '尚无记录')
 
+// 物理卡册（V1 物理卡数据，30 张，id 与关卡对应）
+import { physicsCards } from '../data/physicsCards'
+const showCardbook = ref(false)
+const ownedCards = computed(() => physicsCards.filter(c => upgrades.progress.cards.includes(c.id)).length)
+
 const fmtTime = computed(() => {
   const t = elapsedTime.value
   const m = Math.floor(t / 60)
@@ -301,7 +322,7 @@ function renderLoop() {
   const rt = runtime.value
   if (canvas && renderer) {
     if (rt) {
-      renderer.renderRunner(rt, skins[0])
+      renderer.renderRunner(rt, skins[0], upgrades.progress.upgrades)
     } else {
       // 大厅背景（深蓝渐变 + 星空感）
       const ctx = canvas.getContext('2d')
@@ -678,6 +699,40 @@ canvas {
   text-decoration: none;
 }
 .home-link:hover { color: #7dd3fc; }
+.cardbook-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.85);
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.cardbook-btn:hover { border-color: rgba(125, 211, 252, 0.4); color: #fff; }
+
+/* 物理卡册弹窗 */
+.cardbook-card { max-width: 560px; max-height: 84dvh; overflow-y: auto; text-align: center; }
+.cardbook-hint { margin: 0 0 12px; color: rgba(255,255,255,0.55); font-size: 0.8rem; }
+.cardbook-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.physics-card {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 12px 10px;
+  text-align: center;
+}
+.physics-card.locked { opacity: 0.45; filter: grayscale(0.8); }
+.physics-card-icon { font-size: 1.6rem; }
+.physics-card-name { font-size: 0.85rem; font-weight: 600; margin: 4px 0 4px; }
+.physics-card-desc { font-size: 0.7rem; color: rgba(255,255,255,0.6); line-height: 1.4; }
 
 /* 模式切换 */
 .mode-tabs {

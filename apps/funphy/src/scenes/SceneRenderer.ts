@@ -283,7 +283,7 @@ export class SceneRenderer {
   // ============ V2 跑酷渲染（垂直跑酷：障碍下落流 + 自由飞船） ============
   
   /** 渲染跑酷关卡（固定视口，飞船自由移动，障碍从顶部下落） */
-  renderRunner(runtime: RunnerRuntime, skin: SkinDef): void {
+  renderRunner(runtime: RunnerRuntime, skin: SkinDef, upgradeLevels?: { engine: number; armor: number; battery: number }): void {
     const ctx = this.ctx
     ctx.clearRect(0, 0, this.width, this.height)
     
@@ -419,6 +419,7 @@ export class SceneRenderer {
       dashCooldown: 0,
       dashDirX: 0,
       dashDirY: 0,
+      upgradeLevels: upgradeLevels || { engine: 0, armor: 0, battery: 0 },  // 装备升级可见外观
     }
     // 推进时尾焰
     if (runtime.throttle > 0.05) fakeFeifei.thrusting.up = true
@@ -1343,10 +1344,12 @@ export class SceneRenderer {
   
   private drawFlame(ctx: CanvasRenderingContext2D, skin: SkinDef, feifei: FeiFei): void {
     const r = feifei.radius
+    const upg = feifei.upgradeLevels || { engine: 0, armor: 0, battery: 0 }
     const flicker = Math.random() * 0.3 + 0.7
-    // 冲刺时尾焰加长加亮
+    // 冲刺时尾焰加长加亮；引擎升级再加长
     const dashBoost = feifei.dashTimer > 0 ? 2.2 : 1
-    const flameLen = (7 + Math.random() * 4) * flicker * dashBoost
+    const engineBoost = 1 + upg.engine * 0.12
+    const flameLen = (7 + Math.random() * 4) * flicker * dashBoost * engineBoost
     
     ctx.save()
     
@@ -1417,12 +1420,14 @@ export class SceneRenderer {
       ctx.fill()
     }
     
-    // ===== 能量环（机身中部光环） =====
+    // ===== 能量环（机身中部光环，能量仓升级更亮更粗） =====
+    const upg = feifei.upgradeLevels || { engine: 0, armor: 0, battery: 0 }
+    const batteryBoost = 1 + upg.battery * 0.15
     const energyPulse = Math.sin(Date.now() / 250) * 0.2 + 0.6
     ctx.strokeStyle = feifei.dashTimer > 0
       ? `rgba(253, 224, 71, ${energyPulse + 0.3})`
-      : `rgba(96, 165, 250, ${energyPulse * 0.7})`
-    ctx.lineWidth = feifei.dashTimer > 0 ? 2 : 1.2
+      : `rgba(96, 165, 250, ${energyPulse * 0.7 * batteryBoost})`
+    ctx.lineWidth = (feifei.dashTimer > 0 ? 2 : 1.2) * batteryBoost
     ctx.beginPath()
     ctx.ellipse(0, r * 0.15, r * 1.35, r * 0.5, 0, 0, Math.PI * 2)
     ctx.stroke()
@@ -1466,6 +1471,32 @@ export class SceneRenderer {
     ctx.fillStyle = 'rgba(148, 163, 184, 0.6)'
     ctx.fillRect(-r * 0.42, r * 1.45, r * 0.36, r * 0.1)
     ctx.fillRect(r * 0.06, r * 1.45, r * 0.36, r * 0.1)
+    
+    // ===== 护甲星徽（机身后部，护甲升级可见） =====
+    const upgA = feifei.upgradeLevels || { engine: 0, armor: 0, battery: 0 }
+    if (upgA.armor > 0) {
+      const starY = r * 1.15
+      const starR = r * 0.28 + upgA.armor * 0.03
+      ctx.fillStyle = upgA.armor >= 2 ? '#fbbf24' : '#e2e8f0'
+      ctx.beginPath()
+      for (let i = 0; i < 10; i++) {
+        const ang = Math.PI * 2 * i / 10 - Math.PI / 2
+        const rad = i % 2 === 0 ? starR : starR * 0.45
+        const px = Math.cos(ang) * rad
+        const py = starY + Math.sin(ang) * rad
+        if (i === 0) ctx.moveTo(px, py)
+        else ctx.lineTo(px, py)
+      }
+      ctx.closePath()
+      ctx.fill()
+      if (upgA.armor >= 3) {
+        ctx.strokeStyle = 'rgba(253, 224, 71, 0.5)'
+        ctx.lineWidth = 0.8
+        ctx.beginPath()
+        ctx.arc(0, starY, starR * 1.7, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+    }
   }
   
   private drawExpression(ctx: CanvasRenderingContext2D, expression: FeiFeiExpression, feifei: FeiFei): void {

@@ -64,6 +64,7 @@ export function useGameLoop() {
       dashCooldown: 0,
       dashDirX: 1,
       dashDirY: 0,
+      upgradeLevels: { engine: 0, armor: 0, battery: 0 },  // V1 无装备升级
     }
     
     const obstacles: Obstacle[] = level.obstacles.map(o => ({

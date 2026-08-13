@@ -38,6 +38,7 @@ export interface FeiFei extends Entity {
   dashCooldown: number  // 冲刺冷却帧
   dashDirX: number  // 冲刺方向（归一化）
   dashDirY: number
+  upgradeLevels: { engine: number; armor: number; battery: number }  // 装备升级可见外观
 }
 
 // 障碍物类型（platform=单向平台：仅从上方碰撞）
