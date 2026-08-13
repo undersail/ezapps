@@ -59,6 +59,8 @@ export function useRunnerLoop() {
       ship: { x: 70, y: 55, vx: 0, vy: 0, armor: eff.armor, invincible: 0 },
       maxEnergy: eff.maxEnergy,
       effDrain: eff.energyDrain,
+      dashTimer: 0,
+      dashCooldown: 0,
       energy: eff.maxEnergy,
       gems: 0,
       progress: 0,
@@ -99,12 +101,16 @@ export function useRunnerLoop() {
     ship.vy += (targetVy - ship.vy) * 0.18
     ship.y += ship.vy * dt * 60
 
-    // 油门（派生自 stickY 上推）
+    // 油门（派生自 stickY 上推；冲刺时全油门）
     let thr = yStick
+    if (rt.dashTimer > 0) thr = 1
     if (rt.energy <= 0 && thr > 0) thr = 0  // 无能量只能滑行（刹车仍可用）
     rt.throttle = thr
     rt.flowSpeed = level.baseFlow + Math.max(0, thr) * level.flowRange
     if (thr < 0) rt.flowSpeed = level.baseFlow * (1 + thr * 0.7)  // 刹车减速
+    // 冲刺计时递减
+    if (rt.dashTimer > 0) rt.dashTimer--
+    if (rt.dashCooldown > 0) rt.dashCooldown--
     // 能量消耗（推进时）
     if (thr > 0) {
       rt.energy = Math.max(0, rt.energy - rt.effDrain * thr * dt)
@@ -243,6 +249,7 @@ export function useRunnerLoop() {
   function onKeyDown(e: KeyboardEvent) {
     keys.add(e.key.toLowerCase())
     if (e.key === 'Escape' || e.key === 'p') togglePause()
+    if (e.key === 'Shift' || e.key === 'x') dash()   // 冲刺
     updateStickFromKeys()
   }
   function onKeyUp(e: KeyboardEvent) {
@@ -274,6 +281,19 @@ export function useRunnerLoop() {
     if (gameState.value === 'paused') gameState.value = 'playing'
   }
 
+  // 冲刺：短时全油门（0.3s），消耗能量，冷却 1.5s
+  function dash() {
+    const rt = runtime.value
+    if (!rt || rt.state !== 'playing') return
+    if (rt.dashCooldown > 0) return
+    if (rt.energy <= 8) return  // 能量不足
+    rt.dashTimer = 18
+    rt.dashCooldown = 90
+    rt.energy = Math.max(0, rt.energy - 8)
+    rt.events.push('dash')
+    if (soundState.soundEnabled) Sound.playThrust()
+  }
+
   if (typeof window !== 'undefined') {
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
@@ -299,6 +319,6 @@ export function useRunnerLoop() {
     startLevel, retryLevel, backToMenu,
     togglePause, resumeGame,
     setStickTouch, setViewSize,
-    upgrades,
+    upgrades, dash,
   }
 }

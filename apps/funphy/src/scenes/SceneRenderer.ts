@@ -399,7 +399,7 @@ export class SceneRenderer {
       skinId: 'default',
       hitTimer: 0,
       winTimer: 0,
-      dashTimer: 0,
+      dashTimer: runtime.dashTimer,   // 冲刺尾焰加长
       dashCooldown: 0,
       dashDirX: 0,
       dashDirY: 0,

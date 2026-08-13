@@ -32,12 +32,12 @@
 
       <!-- HUD 顶部：三栏卡片布局 -->
       <div class="runner-hud" v-if="gameState === 'playing' || gameState === 'paused' || gameState === 'won' || gameState === 'lost'">
-        <!-- 左：护甲（上行）+ 宝石（下行） -->
+        <!-- 左：护甲 + 宝石（一行横排） -->
         <div class="hud-group hud-left">
-          <div class="armor-display">
+          <span class="armor-display">
             <span v-for="i in 3" :key="i" class="armor-heart" :class="{ empty: i > armor }">❤️</span>
-          </div>
-          <div class="gem-display">💎 {{ gems }}</div>
+          </span>
+          <span class="gem-display">💎 {{ gems }}</span>
         </div>
         <!-- 中：时间 + 里程 -->
         <div class="hud-group hud-center">
@@ -103,8 +103,9 @@
       </div>
     </div>
 
-      <!-- 右侧功能按钮列（游戏中） -->
+      <!-- 右侧功能按钮列（游戏中：动作区） -->
       <div class="side-btns" v-if="gameState === 'playing'">
+        <button class="side-btn dash-btn" @click="dash" aria-label="冲刺">⚡</button>
         <button class="side-btn" @click="openShipyard" aria-label="升级装备">🛠</button>
         <button class="side-btn" @click="handleBack" aria-label="返回大厅">✈️</button>
       </div>
@@ -170,7 +171,7 @@ const {
   soundEnabled, toggleSound,
   startLevel, retryLevel, backToMenu,
   togglePause, resumeGame,
-  setStickTouch, setViewSize, upgrades,
+  setStickTouch, setViewSize, upgrades, dash,
 } = useRunnerLoop()
 
 const totalGems = computed(() => upgrades.progress.gems)
@@ -428,11 +429,10 @@ canvas {
   backdrop-filter: blur(4px);
   pointer-events: auto;
 }
-.armor-display { display: flex; gap: 2px; line-height: 1; }
+.armor-display { display: inline-flex; gap: 2px; }
 .armor-heart { font-size: 0.8rem; }
 .armor-heart.empty { opacity: 0.25; filter: grayscale(1); }
-.gem-display { font-size: 0.85rem; font-weight: 600; line-height: 1.2; }
-.hud-left { flex-direction: column; align-items: flex-start; gap: 2px !important; }
+.gem-display { font-size: 0.85rem; font-weight: 600; }
 .hud-center { gap: 10px; }
 .stat { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: #e2e8f0; min-width: 44px; }
 .progress-wrap { display: flex; align-items: center; gap: 6px; }
@@ -503,21 +503,23 @@ canvas {
   white-space: nowrap;
 }
 
-/* ==== 过场卡片 ==== */
+/* ==== 过场卡片（上部居中，显眼位置） ==== */
 .intro-card {
   position: absolute;
-  right: 12px;
-  bottom: 14px;
-  max-width: 260px;
-  background: rgba(2, 6, 23, 0.82);
-  border: 1px solid rgba(125, 211, 252, 0.35);
-  border-left: 3px solid #38bdf8;
-  border-radius: 12px;
-  padding: 12px 14px;
-  z-index: 6;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, 86%);
+  background: rgba(2, 6, 23, 0.85);
+  border: 1px solid rgba(125, 211, 252, 0.4);
+  border-top: 3px solid #38bdf8;
+  border-radius: 14px;
+  padding: 14px 18px;
+  z-index: 7;
   cursor: pointer;
   animation: intro-in 0.4s ease;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.5);
 }
 .intro-text {
   font-size: 0.82rem;
@@ -693,6 +695,14 @@ canvas {
   backdrop-filter: blur(4px);
 }
 .side-btn:active { transform: scale(0.9); }
+/* 冲刺键突出（金色） */
+.side-btn.dash-btn {
+  border-color: rgba(253, 224, 71, 0.5);
+  background: rgba(253, 224, 71, 0.15);
+  color: #fde047;
+  font-size: 1.3rem;
+  box-shadow: 0 0 12px rgba(253, 224, 71, 0.25);
+}
 
 .keyboard-hint-desktop {
   display: none;

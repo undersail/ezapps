@@ -91,6 +91,8 @@ export interface RunnerRuntime {
   }
   maxEnergy: number          // 能量上限（能量仓升级增加）
   effDrain: number           // 实际能耗率（动力升级降低）
+  dashTimer: number          // 冲刺剩余帧（>0 全油门）
+  dashCooldown: number       // 冲刺冷却帧
   energy: number             // 能量 0~maxEnergy
   gems: number               // 本关宝石
   progress: number           // 累计里程
