@@ -708,10 +708,10 @@ canvas {
 }
 .side-btn:active { transform: scale(0.9); }
 
-/* 右下冲刺键（与左下摇杆中心对称：摇杆中心距底 91px - 半径 32px） */
+/* 右下冲刺键（与左下摇杆中心左右对称：摇杆中心实际距左 95px（含提示文字宽度）↔ 冲刺键中心距右 95px） */
 .dash-fab {
   position: absolute;
-  right: 18px;
+  right: 63px;
   bottom: 59px;
   width: 64px;
   height: 64px;
