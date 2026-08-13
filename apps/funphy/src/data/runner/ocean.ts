@@ -286,5 +286,5 @@ export const ocean5: RunnerLevelDef = {
   goal: { gems: 14 },
 }
 
-// 关卡列表（章节内按顺序）
-export const runnerLevels: RunnerLevelDef[] = [ocean1, ocean2, ocean3, ocean4, ocean5]
+// 第 1 章关卡列表
+export const oceanLevels: RunnerLevelDef[] = [ocean1, ocean2, ocean3, ocean4, ocean5]

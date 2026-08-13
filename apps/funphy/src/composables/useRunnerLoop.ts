@@ -97,6 +97,8 @@ export function useRunnerLoop() {
     ship.x += ship.vx * dt * 60
     // 上下：加速（上推=上升+流速快）/ 刹车（下拉=下降+流速慢）
     const yStick = stickY.value
+    // 重力（各章不同：海洋微/大陆强/轨道零）—— 上推需持续对抗
+    ship.vy += level.physics.gravity * dt * 60
     const targetVy = -yStick * level.moveSpeed * 0.7
     ship.vy += (targetVy - ship.vy) * 0.18
     ship.y += ship.vy * dt * 60

@@ -25,17 +25,22 @@
             <button class="btn-primary" @click="handleStart">🚀 开始探险 · 第 {{ currentLevelIndex + 1 }}/{{ runnerLevels.length }} 关</button>
           </div>
 
-          <!-- 重游模式：关卡卡片网格 -->
-          <div v-else class="level-grid">
-            <div
-              v-for="(lv, i) in runnerLevels"
-              :key="lv.id"
-              class="level-card"
-              :class="{ locked: !isUnlocked(i), done: upgrades.isLevelDone(lv.id) }"
-              @click="playLevel(i)"
-            >
-              <div class="level-card-name">{{ i + 1 }}. {{ lv.name }}</div>
-              <div class="level-card-state">{{ upgrades.isLevelDone(lv.id) ? '✅' : isUnlocked(i) ? '▶' : '🔒' }}</div>
+          <!-- 重游模式：关卡卡片网格（按章节分组） -->
+          <div v-else class="revisit-panel">
+            <div v-for="ch in runnerChapters" :key="ch.chapter" class="chapter-group">
+              <div class="chapter-title">{{ ch.emoji }} {{ ch.title }}</div>
+              <div class="level-grid">
+                <div
+                  v-for="(lv, i) in chapterLevels(ch.chapter)"
+                  :key="lv.id"
+                  class="level-card"
+                  :class="{ locked: !isUnlocked(levelIndex(lv.id)), done: upgrades.isLevelDone(lv.id) }"
+                  @click="playLevel(levelIndex(lv.id))"
+                >
+                  <div class="level-card-name">{{ lv.name }}</div>
+                  <div class="level-card-state">{{ upgrades.isLevelDone(lv.id) ? '✅' : isUnlocked(levelIndex(lv.id)) ? '▶' : '🔒' }}</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -190,7 +195,7 @@ import { useRunnerLoop } from '../composables/useRunnerLoop'
 import { useUpgrades, UPGRADE_COST, UPGRADE_NAME } from '../composables/useUpgrades'
 import { SceneRenderer } from '../scenes/SceneRenderer'
 import { skins } from '../data/skins'
-import { runnerLevels } from '../data/runner/ocean'
+import { runnerLevels, runnerChapters } from '../data/runner'
 
 const {
   canvasRef, gameState, runtime, failText,
@@ -411,8 +416,14 @@ const lobbyMode = ref<'adventure' | 'revisit'>('adventure')
 function isUnlocked(i: number): boolean {
   return upgrades.isLevelUnlocked(runnerLevels[i].id, runnerLevels)
 }
+function levelIndex(levelId: string): number {
+  return runnerLevels.findIndex(l => l.id === levelId)
+}
+function chapterLevels(chapter: number): typeof runnerLevels {
+  return runnerLevels.filter(l => l.chapter === chapter)
+}
 function playLevel(i: number) {
-  if (!isUnlocked(i)) return
+  if (i < 0 || !isUnlocked(i)) return
   setLevelIndex(i)
   startLevel(runnerLevels[i])
 }
@@ -654,6 +665,14 @@ canvas {
 }
 
 /* 重游关卡卡片 */
+.chapter-group { margin-bottom: 14px; }
+.chapter-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-align: left;
+  color: rgba(255,255,255,0.9);
+}
 .level-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
