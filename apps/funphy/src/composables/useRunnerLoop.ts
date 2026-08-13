@@ -238,6 +238,8 @@ export function useRunnerLoop() {
 
     // ===== 进度 =====
     rt.progress += rt.flowSpeed * dt * 60  // flowSpeed 单位/帧 → 每秒 ×60
+    // 无限模式完成检查（800 里程解锁 6-2）
+    if (level.endless) checkEndlessComplete(rt)
     if (!level.endless && rt.progress >= level.length) {
       rt.state = 'won'
       rt.events.push('win')
@@ -307,6 +309,17 @@ export function useRunnerLoop() {
   // 关卡推进：返回下一关（无则 null → 回大厅）
   const currentLevelIndex = ref(0)
   const lastNewCardId = ref('')   // 本次通关新解锁的物理卡（自动弹出）
+
+  // 无限模式完成条件：达到 800 里程视为"通关"（解锁 6-2）
+  let endlessCompleted = false
+  function checkEndlessComplete(rt: RunnerRuntime): void {
+    if (!endlessCompleted && rt.level.endless && rt.progress >= 800) {
+      endlessCompleted = true
+      upgrades.completeLevel(rt.level.id)
+      const newCard = upgrades.unlockCard(rt.level.id)
+      if (newCard) lastNewCardId.value = rt.level.id
+    }
+  }
   function advanceLevel(levels: RunnerLevelDef[]): RunnerLevelDef | null {
     const idx = currentLevelIndex.value + 1
     if (idx < levels.length) {
