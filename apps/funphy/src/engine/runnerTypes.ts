@@ -123,6 +123,7 @@ export interface RunnerRuntime {
   energyBlocks: RunnerEnergyBlock[]
   nextSpawnIndex: number
   mysteryNext: number       // 下一个盲盒块里程点（按难度间隔生成）
+  autoObNext: number        // 下一个自动补障碍里程点（难度密度梯度）
   time: number
   failReason: 'armor' | 'timeout' | null
   events: string[]           // 'hit' | 'gem' | 'energy' | 'win' | 'dash'
@@ -135,6 +136,26 @@ export function mysteryInterval(difficulty: RunnerLevelDef['difficulty']): numbe
   if (difficulty === 'T4') return 400
   if (difficulty === 'T5') return 330
   return 280
+}
+
+// 自动补障碍间隔（难度密度梯度：T1 无 / T2 450 / T3 320 / T4 250 / T5 180 / T6 130 里程）
+// 修复：手写数据密度与难度档位呈反比（T1 1.0 > T6 0.7），生成器按难度补齐梯度
+export function obstacleInterval(difficulty: RunnerLevelDef['difficulty']): number {
+  if (difficulty === 'T1') return Infinity
+  if (difficulty === 'T2') return 450
+  if (difficulty === 'T3') return 320
+  if (difficulty === 'T4') return 250
+  if (difficulty === 'T5') return 180
+  return 130
+}
+
+// 自动补障碍的基础下落速度（按难度递增）
+function obstacleFallSpeed(difficulty: RunnerLevelDef['difficulty']): number {
+  if (difficulty === 'T2') return 0.55
+  if (difficulty === 'T3') return 0.65
+  if (difficulty === 'T4') return 0.75
+  if (difficulty === 'T5') return 0.85
+  return 0.95
 }
 
 // 生成器：按里程激活 spawn 定义（endless 关按循环单元触发）
@@ -159,6 +180,27 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
       active: true,
     })
     runtime.mysteryNext += mInt
+  }
+  // 按难度自动补障碍（密度梯度：高难度关障碍更密集，与手写数据互补）
+  const obInt = obstacleInterval(level.difficulty)
+  if (obInt !== Infinity && runtime.autoObNext === 0) runtime.autoObNext = obInt
+  while (obInt !== Infinity && runtime.progress >= runtime.autoObNext) {
+    const big = Math.random() < (level.difficulty === 'T6' ? 0.5 : level.difficulty === 'T5' ? 0.4 : level.difficulty === 'T4' ? 0.3 : 0.15)
+    const w = big ? 12 + Math.random() * 4 : 8 + Math.random() * 3
+    runtime.obstacles.push({
+      id: `o_auto_${runtime.autoObNext}`,
+      kind: Math.random() < 0.3 ? 'dive' : 'falling',
+      style: level.chapter === 3 ? 'cloud' : level.chapter === 2 ? 'rock' : 'rock',
+      x: 15 + Math.random() * (viewW - 30),
+      y: -45,
+      width: w,
+      height: w,
+      fallSpeed: obstacleFallSpeed(level.difficulty) * (0.8 + Math.random() * 0.5),
+      sway: Math.random() < 0.5 ? 6 + Math.random() * 8 : undefined,
+      swaySpeed: Math.random() < 0.5 ? 3 + Math.random() * 2 : undefined,
+      active: true,
+    })
+    runtime.autoObNext += obInt
   }
   // 激活到达里程的生成项
   while (runtime.nextSpawnIndex < level.spawns.length) {

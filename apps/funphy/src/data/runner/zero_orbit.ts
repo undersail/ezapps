@@ -91,7 +91,7 @@ export const orbit2: RunnerLevelDef = {
     { at: 1360, x: 60, energy: true },
     { at: 1440, x: 75, gem: true },
   ],
-  goal: { gems: 11 },
+  goal: { gems: 9 },
 }
 
 // 4-3 太空垃圾场（难度3）：密集
@@ -186,7 +186,7 @@ export const orbit4: RunnerLevelDef = {
     { at: 1530, x: 65, energy: true },
     { at: 1620, x: 55, gem: true },
   ],
-  goal: { gems: 13 },
+  goal: { gems: 12 },
 }
 
 // 4-5 脱离引力（章末关）：综合 + 第二宇宙速度冲刺

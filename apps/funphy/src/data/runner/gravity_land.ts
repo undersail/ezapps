@@ -47,7 +47,7 @@ export const land1: RunnerLevelDef = {
     { at: 1210, x: 55, obstacle: { kind: 'falling', style: 'rock', width: 11, height: 13, fallSpeed: 0.65, sway: 10, swaySpeed: 4 } },
     { at: 1260, x: 75, gem: true },
   ],
-  goal: { gems: 8 },
+  goal: { gems: 7 },
 }
 
 // 2-2 山间飞行（难度2）：大块山石编队
@@ -194,7 +194,7 @@ export const land4: RunnerLevelDef = {
     { at: 1460, x: 95, obstacle: { kind: 'falling', style: 'rock', width: 12, height: 12, fallSpeed: 0.9, sway: 14, swaySpeed: 5 } },
     { at: 1530, x: 70, gem: true },
   ],
-  goal: { gems: 12 },
+  goal: { gems: 11 },
 }
 
 // 2-5 翻越山巅（章末关）：综合 + 重力挑战

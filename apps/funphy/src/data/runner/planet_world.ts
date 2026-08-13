@@ -139,7 +139,7 @@ export const planet3: RunnerLevelDef = {
     { at: 1350, x: 60, energy: true },
     { at: 1430, x: 75, gem: true },
   ],
-  goal: { gems: 11 },
+  goal: { gems: 9 },
 }
 
 // 5-4 海王星深蓝（难度3）：强重力 + 高速
@@ -185,7 +185,7 @@ export const planet4: RunnerLevelDef = {
     { at: 1530, x: 65, energy: true },
     { at: 1620, x: 55, gem: true },
   ],
-  goal: { gems: 13 },
+  goal: { gems: 12 },
 }
 
 // 5-5 冲出太阳系（章末关）：综合 + 第三宇宙速度

@@ -41,7 +41,7 @@ export const sky1: RunnerLevelDef = {
     { at: 1260, x: 45, obstacle: { kind: 'falling', style: 'cloud', width: 16, height: 12, fallSpeed: 0.6, sway: 12, swaySpeed: 4.5 } },
     { at: 1330, x: 60, gem: true },
   ],
-  goal: { gems: 9 },
+  goal: { gems: 6 },
 }
 
 // 3-2 鸟群迁徙（难度2）：编队摆动
@@ -142,7 +142,7 @@ export const sky3: RunnerLevelDef = {
     { at: 1510, x: 55, gem: true },
     { at: 1550, x: 80, gem: true },
   ],
-  goal: { gems: 12 },
+  goal: { gems: 11 },
 }
 
 // 3-4 高空急流（难度3）：流速快 + 能量压力
@@ -188,7 +188,7 @@ export const sky4: RunnerLevelDef = {
     { at: 1530, x: 65, energy: true },
     { at: 1620, x: 55, gem: true },
   ],
-  goal: { gems: 13 },
+  goal: { gems: 11 },
 }
 
 // 3-5 突破大气（章末关）：综合 + 冲刺突破

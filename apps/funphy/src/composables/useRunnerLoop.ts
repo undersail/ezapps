@@ -76,6 +76,7 @@ export function useRunnerLoop() {
       energyBlocks: [],
       nextSpawnIndex: 0,
       mysteryNext: 0,   // 盲盒块里程点（生成器按难度 lazy 初始化）
+      autoObNext: 0,    // 自动补障碍里程点（生成器按难度 lazy 初始化）
       time: 0,
       failReason: null,
       events: [],
