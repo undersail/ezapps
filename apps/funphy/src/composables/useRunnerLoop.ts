@@ -99,31 +99,38 @@ export function useRunnerLoop() {
     rt.time += dt
 
     // ===== 单摇杆 → 位移（左右）+ 油门（上下） =====
+    // 能量耗尽 → 飞船无法主动操作（只能被流推着走）
+    const outOfEnergy = rt.energy <= 0
+    const xInput = outOfEnergy ? 0 : stickX.value
+    const yInput = outOfEnergy ? 0 : stickY.value
     // 左右：水平移动（lerp = 加速响应，引擎升级更跟手）
-    const targetVx = stickX.value * level.moveSpeed
+    const targetVx = xInput * level.moveSpeed
     ship.vx += (targetVx - ship.vx) * rt.effLerp
     ship.x += ship.vx * dt * 60
     // 上下：加速（上推=上升+流速快）/ 刹车（下拉=下降+流速慢）
-    const yStick = stickY.value
     // 重力（各章不同：海洋微/大陆强/轨道零）—— 上推需持续对抗
     ship.vy += level.physics.gravity * dt * 60
-    const targetVy = -yStick * level.moveSpeed * 0.7
+    const targetVy = -yInput * level.moveSpeed * 0.7
     ship.vy += (targetVy - ship.vy) * rt.effLerp
     ship.y += ship.vy * dt * 60
 
     // 油门（派生自 stickY 上推；冲刺时全油门）
-    let thr = yStick
+    let thr = Math.max(0, yInput)
     if (rt.dashTimer > 0) thr = 1
-    if (rt.energy <= 0 && thr > 0) thr = 0  // 无能量只能滑行（刹车仍可用）
     rt.throttle = thr
     rt.flowSpeed = level.baseFlow + Math.max(0, thr) * level.flowRange
-    if (thr < 0) rt.flowSpeed = level.baseFlow * (1 + thr * 0.7)  // 刹车减速
+    if (yInput < 0) rt.flowSpeed = level.baseFlow * (1 + yInput * 0.7)  // 刹车减速
     // 冲刺计时递减
     if (rt.dashTimer > 0) rt.dashTimer--
     if (rt.dashCooldown > 0) rt.dashCooldown--
-    // 能量消耗（推进时）
-    if (thr > 0) {
-      rt.energy = Math.max(0, rt.energy - rt.effDrain * thr * dt)
+    // 能量消耗（分级：加速 > 移动 > 刹车 > 待机；耗尽无法操作）
+    if (rt.energy > 0) {
+      let drain = 0
+      if (thr > 0) drain += rt.effDrain * thr * 1.0                          // 加速：最高
+      if (Math.abs(xInput) > 0) drain += rt.effDrain * Math.abs(xInput) * 0.4 // 左右移动
+      if (yInput < 0) drain += rt.effDrain * (-yInput) * 0.25                 // 刹车
+      drain += rt.effDrain * 0.15 * dt                                       // 待机最低消耗
+      rt.energy = Math.max(0, rt.energy - drain * dt)
     }
     // 太阳能回能（y=激活里程，progress 到达后生效；飞船在 x 带内 y 上部区域充能）
     for (const z of level.solarZones) {
