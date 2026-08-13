@@ -290,6 +290,7 @@ const bestDistanceText = computed(() => upgrades.progress.bestDistance > 0 ? `${
 
 // 物理卡册（V1 物理卡数据，30 张，id 与关卡对应）
 import { physicsCards } from '../data/physicsCards'
+import * as Sound from '../utils/sound'
 const showCardbook = ref(false)
 const ownedCards = computed(() => physicsCards.filter(c => upgrades.progress.cards.includes(c.id)).length)
 
@@ -505,6 +506,8 @@ const adventureIndex = computed(() => {
   return Math.min(idx, runnerLevels.length - 1)
 })
 function handleStart() {
+  // 用户手势内预热音频（修复收集音效经常没声音）
+  Sound.unlock()
   // 支持 ?level=N 调试参数（开发调测用）
   const params = new URLSearchParams(location.search)
   const lv = parseInt(params.get('level') || '0', 10)

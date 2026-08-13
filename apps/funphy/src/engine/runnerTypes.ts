@@ -173,7 +173,7 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
       id: `m_auto_${runtime.mysteryNext}`,
       kind: 'mystery',
       style: 'orb',
-      x: 15 + Math.random() * (viewW - 30),
+      x: 6 + Math.random() * (viewW - 12),   // 覆盖到贴边 6 单位（消除侧边安全区）
       y: -45,
       width: 10,
       height: 10,
@@ -188,11 +188,16 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
   while (obInt !== Infinity && runtime.progress >= runtime.autoObNext) {
     const big = Math.random() < (level.difficulty === 'T6' ? 0.55 : level.difficulty === 'T5' ? 0.45 : level.difficulty === 'T4' ? 0.35 : 0.2)
     const w = big ? 12 + Math.random() * 4 : 8 + Math.random() * 3
+    // 侧边偏置：35% 障碍落在两侧 26 单位带（贴边挂机不安全，中间留通道）
+    const edgeBias = Math.random() < 0.35
+    const x = edgeBias
+      ? (Math.random() < 0.5 ? 6 + Math.random() * 20 : viewW - 26 + Math.random() * 20)
+      : 26 + Math.random() * (viewW - 52)
     runtime.obstacles.push({
       id: `o_auto_${runtime.autoObNext}`,
       kind: Math.random() < 0.4 ? 'dive' : 'falling',
       style: level.chapter === 3 ? 'cloud' : 'rock',
-      x: 15 + Math.random() * (viewW - 30),
+      x,
       y: -45,
       width: w,
       height: w,
@@ -252,11 +257,11 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
         y: high ? 8 + Math.random() * 14 : -45,   // 高处：直接出现在视口上部 y 8~22
         collected: false,
         size,
-        expiresIn: def.expiresIn ?? (size === 'l' ? 10 : 0),
+        expiresIn: def.expiresIn ?? (size === 'l' ? 7 : 0),
       })
     }
     if (def.energy) {
-      // 难度概率升级：T1 0% / T2-T3 10% / T4 20% / T5 25% / T6 30%
+      // size 默认 m（25%）；大块（l）50% 高处生成 + 消失倒计时
       const diffLv = level.difficulty === 'T6' ? 0.3 : level.difficulty === 'T5' ? 0.25 : level.difficulty === 'T4' ? 0.2 : level.difficulty === 'T3' || level.difficulty === 'T2' ? 0.1 : 0
       const size = def.size || (Math.random() < diffLv ? 'l' : 'm')
       const high = size === 'l' && Math.random() < 0.5
@@ -266,7 +271,7 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
         y: high ? 8 + Math.random() * 14 : -45,
         collected: false,
         size,
-        expiresIn: def.expiresIn ?? (size === 'l' ? 8 : 0),
+        expiresIn: def.expiresIn ?? (size === 'l' ? 6 : 0),
       })
     }
     // endless：一轮触发完，重置索引进入下一循环
@@ -288,8 +293,8 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
   }
   for (const g of runtime.gemsArr) {
     if (!g.collected) {
-      // 带倒计时的大块：慢速下落（存留 ~10 秒，玩家有时间发现）
-      g.y += g.expiresIn > 0 ? flow * 0.3 + 0.05 : flow + 0.15
+      // 带倒计时的大块：慢速下落（倒计时内自然落出，紧迫）
+      g.y += g.expiresIn > 0 ? flow * 0.5 + 0.08 : flow + 0.15
       if (g.expiresIn > 0) {
         g.expiresIn -= 1 / 60
         if (g.expiresIn <= 0) g.collected = true   // 倒计时结束消失
@@ -299,8 +304,8 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
   }
   for (const eb of runtime.energyBlocks) {
     if (!eb.collected) {
-      // 带倒计时的大块：慢速下落
-      eb.y += eb.expiresIn > 0 ? flow * 0.3 + 0.05 : flow + 0.15
+      // 带倒计时的大块：慢速下落（倒计时内自然落出，紧迫）
+      eb.y += eb.expiresIn > 0 ? flow * 0.5 + 0.08 : flow + 0.15
       if (eb.expiresIn > 0) {
         eb.expiresIn -= 1 / 60
         if (eb.expiresIn <= 0) eb.collected = true

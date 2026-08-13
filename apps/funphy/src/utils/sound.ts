@@ -5,8 +5,18 @@ const audioCtx = () => {
 
 let _ctx: AudioContext | null = null
 function getCtx(): AudioContext {
-  if (!_ctx) _ctx = audioCtx()
+  if (!_ctx) {
+    _ctx = audioCtx()
+    // 自动播放策略：创建后 suspended 需 resume（否则一直无声）
+    if (_ctx.state === 'suspended') _ctx.resume().catch(() => {})
+  }
   return _ctx
+}
+
+/** 用户手势内预热音频（开始按钮点击时调用，解决收集音效"经常没声音"） */
+export function unlock(): void {
+  const ctx = getCtx()
+  if (ctx.state === 'suspended') ctx.resume().catch(() => {})
 }
 
 export function playThrust() {
