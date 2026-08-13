@@ -94,14 +94,13 @@ Cloudflare Pages GitHub App  │  (国内访问加速备选)
 | ---------- | ---------------------------------------------------------- |
 | 🐙 GitHub  | [@undersail](https://github.com/undersail)                |
 | 🇨🇳 Gitee  | [@undersail](https://gitee.com/undersail)                  |
-| 📮 公众号  | **科普狮**（一人即团队 · AI 创作干货与科普内容分享 · 灵感电台出品）|
+| 📮 公众号  | **科普狮**（ID: `scilion`）· 码农视角看世界 ｜ IDEA & TECH |
 
 ### 📮 科普狮 · 微信公众号
 
-> AI 创作干货与科普内容分享，扫码关注 👇
+> 码农视角看世界 ｜ IDEA & TECH，扫码关注 👇
 
-<!-- 二维码图片：将公众号二维码保存为 docs/assets/wechat-kepushi-qrcode.png 后取消下行注释 -->
-<!-- <p align="center"><img src="docs/assets/wechat-kepushi-qrcode.png" alt="科普狮公众号二维码" width="200"/></p> -->
+<p align="center"><img src="docs/assets/wechat-kepushi-qrcode.jpg" alt="科普狮公众号二维码" width="200"/></p>
 
 ---
 
