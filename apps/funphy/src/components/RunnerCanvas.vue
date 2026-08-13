@@ -3,59 +3,65 @@
     <div class="canvas-area" ref="canvasAreaRef">
       <canvas ref="canvasRef"></canvas>
 
-      <!-- 大厅界面 -->
+      <!-- 大厅界面（全屏布局） -->
       <div class="menu-overlay" v-if="gameState === 'menu'">
-        <div class="menu-card wide">
-          <h1>🚀 飞飞历险记</h1>
-          <p class="menu-story">驾驶全能飞船，从海洋出发，穿越大陆与天空，冲向广袤宇宙！</p>
-
-          <!-- 模式切换 -->
-          <div class="mode-tabs">
-            <button class="mode-tab" :class="{ active: lobbyMode === 'adventure' }" @click="lobbyMode = 'adventure'">🚀 探险</button>
-            <button class="mode-tab" :class="{ active: lobbyMode === 'revisit' }" @click="lobbyMode = 'revisit'">🔄 重游</button>
+        <div class="lobby">
+          <!-- 顶部：标题 + 故事 -->
+          <div class="lobby-header">
+            <h1 class="lobby-title">🚀 飞飞历险记</h1>
+            <p class="lobby-story">驾驶全能飞船，从海洋出发，穿越大陆与天空，冲向广袤宇宙！</p>
           </div>
 
-          <!-- 探险模式：进度 + 开始 -->
-          <div v-if="lobbyMode === 'adventure'">
-            <div class="menu-legend">
-              <div class="legend-item"><span class="legend-dot white"></span> 宝石（升级装备）</div>
-              <div class="legend-item"><span class="legend-dot green"></span> 能量块（补充能量）</div>
-              <div class="legend-item"><span class="legend-dot gold"></span> 太阳能区（持续充能）</div>
+          <!-- 中部：模式 + 图例 + 进度 -->
+          <div class="lobby-main">
+            <div class="mode-tabs">
+              <button class="mode-tab" :class="{ active: lobbyMode === 'adventure' }" @click="lobbyMode = 'adventure'">🚀 探险</button>
+              <button class="mode-tab" :class="{ active: lobbyMode === 'revisit' }" @click="lobbyMode = 'revisit'">🔄 重游</button>
             </div>
-            <button class="btn-primary" @click="handleStart">🚀 开始探险 · 第 {{ currentLevelIndex + 1 }}/{{ runnerLevels.length }} 关</button>
-          </div>
 
-          <!-- 重游模式：关卡卡片网格（按章节分组） -->
-          <div v-else class="revisit-panel">
-            <div v-for="ch in runnerChapters" :key="ch.chapter" class="chapter-group">
-              <div class="chapter-title">{{ ch.emoji }} {{ ch.title }}</div>
-              <div class="level-grid">
-                <div
-                  v-for="(lv, i) in chapterLevels(ch.chapter)"
-                  :key="lv.id"
-                  class="level-card"
-                  :class="{ locked: !isUnlocked(levelIndex(lv.id)), done: upgrades.isLevelDone(lv.id) }"
-                  @click="playLevel(levelIndex(lv.id))"
-                >
-                  <div class="level-card-name">{{ lv.name }}{{ lv.endless ? ' ∞' : '' }}</div>
-                  <div class="level-card-state">{{ upgrades.isLevelDone(lv.id) ? '✅' : isUnlocked(levelIndex(lv.id)) ? (lv.endless ? '∞' : '▶') : '🔒' }}</div>
+            <div v-if="lobbyMode === 'adventure'">
+              <div class="menu-legend">
+                <div class="legend-item"><span class="legend-dot white"></span> 宝石（升级装备）</div>
+                <div class="legend-item"><span class="legend-dot green"></span> 能量块（补充能量）</div>
+                <div class="legend-item"><span class="legend-dot gold"></span> 太阳能区（持续充能）</div>
+              </div>
+              <button class="btn-primary lobby-start" @click="handleStart">🚀 开始探险 · 第 {{ currentLevelIndex + 1 }}/{{ runnerLevels.length }} 关</button>
+            </div>
+
+            <div v-else class="revisit-panel">
+              <div v-for="ch in runnerChapters" :key="ch.chapter" class="chapter-group">
+                <div class="chapter-title">{{ ch.emoji }} {{ ch.title }}</div>
+                <div class="level-grid">
+                  <div
+                    v-for="(lv, i) in chapterLevels(ch.chapter)"
+                    :key="lv.id"
+                    class="level-card"
+                    :class="{ locked: !isUnlocked(levelIndex(lv.id)), done: upgrades.isLevelDone(lv.id) }"
+                    @click="playLevel(levelIndex(lv.id))"
+                  >
+                    <div class="level-card-name">{{ lv.name }}{{ lv.endless ? ' ∞' : '' }}</div>
+                    <div class="level-card-state">{{ upgrades.isLevelDone(lv.id) ? '✅' : isUnlocked(levelIndex(lv.id)) ? (lv.endless ? '∞' : '▶') : '🔒' }}</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 飞船库：装备升级 -->
-          <div class="shipyard">
-            <div class="shipyard-title">🛠 飞船库 · 💎 {{ totalGems }}</div>
-            <div class="upgrade-row" v-for="k in (['engine', 'armor', 'battery'] as const)" :key="k">
-              <div class="upgrade-info">
-                <div class="upgrade-name">{{ UPGRADE_NAME[k] }} {{ upgradeState(k) }}</div>
-                <div class="upgrade-desc">{{ upgradeDesc[k] }}</div>
+          <!-- 底部：飞船库 + 返回主页 -->
+          <div class="lobby-footer">
+            <div class="shipyard">
+              <div class="shipyard-title">🛠 飞船库 · 💎 {{ totalGems }}</div>
+              <div class="upgrade-row" v-for="k in (['engine', 'armor', 'battery'] as const)" :key="k">
+                <div class="upgrade-info">
+                  <div class="upgrade-name">{{ UPGRADE_NAME[k] }} {{ upgradeState(k) }}</div>
+                  <div class="upgrade-desc">{{ upgradeDesc[k] }}</div>
+                </div>
+                <button class="upgrade-btn" @click="doUpgrade(k)" :disabled="upgrades.progress.upgrades[k] >= UPGRADE_COST[k].length || upgrades.progress.gems < UPGRADE_COST[k][upgrades.progress.upgrades[k]]">
+                  ⬆
+                </button>
               </div>
-              <button class="upgrade-btn" @click="doUpgrade(k)" :disabled="upgrades.progress.upgrades[k] >= UPGRADE_COST[k].length || upgrades.progress.gems < UPGRADE_COST[k][upgrades.progress.upgrades[k]]">
-                ⬆
-              </button>
             </div>
+            <a class="home-link" href="/">🏠 返回 ezapps 主页</a>
           </div>
         </div>
       </div>
@@ -591,8 +597,7 @@ canvas {
   margin: 0 auto;          /* 用 margin 居中，transform 留给动画 */
   width: min(420px, 86%);
   background: rgba(2, 6, 23, 0.85);
-  border: 1px solid rgba(125, 211, 252, 0.4);
-  border-top: 3px solid #38bdf8;
+  border: 1px solid rgba(125, 211, 252, 0.3);
   border-radius: 14px;
   padding: 14px 18px;
   z-index: 7;
@@ -626,7 +631,7 @@ canvas {
   50% { opacity: 0.4; }
 }
 
-/* ==== 大厅（V2-5 前极简版） ==== */
+/* ==== 大厅（全屏布局） ==== */
 .menu-overlay {
   position: absolute;
   inset: 0;
@@ -634,19 +639,45 @@ canvas {
   align-items: center;
   justify-content: center;
   z-index: 20;
+  background: linear-gradient(180deg, rgba(4, 20, 35, 0.75), rgba(2, 8, 18, 0.9));
+  overflow-y: auto;
 }
-.menu-card {
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 20px;
-  padding: 32px 40px;
+.lobby {
+  width: min(720px, 94%);
+  max-height: 96dvh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px 8px 18px;
+}
+.lobby-header { text-align: center; }
+.lobby-title { margin: 0 0 8px; font-size: 2.2rem; letter-spacing: 2px; }
+.lobby-story { margin: 0; color: rgba(255,255,255,0.75); font-size: 0.95rem; line-height: 1.6; }
+.lobby-main {
+  background: rgba(10, 20, 35, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 16px;
+  padding: 16px;
+}
+.lobby-start { width: 100%; }
+.lobby-footer {
+  background: rgba(10, 20, 35, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 16px;
+  padding: 14px 16px 18px;
+}
+.home-link {
+  display: block;
   text-align: center;
-  max-width: 340px;
-  backdrop-filter: blur(6px);
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 0.82rem;
+  text-decoration: none;
 }
-.menu-card h1 { margin: 0 0 10px; font-size: 1.8rem; }
-.menu-story { margin: 0 0 16px; color: rgba(255,255,255,0.75); font-size: 0.9rem; line-height: 1.5; }
-.menu-card.wide { max-width: 400px; max-height: 88dvh; overflow-y: auto; }
+.home-link:hover { color: #7dd3fc; }
 
 /* 模式切换 */
 .mode-tabs {

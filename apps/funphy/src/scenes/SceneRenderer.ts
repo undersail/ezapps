@@ -301,6 +301,9 @@ export class SceneRenderer {
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, this.width, this.height)
     
+    // 章节主题背景装饰（屏幕空间：鱼群/山林/云鸟/星空/行星/星云）
+    this.drawChapterBackdrop(runtime.level.chapter, Date.now() / 1000, panX, panY, scale, VIEW_W, VIEW_H)
+    
     ctx.save()
     ctx.translate(panX, panY)
     ctx.scale(scale, scale)
@@ -319,7 +322,8 @@ export class SceneRenderer {
       ctx.strokeRect(z.x, z.y, z.width, z.height)
     }
     
-    // 障碍（复用主题形态绘制）
+    // 障碍（复用主题形态绘制 + 章节专属元素库）
+    const chapter = runtime.level.chapter
     for (const o of runtime.obstacles) {
       if (!o.active) continue
       const fake: Obstacle = {
@@ -336,6 +340,9 @@ export class SceneRenderer {
         phase: 0,
         kind: o.style,
       }
+      // 章节专属障碍形态（元素库）
+      if (chapter === 1 && o.kind === 'falling') { this.drawFishObstacle(fake); continue }
+      if (chapter === 3 && o.kind === 'falling') { this.drawBirdObstacle(fake); continue }
       switch (o.style) {
         case 'rock': this.drawRock(fake); break
         case 'metal': this.drawMetal(fake); break
@@ -345,6 +352,15 @@ export class SceneRenderer {
         case 'ice': this.drawIce(fake); break
         default: this.drawRock(fake)
       }
+    }
+    
+    // 障碍阴影（下落物体拖影，增加速度感）
+    for (const o of runtime.obstacles) {
+      if (!o.active || o.kind !== 'dive') continue
+      ctx.fillStyle = 'rgba(0,0,0,0.15)'
+      ctx.beginPath()
+      ctx.ellipse(o.x, o.y + o.height * 0.9, o.width * 0.4, o.height * 0.25, 0, 0, Math.PI * 2)
+      ctx.fill()
     }
     
     // 宝石（珍珠：白色圆珠）
@@ -488,7 +504,329 @@ export class SceneRenderer {
     ctx.fillRect(obs.x, obs.y, obs.width, 2)
   }
   
+  // ============ 章节主题背景装饰（程序化元素库） ============
+  
+  /** 绘制章节主题背景：鱼群/山林/云鸟/星空/行星/星云（屏幕空间，视口内） */
+  private drawChapterBackdrop(chapter: number, time: number, panX: number, panY: number, scale: number, W: number, H: number): void {
+    const ctx = this.ctx
+    const X = (wx: number) => panX + wx * scale
+    const Y = (wy: number) => panY + wy * scale
+    const S = (v: number) => v * scale
+    
+    switch (chapter) {
+      case 1: // 浮力海洋：气泡上浮 + 鱼群剪影游动
+        this.drawOceanBackdrop(time, X, Y, S, W, H)
+        break
+      case 2: // 重力大陆：山峦剪影 + 树木
+        this.drawLandBackdrop(X, Y, S, W, H)
+        break
+      case 3: // 自由天空：白云飘移 + 飞鸟
+        this.drawSkyBackdrop(time, X, Y, S, W, H)
+        break
+      case 4: // 失重轨道：星空 + 卫星
+        this.drawOrbitBackdrop(time, X, Y, S, W, H)
+        break
+      case 5: // 行星世界：行星远景 + 星环
+        this.drawPlanetBackdrop(time, X, Y, S, W, H)
+        break
+      case 6: // 冲向宇宙：星云 + 星星
+        this.drawUniverseBackdrop(time, X, Y, S, W, H)
+        break
+    }
+  }
+  
+  /** 海洋：气泡上浮 + 鱼群剪影 */
+  private drawOceanBackdrop(time: number, X: (n: number) => number, Y: (n: number) => number, S: (n: number) => number, W: number, H: number): void {
+    const ctx = this.ctx
+    // 气泡（上浮循环）
+    for (let i = 0; i < 6; i++) {
+      const bx = 12 + i * 22 + (i % 3) * 4
+      const by = H - ((time * 1.2 + i * 18) % (H + 8)) + 4
+      const br = 1.2 + (i % 3) * 0.5
+      ctx.strokeStyle = 'rgba(165, 243, 252, 0.25)'
+      ctx.lineWidth = Math.max(0.5, S(0.15))
+      ctx.beginPath()
+      ctx.arc(X(bx), Y(by), S(br), 0, Math.PI * 2)
+      ctx.stroke()
+    }
+    // 鱼群剪影（暗色，缓慢游动）
+    for (let i = 0; i < 3; i++) {
+      const fy = 18 + i * 22
+      const fx = ((time * 3 + i * 40) % (W + 30)) - 15
+      const fs = 3.5 + i * 0.8
+      ctx.fillStyle = 'rgba(2, 30, 40, 0.5)'
+      // 身体
+      ctx.beginPath()
+      ctx.ellipse(X(fx), Y(fy), S(fs), S(fs * 0.45), 0, 0, Math.PI * 2)
+      ctx.fill()
+      // 尾巴
+      ctx.beginPath()
+      ctx.moveTo(X(fx + fs), Y(fy))
+      ctx.lineTo(X(fx + fs * 1.9), Y(fy - fs * 0.5))
+      ctx.lineTo(X(fx + fs * 1.9), Y(fy + fs * 0.5))
+      ctx.closePath()
+      ctx.fill()
+    }
+  }
+  
+  /** 大陆：山峦剪影 + 树木 */
+  private drawLandBackdrop(X: (n: number) => number, Y: (n: number) => number, S: (n: number) => number, W: number, H: number): void {
+    const ctx = this.ctx
+    // 远处山峦（锯齿多边形）
+    ctx.fillStyle = 'rgba(30, 20, 12, 0.35)'
+    ctx.beginPath()
+    ctx.moveTo(X(0), Y(H))
+    const peaks = [0, 18, 10, 30, 20, 42, 28, 55, 40, 70, 52, 90, 66, 110, 80, 128, 95, 140]
+    for (let i = 0; i < peaks.length; i += 2) {
+      ctx.lineTo(X(peaks[i]), Y(peaks[i + 1]))
+    }
+    ctx.lineTo(X(W), Y(H))
+    ctx.closePath()
+    ctx.fill()
+    // 近处山峦（更暗）
+    ctx.fillStyle = 'rgba(15, 10, 6, 0.4)'
+    ctx.beginPath()
+    ctx.moveTo(X(0), Y(H))
+    const peaks2 = [0, 42, 12, 58, 30, 48, 48, 62, 66, 52, 85, 64, 100, 55, 118, 66, 140, 58]
+    for (let i = 0; i < peaks2.length; i += 2) {
+      ctx.lineTo(X(peaks2[i]), Y(peaks2[i + 1]))
+    }
+    ctx.lineTo(X(W), Y(H))
+    ctx.closePath()
+    ctx.fill()
+    // 树木（松树形：三角树冠 + 树干）
+    for (let i = 0; i < 4; i++) {
+      const tx = 8 + i * 38
+      const ty = 55 + (i % 2) * 5
+      const ts = 3 + (i % 3)
+      ctx.fillStyle = 'rgba(20, 40, 15, 0.45)'
+      ctx.beginPath()
+      ctx.moveTo(X(tx), Y(ty - ts * 1.6))
+      ctx.lineTo(X(tx - ts * 0.8), Y(ty))
+      ctx.lineTo(X(tx + ts * 0.8), Y(ty))
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillStyle = 'rgba(40, 25, 10, 0.5)'
+      ctx.fillRect(X(tx - ts * 0.15), Y(ty), S(ts * 0.3), S(ts * 0.5))
+    }
+  }
+  
+  /** 天空：白云飘移 + 飞鸟 */
+  private drawSkyBackdrop(time: number, X: (n: number) => number, Y: (n: number) => number, S: (n: number) => number, W: number, H: number): void {
+    const ctx = this.ctx
+    // 白云（慢速飘移）
+    for (let i = 0; i < 3; i++) {
+      const cx = ((time * 2.5 + i * 60) % (W + 40)) - 20
+      const cy = 12 + i * 20
+      const cs = 5 + i * 2
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.18)'
+      ctx.beginPath()
+      ctx.arc(X(cx), Y(cy), S(cs), 0, Math.PI * 2)
+      ctx.arc(X(cx + cs * 1.2), Y(cy - cs * 0.4), S(cs * 0.8), 0, Math.PI * 2)
+      ctx.arc(X(cx + cs * 2), Y(cy), S(cs * 0.9), 0, Math.PI * 2)
+      ctx.fill()
+    }
+    // 飞鸟（V 形剪影）
+    for (let i = 0; i < 3; i++) {
+      const bx = ((time * 5 + i * 50) % (W + 20)) - 10
+      const by = 30 + i * 15
+      const bs = 2.5
+      const flap = Math.sin(time * 4 + i) * 0.3
+      ctx.strokeStyle = 'rgba(30, 40, 60, 0.35)'
+      ctx.lineWidth = Math.max(0.6, S(0.25))
+      ctx.beginPath()
+      ctx.moveTo(X(bx - bs), Y(by))
+      ctx.quadraticCurveTo(X(bx - bs * 0.4), Y(by - bs * (0.4 + flap)), X(bx), Y(by))
+      ctx.quadraticCurveTo(X(bx + bs * 0.4), Y(by - bs * (0.4 + flap)), X(bx + bs), Y(by))
+      ctx.stroke()
+    }
+  }
+  
+  /** 轨道：星空 + 卫星 */
+  private drawOrbitBackdrop(time: number, X: (n: number) => number, Y: (n: number) => number, S: (n: number) => number, W: number, H: number): void {
+    const ctx = this.ctx
+    // 星星
+    for (let i = 0; i < 16; i++) {
+      const sx = (i * 37 + 13) % W
+      const sy = (i * 23 + 7) % H
+      const tw = Math.sin(time * 2 + i) * 0.5 + 0.5
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + tw * 0.4})`
+      ctx.beginPath()
+      ctx.arc(X(sx), Y(sy), S(0.5 + (i % 3) * 0.3), 0, Math.PI * 2)
+      ctx.fill()
+    }
+    // 卫星（小矩形 + 太阳能板）
+    const satX = ((time * 2 + 30) % (W + 30)) - 15
+    const satY = 20
+    ctx.save()
+    ctx.translate(X(satX), Y(satY))
+    ctx.rotate(0.3)
+    ctx.fillStyle = 'rgba(180, 190, 210, 0.3)'
+    ctx.fillRect(-S(3), -S(1.5), S(6), S(3))
+    ctx.fillStyle = 'rgba(100, 140, 220, 0.35)'
+    ctx.fillRect(-S(7), -S(1), S(3.5), S(2))
+    ctx.fillRect(S(3.5), -S(1), S(3.5), S(2))
+    ctx.restore()
+  }
+  
+  /** 行星：行星远景 + 星尘 */
+  private drawPlanetBackdrop(time: number, X: (n: number) => number, Y: (n: number) => number, S: (n: number) => number, W: number, H: number): void {
+    const ctx = this.ctx
+    // 远处大行星（右上角，带光环）
+    const px = W - 30
+    const py = 20
+    const pr = 16
+    const grad = ctx.createRadialGradient(X(px - pr * 0.4), Y(py - pr * 0.4), S(2), X(px), Y(py), S(pr))
+    grad.addColorStop(0, 'rgba(250, 160, 80, 0.5)')
+    grad.addColorStop(1, 'rgba(180, 80, 40, 0.25)')
+    ctx.fillStyle = grad
+    ctx.beginPath()
+    ctx.arc(X(px), Y(py), S(pr), 0, Math.PI * 2)
+    ctx.fill()
+    // 光环
+    ctx.strokeStyle = 'rgba(230, 200, 150, 0.3)'
+    ctx.lineWidth = Math.max(1, S(0.5))
+    ctx.beginPath()
+    ctx.ellipse(X(px), Y(py), S(pr * 1.7), S(pr * 0.45), -0.35, 0, Math.PI * 2)
+    ctx.stroke()
+    // 星尘
+    for (let i = 0; i < 10; i++) {
+      const sx = (i * 41 + 5) % W
+      const sy = (i * 29 + 10) % H
+      ctx.fillStyle = 'rgba(255, 240, 200, 0.15)'
+      ctx.beginPath()
+      ctx.arc(X(sx), Y(sy), S(0.6), 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+  
+  /** 宇宙：星云 + 星星 */
+  private drawUniverseBackdrop(time: number, X: (n: number) => number, Y: (n: number) => number, S: (n: number) => number, W: number, H: number): void {
+    const ctx = this.ctx
+    // 星云（径向渐变彩色团，缓慢旋转漂移）
+    const nebulas = [
+      { x: 25, y: 30, r: 22, c: 'rgba(120, 60, 200, ' },
+      { x: 100, y: 55, r: 18, c: 'rgba(40, 120, 200, ' },
+      { x: 60, y: 12, r: 15, c: 'rgba(200, 60, 120, ' },
+    ]
+    for (let i = 0; i < nebulas.length; i++) {
+      const n = nebulas[i]
+      const drift = Math.sin(time * 0.3 + i * 2) * 3
+      const ng = ctx.createRadialGradient(X(n.x + drift), Y(n.y), S(1), X(n.x + drift), Y(n.y), S(n.r))
+      ng.addColorStop(0, n.c + '0.12)')
+      ng.addColorStop(1, n.c + '0)')
+      ctx.fillStyle = ng
+      ctx.beginPath()
+      ctx.arc(X(n.x + drift), Y(n.y), S(n.r), 0, Math.PI * 2)
+      ctx.fill()
+    }
+    // 星星
+    for (let i = 0; i < 20; i++) {
+      const sx = (i * 29 + 7) % W
+      const sy = (i * 17 + 3) % H
+      const tw = Math.sin(time * 3 + i * 1.3) * 0.5 + 0.5
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.15 + tw * 0.5})`
+      ctx.beginPath()
+      ctx.arc(X(sx), Y(sy), S(0.4 + (i % 3) * 0.35), 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+  
   // ============ 主题形态绘制 ============
+  
+  /** 鱼形障碍（海洋章）：椭圆身体 + 尾鳍 + 眼睛 + 背鳍 */
+  private drawFishObstacle(obs: Obstacle): void {
+    const ctx = this.ctx
+    const cx = obs.x + obs.width / 2
+    const cy = obs.y + obs.height / 2
+    const w = obs.width
+    const h = obs.height
+    // 身体（侧视鱼）
+    ctx.fillStyle = this.themeColor(obs)
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, w * 0.42, h * 0.5, 0, 0, Math.PI * 2)
+    ctx.fill()
+    // 尾巴（三角）
+    ctx.beginPath()
+    ctx.moveTo(cx + w * 0.36, cy)
+    ctx.lineTo(cx + w * 0.55, cy - h * 0.35)
+    ctx.lineTo(cx + w * 0.55, cy + h * 0.35)
+    ctx.closePath()
+    ctx.fill()
+    // 背鳍
+    ctx.beginPath()
+    ctx.moveTo(cx - w * 0.1, cy - h * 0.42)
+    ctx.lineTo(cx, cy - h * 0.62)
+    ctx.lineTo(cx + w * 0.12, cy - h * 0.36)
+    ctx.closePath()
+    ctx.fill()
+    // 眼睛
+    ctx.fillStyle = '#fff'
+    ctx.beginPath()
+    ctx.arc(cx - w * 0.24, cy - h * 0.12, Math.max(0.8, h * 0.09), 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#1a1a2e'
+    ctx.beginPath()
+    ctx.arc(cx - w * 0.2, cy - h * 0.12, Math.max(0.4, h * 0.045), 0, Math.PI * 2)
+    ctx.fill()
+    // 鳞片纹
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'
+    ctx.lineWidth = 0.6
+    ctx.beginPath()
+    ctx.arc(cx + w * 0.05, cy, h * 0.22, -Math.PI * 0.8, Math.PI * 0.8)
+    ctx.stroke()
+  }
+  
+  /** 鸟形障碍（天空章）：身体 + 双翅 + 嘴 */
+  private drawBirdObstacle(obs: Obstacle): void {
+    const ctx = this.ctx
+    const cx = obs.x + obs.width / 2
+    const cy = obs.y + obs.height / 2
+    const w = obs.width
+    const h = obs.height
+    ctx.fillStyle = this.themeColor(obs)
+    // 身体（椭圆）
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, w * 0.3, h * 0.34, 0, 0, Math.PI * 2)
+    ctx.fill()
+    // 双翅（展开，V 形）
+    ctx.beginPath()
+    ctx.moveTo(cx - w * 0.05, cy - h * 0.15)
+    ctx.quadraticCurveTo(cx - w * 0.45, cy - h * 0.5, cx - w * 0.6, cy - h * 0.15)
+    ctx.quadraticCurveTo(cx - w * 0.35, cy - h * 0.1, cx - w * 0.08, cy + h * 0.05)
+    ctx.closePath()
+    ctx.fill()
+    ctx.beginPath()
+    ctx.moveTo(cx + w * 0.05, cy - h * 0.15)
+    ctx.quadraticCurveTo(cx + w * 0.45, cy - h * 0.5, cx + w * 0.6, cy - h * 0.15)
+    ctx.quadraticCurveTo(cx + w * 0.35, cy - h * 0.1, cx + w * 0.08, cy + h * 0.05)
+    ctx.closePath()
+    ctx.fill()
+    // 尾巴
+    ctx.beginPath()
+    ctx.moveTo(cx, cy + h * 0.28)
+    ctx.lineTo(cx - w * 0.15, cy + h * 0.48)
+    ctx.lineTo(cx + w * 0.15, cy + h * 0.48)
+    ctx.closePath()
+    ctx.fill()
+    // 眼睛
+    ctx.fillStyle = '#fff'
+    ctx.beginPath()
+    ctx.arc(cx + w * 0.18, cy - h * 0.14, Math.max(0.8, h * 0.08), 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#1a1a2e'
+    ctx.beginPath()
+    ctx.arc(cx + w * 0.2, cy - h * 0.14, Math.max(0.4, h * 0.04), 0, Math.PI * 2)
+    ctx.fill()
+    // 嘴
+    ctx.fillStyle = '#fbbf24'
+    ctx.beginPath()
+    ctx.moveTo(cx + w * 0.28, cy - h * 0.06)
+    ctx.lineTo(cx + w * 0.42, cy - h * 0.01)
+    ctx.lineTo(cx + w * 0.28, cy + h * 0.04)
+    ctx.closePath()
+    ctx.fill()
+  }
   
   /** 主题色：数据标注的非默认色优先，否则用 kind 专属色板 */
   private themeColor(obs: Obstacle): string {
