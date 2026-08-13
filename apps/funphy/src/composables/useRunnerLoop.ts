@@ -207,7 +207,7 @@ export function useRunnerLoop() {
     const rt = runtime.value
     if (!rt) return
 
-    if (rt.state === 'playing') {
+    if (rt.state === 'playing' && gameState.value === 'playing') {
       if (!lastTime) lastTime = ts
       const realDt = Math.min(5, (ts - lastTime) / 16.667)  // 帧数
       lastTime = ts

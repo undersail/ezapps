@@ -20,11 +20,6 @@
             </div>
 
             <div v-if="lobbyMode === 'adventure'">
-              <div class="menu-legend">
-                <div class="legend-item"><span class="legend-dot white"></span> 宝石（升级装备）</div>
-                <div class="legend-item"><span class="legend-dot green"></span> 能量块（补充能量）</div>
-                <div class="legend-item"><span class="legend-dot gold"></span> 太阳能区（持续充能）</div>
-              </div>
               <button class="btn-primary lobby-start" @click="handleStart">🚀 开始探险 · 第 {{ currentLevelIndex + 1 }}/{{ runnerLevels.length }} 关</button>
             </div>
 
@@ -120,9 +115,10 @@
         <div class="intro-skip">点击跳过</div>
       </div>
 
-      <!-- 悬浮教学提示 -->
+      <!-- 悬浮教学提示（首次游玩文字说明） -->
       <div class="runner-tip" v-if="gameState === 'playing' && runtime && runtime.progress < 30">
-        🕹 摇杆：←→ 移动 · ↑ 加速 · ↓ 刹车 · ⚪宝石 ⚢能量
+        🕹 摇杆：←→ 移动 · ↑ 加速 · ↓ 刹车
+        <div class="tip-sub">⚪ 宝石=升级货币 · 🟢 能量块=补能 · 🟡 金区=太阳能充能</div>
       </div>
 
       <!-- 暂停界面 -->
@@ -160,10 +156,9 @@
       </div>
     </div>
 
-      <!-- 右上功能按钮（跳转逻辑 V2-5 大厅完善后调整） -->
+      <!-- 右上功能按钮（升级装备） -->
       <div class="side-btns" v-if="gameState === 'playing'">
         <button class="side-btn" @click="openShipyard" aria-label="升级装备">🛠</button>
-        <button class="side-btn" @click="handleBack" aria-label="返回大厅">✈️</button>
       </div>
 
       <!-- 右下冲刺键（与左摇杆平齐，动作区对称） -->
@@ -269,12 +264,13 @@ const fmtTime = computed(() => {
 
 const energyColor = computed(() => energy.value > 40 ? '#4ade80' : energy.value > 15 ? '#facc15' : '#ef4444')
 
-// ===== 过场卡片（探险模式开场介绍） =====
+// ===== 过场卡片（探险模式开场介绍，仅关卡开始显示一次） =====
 const showIntro = ref(false)
 const introText = ref('')
 let introTimer = 0
-watch(gameState, (s) => {
-  if (s === 'playing' && runtime.value?.level.introCard) {
+watch(gameState, (s, old) => {
+  // 暂停/升级弹窗恢复（paused→playing）时不重复显示
+  if (s === 'playing' && old !== 'paused' && runtime.value?.level.introCard) {
     introText.value = runtime.value.level.introCard
     showIntro.value = true
     // 3 秒自动消失
@@ -684,7 +680,6 @@ canvas {
 .lobby-start { width: 100%; }
 .lobby-footer {
   background: rgba(10, 20, 35, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.15);
   border-radius: 16px;
   padding: 14px 16px 18px;
 }
