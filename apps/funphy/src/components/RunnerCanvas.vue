@@ -100,23 +100,9 @@
           <h2>📚 物理卡册 · {{ ownedCards }}/{{ physicsCards.length }}</h2>
           <p class="cardbook-hint">通关关卡即可解锁对应物理卡</p>
           <div class="cardbook-grid">
-            <div
-              v-for="c in physicsCards"
-              :key="c.id"
-              class="physics-card"
-              :class="{ unlocked: upgrades.progress.cards.includes(c.id), boss: c.isBoss, locked: !upgrades.progress.cards.includes(c.id) }"
-              @click="upgrades.progress.cards.includes(c.id) && openCardDetail(c.id)"
-            >
-              <template v-if="upgrades.progress.cards.includes(c.id)">
-                <div class="physics-card-name">{{ c.intuitionName }}</div>
-                <div class="physics-card-formal">{{ c.formalName }}</div>
-                <div class="physics-card-desc">{{ c.intuitionDesc }}</div>
-                <div class="physics-card-tap">👆 点击查看</div>
-              </template>
-              <template v-else>
-                <div class="physics-card-locked">🔒</div>
-                <div class="physics-card-locked-text">通关 {{ c.id }} 解锁</div>
-              </template>
+            <div v-for="c in physicsCards" :key="c.id" class="physics-card" :class="{ locked: !upgrades.progress.cards.includes(c.id) }" @click="upgrades.progress.cards.includes(c.id) && openCardDetail(c.id)">
+              <div class="physics-card-name">{{ upgrades.progress.cards.includes(c.id) ? c.intuitionName : '🔒' }}</div>
+              <div class="physics-card-desc">{{ upgrades.progress.cards.includes(c.id) ? c.formalName : '通关 ' + c.id + ' 解锁' }}</div>
             </div>
           </div>
           <button class="btn-secondary" @click="showCardbook = false">关闭</button>
@@ -137,7 +123,7 @@
             <p class="card-detail-label">🏠 生活例子</p>
             <p class="card-detail-text">{{ selectedCard.lifeExample }}</p>
           </div>
-          <button class="btn-primary" @click="closeCardDetail">知道了</button>
+          <button class="btn-primary" @click="closeCardDetail">收下这张卡</button>
         </div>
       </div>
 
@@ -652,15 +638,13 @@ canvas {
   background: rgba(2, 6, 23, 0.7);
   border: 1px solid rgba(148, 163, 184, 0.2);
   padding: 6px 16px;
-  border-radius: 10px;
-  font-size: 0.72rem;
-  color: rgba(255,255,255,0.9);
-  z-index: 15;              /* 高于右上按钮(10)，不被遮挡 */
-  white-space: nowrap;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  z-index: 5;
   pointer-events: none;
-  backdrop-filter: blur(4px);
+  white-space: nowrap;
 }
-.tip-sub { font-size: 0.62rem; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
 /* ==== 过场卡片（上部居中，显眼位置） ==== */
 .intro-card {
   position: absolute;
@@ -729,13 +713,13 @@ canvas {
 .lobby-story { margin: 0; color: rgba(255,255,255,0.75); font-size: 0.95rem; line-height: 1.6; }
 .lobby-main {
   background: rgba(10, 20, 35, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.15);
   border-radius: 16px;
   padding: 16px;
 }
 .lobby-start { width: 100%; }
 .lobby-footer {
   background: rgba(10, 20, 35, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.15);
   border-radius: 16px;
   padding: 14px 16px 18px;
 }
@@ -764,51 +748,26 @@ canvas {
 }
 .cardbook-btn:hover { border-color: rgba(125, 211, 252, 0.4); color: #fff; }
 
-/* 物理卡册弹窗（V1 风格：紫卡/Boss金卡） */
+/* 物理卡册弹窗 */
 .cardbook-card { max-width: 560px; max-height: 84dvh; overflow-y: auto; text-align: center; }
 .cardbook-hint { margin: 0 0 12px; color: rgba(255,255,255,0.55); font-size: 0.8rem; }
 .cardbook-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 14px;
 }
 .physics-card {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(255,255,255,0.06);
+  border-radius: 12px;
   padding: 12px 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  min-height: 96px;
-}
-.physics-card.unlocked {
-  border-color: rgba(147, 51, 234, 0.5);
-  background: rgba(147, 51, 234, 0.08);
+  text-align: center;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: transform 0.1s, border-color 0.1s;
 }
-.physics-card.unlocked:hover {
-  background: rgba(147, 51, 234, 0.15);
-  transform: translateY(-1px);
-}
-.physics-card.boss.unlocked {
-  border-color: rgba(245, 158, 11, 0.5);
-  background: rgba(245, 158, 11, 0.08);
-}
-.physics-card.boss.unlocked:hover { background: rgba(245, 158, 11, 0.15); }
-.physics-card.locked {
-  opacity: 0.5;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: default;
-}
-.physics-card-name { font-weight: 600; font-size: 0.85rem; margin-bottom: 3px; }
-.physics-card-formal { font-size: 0.68rem; color: #94a3b8; margin-bottom: 4px; }
-.physics-card-desc { font-size: 0.72rem; color: #a78bfa; line-height: 1.4; }
-.physics-card-tap { font-size: 0.62rem; color: #64748b; margin-top: 6px; text-align: center; }
-.physics-card-locked { font-size: 1.4rem; }
-.physics-card-locked-text { font-size: 0.66rem; color: #64748b; text-align: center; margin-top: 4px; }
+.physics-card:active { transform: scale(0.97); }
+.physics-card.locked { opacity: 0.45; filter: grayscale(0.8); cursor: default; }
 
 /* 卡片详情弹窗 */
 .card-detail-card { max-width: 380px; text-align: center; }
@@ -818,6 +777,9 @@ canvas {
 .card-detail-label { margin: 8px 0 3px; font-size: 0.75rem; color: rgba(253, 224, 71, 0.85); font-weight: 600; }
 .card-detail-label:first-child { margin-top: 0; }
 .card-detail-text { margin: 0; font-size: 0.82rem; color: rgba(255,255,255,0.8); line-height: 1.6; }
+.physics-card-icon { font-size: 1.6rem; }
+.physics-card-name { font-size: 0.85rem; font-weight: 600; margin: 4px 0 4px; }
+.physics-card-desc { font-size: 0.7rem; color: rgba(255,255,255,0.6); line-height: 1.4; }
 
 /* 模式切换 */
 .mode-tabs {
