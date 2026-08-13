@@ -20,7 +20,7 @@
             </div>
 
             <div v-if="lobbyMode === 'adventure'">
-              <button class="btn-primary lobby-start" @click="handleStart">🚀 开始探险 · 第 {{ currentLevelIndex + 1 }}/{{ runnerLevels.length }} 关</button>
+              <button class="btn-primary lobby-start" @click="handleStart">🚀 开始探险 · 第 {{ adventureIndex + 1 }}/{{ runnerLevels.length }} 关</button>
             </div>
 
             <div v-else class="revisit-panel">
@@ -494,11 +494,21 @@ function handleNext() {
 function handleBack() {
   backToMenu()
 }
+// 探险进度：从关卡完成状态推导（持久化，刷新后仍准确）
+const adventureIndex = computed(() => {
+  let idx = 0
+  for (let i = 0; i < runnerLevels.length; i++) {
+    if (upgrades.isLevelDone(runnerLevels[i].id)) idx = i + 1
+    else break
+  }
+  return Math.min(idx, runnerLevels.length - 1)
+})
 function handleStart() {
   // 支持 ?level=N 调试参数（开发调测用）
   const params = new URLSearchParams(location.search)
   const lv = parseInt(params.get('level') || '0', 10)
   if (lv > 0) setLevelIndex(Math.min(lv - 1, runnerLevels.length - 1))
+  else setLevelIndex(adventureIndex.value)   // 从最新进度继续
   startLevel(runnerLevels[currentLevelIndex.value])
 }
 
