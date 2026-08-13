@@ -103,12 +103,14 @@
       </div>
     </div>
 
-      <!-- 右侧功能按钮列（游戏中：动作区） -->
+      <!-- 右上功能按钮（跳转逻辑 V2-5 大厅完善后调整） -->
       <div class="side-btns" v-if="gameState === 'playing'">
-        <button class="side-btn dash-btn" @click="dash" aria-label="冲刺">⚡</button>
         <button class="side-btn" @click="openShipyard" aria-label="升级装备">🛠</button>
         <button class="side-btn" @click="handleBack" aria-label="返回大厅">✈️</button>
       </div>
+
+      <!-- 右下冲刺键（与左摇杆平齐，动作区对称） -->
+      <button class="dash-fab" v-if="gameState === 'playing'" @click="dash" aria-label="冲刺">⚡</button>
 
       <!-- 升级弹窗（暂停游戏） -->
       <div class="overlay" v-if="showShipyard">
@@ -695,13 +697,29 @@ canvas {
   backdrop-filter: blur(4px);
 }
 .side-btn:active { transform: scale(0.9); }
-/* 冲刺键突出（金色） */
-.side-btn.dash-btn {
-  border-color: rgba(253, 224, 71, 0.5);
-  background: rgba(253, 224, 71, 0.15);
+
+/* 右下冲刺键（与左下摇杆平齐） */
+.dash-fab {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid rgba(253, 224, 71, 0.6);
+  background: radial-gradient(circle at 35% 35%, rgba(253, 224, 71, 0.35), rgba(147, 51, 234, 0.4));
   color: #fde047;
-  font-size: 1.3rem;
-  box-shadow: 0 0 12px rgba(253, 224, 71, 0.25);
+  font-size: 1.6rem;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 0 16px rgba(253, 224, 71, 0.3);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.dash-fab:active {
+  transform: scale(0.9);
+  box-shadow: 0 0 26px rgba(253, 224, 71, 0.55);
 }
 
 .keyboard-hint-desktop {
