@@ -65,6 +65,7 @@ export interface RunnerLevelDef {
   chapter: number
   name: string
   introCard?: string         // 关卡开场卡片文案（探险模式，3s 自动消失/可跳过）
+  endless?: boolean          // 无限模式：无通关点，里程挑战（宇宙关）
   length: number             // 通关里程（累计推进）
   baseFlow: number           // 基础流速（单位/帧）→ 障碍下落基准
   flowRange: number          // 推杆满速增加的流速
@@ -107,13 +108,16 @@ export interface RunnerRuntime {
   events: string[]           // 'hit' | 'gem' | 'energy' | 'win' | 'dash'
 }
 
-// 生成器：按里程激活 spawn 定义
+// 生成器：按里程激活 spawn 定义（endless 关按循环单元触发）
 export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH: number): void {
   const level = runtime.level
+  // endless：里程取模循环单元长度（spawns 循环再生）
+  const cycleLen = level.endless ? (level.spawns[level.spawns.length - 1]?.at ?? 500) + 300 : Infinity
+  const pos = level.endless ? runtime.progress % cycleLen : runtime.progress
   // 激活到达里程的生成项
   while (runtime.nextSpawnIndex < level.spawns.length) {
     const def = level.spawns[runtime.nextSpawnIndex]
-    if (def.at > runtime.progress) break
+    if (def.at > pos) break
     runtime.nextSpawnIndex++
     const sx = Math.min(Math.max(def.x, 8), viewW - 8)  // 钳制到视口内
     if (def.obstacle) {
@@ -133,10 +137,15 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
       })
     }
     if (def.gem) {
-      runtime.gemsArr.push({ id: `g_${def.at}_${def.x}`, x: sx, y: -20, collected: false })
+      runtime.gemsArr.push({ id: `g_${def.at}_${def.x}`, x: sx, y: -45, collected: false })
     }
     if (def.energy) {
-      runtime.energyBlocks.push({ id: `e_${def.at}_${def.x}`, x: sx, y: -20, collected: false })
+      runtime.energyBlocks.push({ id: `e_${def.at}_${def.x}`, x: sx, y: -45, collected: false })
+    }
+    // endless：一轮触发完，重置索引进入下一循环
+    if (level.endless && runtime.nextSpawnIndex >= level.spawns.length) {
+      runtime.nextSpawnIndex = 0
+      break
     }
   }
   // 更新下落

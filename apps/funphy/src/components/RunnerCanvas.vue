@@ -37,8 +37,8 @@
                   :class="{ locked: !isUnlocked(levelIndex(lv.id)), done: upgrades.isLevelDone(lv.id) }"
                   @click="playLevel(levelIndex(lv.id))"
                 >
-                  <div class="level-card-name">{{ lv.name }}</div>
-                  <div class="level-card-state">{{ upgrades.isLevelDone(lv.id) ? '✅' : isUnlocked(levelIndex(lv.id)) ? '▶' : '🔒' }}</div>
+                  <div class="level-card-name">{{ lv.name }}{{ lv.endless ? ' ∞' : '' }}</div>
+                  <div class="level-card-state">{{ upgrades.isLevelDone(lv.id) ? '✅' : isUnlocked(levelIndex(lv.id)) ? (lv.endless ? '∞' : '▶') : '🔒' }}</div>
                 </div>
               </div>
             </div>
@@ -116,6 +116,10 @@
       <div class="overlay" v-if="gameState === 'lost'">
         <div class="overlay-card lose-card">
           <h2>{{ failText }}</h2>
+          <template v-if="runtime?.level.endless">
+            <p class="result-line">🌌 本次里程：{{ Math.floor(runtime.progress) }}</p>
+            <p class="result-line">🏅 最佳记录：{{ bestDistanceText }}</p>
+          </template>
           <button class="btn-primary" @click="handleRetry">再试一次</button>
           <button class="btn-secondary" @click="handleBack">返回大厅</button>
         </div>
@@ -225,6 +229,9 @@ const upgradeDesc: Record<'engine' | 'armor' | 'battery', string> = {
   armor: '护甲+1',
   battery: '能量上限+10',
 }
+
+// 无限模式最佳里程
+const bestDistanceText = computed(() => upgrades.progress.bestDistance > 0 ? `${upgrades.progress.bestDistance}` : '尚无记录')
 
 const fmtTime = computed(() => {
   const t = elapsedTime.value

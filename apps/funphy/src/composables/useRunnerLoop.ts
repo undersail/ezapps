@@ -154,6 +154,14 @@ export function useRunnerLoop() {
             rt.failReason = 'armor'
             failText.value = '💥 护甲耗尽！'
             gameState.value = 'lost'   // 同步 UI 状态（弹失败窗）
+            // 无限模式：记录最佳里程
+            if (level.endless) {
+              const dist = Math.floor(rt.progress)
+              if (dist > upgrades.progress.bestDistance) {
+                upgrades.progress.bestDistance = dist
+                upgrades.save()
+              }
+            }
           }
           break
         }
@@ -178,7 +186,7 @@ export function useRunnerLoop() {
 
     // ===== 进度 =====
     rt.progress += rt.flowSpeed * dt * 60  // flowSpeed 单位/帧 → 每秒 ×60
-    if (rt.progress >= level.length) {
+    if (!level.endless && rt.progress >= level.length) {
       rt.state = 'won'
       rt.events.push('win')
       gameState.value = 'won'   // 同步 UI 状态（弹通关窗）
