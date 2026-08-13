@@ -122,9 +122,19 @@ export interface RunnerRuntime {
   gemsArr: RunnerGem[]
   energyBlocks: RunnerEnergyBlock[]
   nextSpawnIndex: number
+  mysteryNext: number       // 下一个盲盒块里程点（按难度间隔生成）
   time: number
   failReason: 'armor' | 'timeout' | null
   events: string[]           // 'hit' | 'gem' | 'energy' | 'win' | 'dash'
+}
+
+// 盲盒块生成间隔（按难度档：T1 无 / T2-T3 500 / T4 400 / T5 330 / T6 280 里程）
+export function mysteryInterval(difficulty: RunnerLevelDef['difficulty']): number {
+  if (difficulty === 'T1') return Infinity
+  if (difficulty === 'T2' || difficulty === 'T3') return 500
+  if (difficulty === 'T4') return 400
+  if (difficulty === 'T5') return 330
+  return 280
 }
 
 // 生成器：按里程激活 spawn 定义（endless 关按循环单元触发）
@@ -133,6 +143,23 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
   // endless：里程取模循环单元长度（spawns 循环再生）
   const cycleLen = level.endless ? (level.spawns[level.spawns.length - 1]?.at ?? 500) + 300 : Infinity
   const pos = level.endless ? runtime.progress % cycleLen : runtime.progress
+  // 按难度间隔生成问号盲盒（所有章节统一分配，位置随机）
+  const mInt = mysteryInterval(level.difficulty)
+  if (mInt !== Infinity && runtime.mysteryNext === 0) runtime.mysteryNext = mInt
+  while (mInt !== Infinity && runtime.progress >= runtime.mysteryNext) {
+    runtime.obstacles.push({
+      id: `m_auto_${runtime.mysteryNext}`,
+      kind: 'mystery',
+      style: 'orb',
+      x: 15 + Math.random() * (viewW - 30),
+      y: -45,
+      width: 10,
+      height: 10,
+      fallSpeed: 0.35 * (0.9 + Math.random() * 0.2),
+      active: true,
+    })
+    runtime.mysteryNext += mInt
+  }
   // 激活到达里程的生成项
   while (runtime.nextSpawnIndex < level.spawns.length) {
     const def = level.spawns[runtime.nextSpawnIndex]

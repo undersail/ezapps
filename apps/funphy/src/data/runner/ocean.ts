@@ -87,7 +87,6 @@ export const ocean2: RunnerLevelDef = {
     { at: 150, x: 85, gem: true },
     { at: 200, x: 45, obstacle: { kind: 'falling', style: 'rock', width: 9, height: 9, fallSpeed: 0.55, sway: 8, swaySpeed: 3.5 } },
     { at: 260, x: 70, gem: true },
-    { at: 280, x: 95, mystery: true },          // 问号盲盒
     { at: 310, x: 55, energy: true },
     // ==== 常规段（350-950）：鱼群编队 ====
     { at: 380, x: 40, obstacle: { kind: 'falling', style: 'rock', width: 8, height: 8, fallSpeed: 0.6, sway: 10, swaySpeed: 4 } },
@@ -153,7 +152,6 @@ export const ocean3: RunnerLevelDef = {
     { at: 280, x: 40, obstacle: { kind: 'falling', style: 'rock', width: 12, height: 12, fallSpeed: 0.5 } },
     { at: 290, x: 95, obstacle: { kind: 'falling', style: 'rock', width: 12, height: 12, fallSpeed: 0.5 } },
     { at: 320, x: 68, gem: true },
-    { at: 340, x: 25, mystery: true },          // 问号盲盒
     { at: 370, x: 30, obstacle: { kind: 'falling', style: 'rock', width: 12, height: 14, fallSpeed: 0.5, sway: 6, swaySpeed: 3 } },
     { at: 375, x: 105, obstacle: { kind: 'falling', style: 'rock', width: 12, height: 14, fallSpeed: 0.5, sway: 6, swaySpeed: 3 } },
     { at: 420, x: 68, gem: true },
@@ -206,7 +204,6 @@ export const ocean4: RunnerLevelDef = {
     { at: 220, x: 85, gem: true },
     { at: 300, x: 45, obstacle: { kind: 'falling', style: 'rock', width: 10, height: 10, fallSpeed: 0.75, sway: 10, swaySpeed: 4 } },
     { at: 380, x: 65, energy: true },
-    { at: 420, x: 30, mystery: true },          // 问号盲盒（急流关）
     // ==== 常规段（400-1000）：俯冲为主 ====
     { at: 460, x: 40, obstacle: { kind: 'dive', style: 'rock', width: 9, height: 9, fallSpeed: 1.4 } },
     { at: 465, x: 90, obstacle: { kind: 'dive', style: 'rock', width: 9, height: 9, fallSpeed: 1.4 } },
@@ -262,7 +259,6 @@ export const ocean5: RunnerLevelDef = {
     { at: 140, x: 55, obstacle: { kind: 'falling', style: 'rock', width: 9, height: 9, fallSpeed: 0.55, sway: 8, swaySpeed: 3 } },
     { at: 200, x: 85, gem: true },
     { at: 260, x: 45, obstacle: { kind: 'falling', style: 'rock', width: 10, height: 10, fallSpeed: 0.6, sway: 10, swaySpeed: 3.5 } },
-    { at: 285, x: 100, mystery: true },          // 问号盲盒（章末关）
     // ==== 中段（300-900）：综合障碍 ====
     { at: 330, x: 68, gem: true },
     { at: 390, x: 40, obstacle: { kind: 'falling', style: 'rock', width: 10, height: 10, fallSpeed: 0.6, sway: 10, swaySpeed: 4 } },
