@@ -872,7 +872,7 @@ export class SceneRenderer {
     // 身体（侧视鱼）
     ctx.beginPath()
     ctx.ellipse(cx, cy, w * 0.42, h * 0.5, 0, 0, Math.PI * 2)
-    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 1.2; ctx.stroke() }
+    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 2.5; ctx.stroke() }
     ctx.fillStyle = this.themeColor(obs)
     ctx.fill()
     // 尾巴（三角）
@@ -916,7 +916,7 @@ export class SceneRenderer {
     // 身体（椭圆）
     ctx.beginPath()
     ctx.ellipse(cx, cy, w * 0.3, h * 0.34, 0, 0, Math.PI * 2)
-    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 1.2; ctx.stroke() }
+    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 2.5; ctx.stroke() }
     ctx.fillStyle = this.themeColor(obs)
     ctx.fill()
     // 双翅（展开，V 形）
@@ -992,7 +992,7 @@ export class SceneRenderer {
     ctx.moveTo(pts[0][0], pts[0][1])
     for (let i = 1; i < n; i++) ctx.lineTo(pts[i][0], pts[i][1])
     ctx.closePath()
-    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 1.2; ctx.stroke() }
+    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 2.5; ctx.stroke() }
     ctx.fillStyle = this.themeColor(obs)
     ctx.fill()
     // 棱角高光
@@ -1010,7 +1010,7 @@ export class SceneRenderer {
     const ctx = this.ctx
     if (warn) {
       ctx.strokeStyle = 'rgba(239,68,68,0.9)'
-      ctx.lineWidth = 1.2
+      ctx.lineWidth = 2.5
       ctx.strokeRect(obs.x + 0.5, obs.y + 0.5, obs.width - 1, obs.height - 1)
     }
     ctx.fillStyle = this.themeColor(obs)
@@ -1080,7 +1080,7 @@ export class SceneRenderer {
     ctx.arc(obs.x + obs.width * 0.3, cy, obs.height * 0.55, 0, Math.PI * 2)
     ctx.arc(obs.x + obs.width * 0.55, cy - obs.height * 0.15, obs.height * 0.65, 0, Math.PI * 2)
     ctx.arc(obs.x + obs.width * 0.75, cy, obs.height * 0.5, 0, Math.PI * 2)
-    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 1.2; ctx.stroke() }
+    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 2.5; ctx.stroke() }
     ctx.fillStyle = 'rgba(226, 232, 240, 0.55)'
     ctx.fill()
     // 底部平整
@@ -1121,7 +1121,7 @@ export class SceneRenderer {
     const R = Math.min(obs.width, obs.height) / 2
     ctx.beginPath()
     ctx.arc(cx, cy, R, 0, Math.PI * 2)
-    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 1.2; ctx.stroke() }
+    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 2.5; ctx.stroke() }
     ctx.fillStyle = this.themeColor(obs)
     ctx.fill()
     // 表面弧线（经线感）
