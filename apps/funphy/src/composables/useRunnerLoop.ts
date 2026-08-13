@@ -126,10 +126,10 @@ export function useRunnerLoop() {
     // 能量消耗（分级：加速=移动 > 刹车 > 待机；耗尽无法操作）
     if (rt.energy > 0) {
       let drain = 0
-      if (thr > 0) drain += rt.effDrain * thr * 1.0                          // 加速：2.0（最高）
-      if (Math.abs(xInput) > 0) drain += rt.effDrain * Math.abs(xInput) * 1.0 // 左右移动：2.0
-      if (yInput < 0) drain += rt.effDrain * (-yInput) * 0.5                  // 刹车：1.0
-      drain += rt.effDrain * 0.4 * dt                                         // 待机：0.8（最低）
+      if (thr > 0) drain += rt.effDrain * thr * 1.5                          // 加速：3.0（最高）
+      if (Math.abs(xInput) > 0) drain += rt.effDrain * Math.abs(xInput) * 1.5 // 左右移动：3.0
+      if (yInput < 0) drain += rt.effDrain * (-yInput) * 1.0                  // 刹车：2.0
+      drain += rt.effDrain * 0.75 * dt                                        // 待机：1.5（最低）
       rt.energy = Math.max(0, rt.energy - drain * dt)
     }
     // 太阳能回能（y=激活里程，progress 到达后生效；飞船在 x 带内 y 上部区域充能）
