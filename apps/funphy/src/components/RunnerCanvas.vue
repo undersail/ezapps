@@ -974,11 +974,10 @@ canvas {
 .side-btns {
   position: absolute;
   right: 12px;
-  top: 86px;
+  top: 70px;               /* 上移：更贴 HUD 下方 */
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  z-index: 6;
+  gap: 8px;
 }
 .side-btn {
   width: 46px;
@@ -993,10 +992,10 @@ canvas {
 }
 .side-btn:active { transform: scale(0.9); }
 
-/* 右下冲刺键（与左下摇杆中心左右对称：摇杆中心实际距左 95px（含提示文字宽度）↔ 冲刺键中心距右 95px） */
+/* 右下冲刺键（右移靠近边缘，与摇杆垂直中心对齐保持） */
 .dash-fab {
   position: absolute;
-  right: 63px;
+  right: 48px;
   bottom: 59px;
   width: 64px;
   height: 64px;
