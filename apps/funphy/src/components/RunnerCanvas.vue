@@ -133,8 +133,8 @@
         <div class="intro-skip">点击跳过</div>
       </div>
 
-      <!-- 悬浮教学提示（首次游玩，与过场卡片同款排版） -->
-      <div class="runner-tip" v-if="gameState === 'playing' && runtime && runtime.progress < 30">
+      <!-- 悬浮教学提示（位置1：开局显示约5秒，与过场卡同款排版） -->
+      <div class="runner-tip" v-if="gameState === 'playing' && runtime && runtime.progress < 80">
         <div class="tip-title">🕹 操作说明</div>
         <div class="tip-row">←→ 移动 · ↑ 加速 · ↓ 刹车</div>
         <div class="tip-row">⚪ 宝石=升级货币 · 🟢 能量块=补能</div>
@@ -672,10 +672,10 @@ canvas {
 .tip-row + .tip-row { border-top: 1px solid rgba(148, 163, 184, 0.12); padding-top: 5px; }
 .solar-tip { border-color: rgba(253, 224, 71, 0.4); }
 
-/* ==== 过场卡片（上部居中，显眼位置） ==== */
+/* ==== 过场卡片（位置2：操作提示下方，多弹窗错位不重叠） ==== */
 .intro-card {
   position: absolute;
-  top: 116px;              /* 避开 HUD(60px) 与操作提示(52-100px) */
+  top: 176px;              /* 位置2：避开位置1（52px 操作提示，高约100px） */
   left: 0;
   right: 0;
   margin: 0 auto;          /* 用 margin 居中，transform 留给动画 */
