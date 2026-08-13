@@ -122,7 +122,7 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
         kind: def.obstacle.kind,
         style: def.obstacle.style,
         x: sx,
-        y: -20,
+        y: -45,   // 生成点上移：全油门时也有 ~1.1s 反应时间
         width: def.obstacle.width,
         height: def.obstacle.height,
         fallSpeed: def.obstacle.fallSpeed,

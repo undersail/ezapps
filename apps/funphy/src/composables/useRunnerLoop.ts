@@ -238,6 +238,21 @@ export function useRunnerLoop() {
     if (runtime.value) startLevel(runtime.value.level)
   }
 
+  // 关卡推进：返回下一关（无则 null → 回大厅）
+  const currentLevelIndex = ref(0)
+  function advanceLevel(levels: RunnerLevelDef[]): RunnerLevelDef | null {
+    const idx = currentLevelIndex.value + 1
+    if (idx < levels.length) {
+      currentLevelIndex.value = idx
+      return levels[idx]
+    }
+    currentLevelIndex.value = 0  // 章节完成，重置
+    return null
+  }
+  function setLevelIndex(i: number): void {
+    currentLevelIndex.value = i
+  }
+
   function backToMenu(): void {
     cancelAnimationFrame(rafId)
     runtime.value = null
@@ -320,5 +335,6 @@ export function useRunnerLoop() {
     togglePause, resumeGame,
     setStickTouch, setViewSize,
     upgrades, dash,
+    currentLevelIndex, advanceLevel, setLevelIndex,
   }
 }

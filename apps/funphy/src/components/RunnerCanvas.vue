@@ -26,7 +26,7 @@
               </button>
             </div>
           </div>
-          <button class="btn-primary" @click="handleStart">🚀 开始探险</button>
+          <button class="btn-primary" @click="handleStart">🚀 开始探险 · 第 {{ currentLevelIndex + 1 }}/{{ runnerLevels.length }} 关</button>
         </div>
       </div>
 
@@ -95,10 +95,11 @@
       <div class="overlay" v-if="gameState === 'won'">
         <div class="overlay-card win-card">
           <h2>🎉 通关！</h2>
+          <p class="result-line">🌊 第 {{ currentLevelIndex + 1 }}/{{ runnerLevels.length }} 关 · {{ currentLevelName }}</p>
           <p class="result-line">💎 本关宝石 {{ gems }}（累计 {{ totalGems }}）</p>
           <p class="result-line">⚡ 剩余能量 {{ energy }}%</p>
           <p class="result-line">⏱ 用时 {{ fmtTime }}</p>
-          <button class="btn-primary" @click="handleNext">返回大厅</button>
+          <button class="btn-primary" @click="handleNext">{{ nextBtnText }}</button>
         </div>
       </div>
     </div>
@@ -174,6 +175,7 @@ const {
   startLevel, retryLevel, backToMenu,
   togglePause, resumeGame,
   setStickTouch, setViewSize, upgrades, dash,
+  currentLevelIndex, advanceLevel, setLevelIndex,
 } = useRunnerLoop()
 
 const totalGems = computed(() => upgrades.progress.gems)
@@ -363,14 +365,26 @@ function handleRetry() {
   retryLevel()
 }
 function handleNext() {
-  backToMenu()
+  // 下一关（章末关后回大厅）
+  const next = advanceLevel(runnerLevels)
+  if (next) startLevel(next)
+  else backToMenu()
 }
 function handleBack() {
   backToMenu()
 }
 function handleStart() {
-  startLevel(runnerLevels[0])
+  // 支持 ?level=N 调试参数（开发调测用）
+  const params = new URLSearchParams(location.search)
+  const lv = parseInt(params.get('level') || '0', 10)
+  if (lv > 0) setLevelIndex(Math.min(lv - 1, runnerLevels.length - 1))
+  startLevel(runnerLevels[currentLevelIndex.value])
 }
+
+// 当前关卡信息
+const currentLevelName = computed(() => runnerLevels[currentLevelIndex.value]?.name || '海面初航')
+const isLastLevel = computed(() => currentLevelIndex.value >= runnerLevels.length - 1)
+const nextBtnText = computed(() => isLastLevel.value ? '🏆 完成章节' : '下一关 ▶')
 
 // 升级弹窗（打开时暂停游戏）
 const showShipyard = ref(false)
