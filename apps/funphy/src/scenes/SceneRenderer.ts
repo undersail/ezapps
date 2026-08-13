@@ -351,19 +351,19 @@ export class SceneRenderer {
         phase: 0,
         kind: o.style,
       }
-      // 问号盲盒块（紫色方块 + 白色问号 + 脉冲）
+      // 大障碍（宽度>=12）：按形状描红边（高危警告）
+      const warn = o.width >= 12
+      // 章节专属障碍形态（元素库）
       if (o.kind === 'mystery') {
         const pulse = Math.sin(Date.now() / 250) * 0.15 + 0.5
         ctx.save()
         ctx.translate(o.x, o.y)
-        // 紫色圆角方块
         ctx.fillStyle = `rgba(147, 51, 234, ${pulse})`
         this.roundRectPath(-o.width / 2, -o.height / 2, o.width, o.height, 2)
         ctx.fill()
         ctx.strokeStyle = 'rgba(216, 180, 254, 0.8)'
         ctx.lineWidth = 0.8
         ctx.stroke()
-        // 白色问号
         ctx.fillStyle = '#fff'
         ctx.font = `bold ${o.height * 0.7}px sans-serif`
         ctx.textAlign = 'center'
@@ -372,25 +372,18 @@ export class SceneRenderer {
         ctx.restore()
         continue
       }
-      // 章节专属障碍形态（元素库）
-      if (chapter === 1 && o.kind === 'falling') { this.drawFishObstacle(fake); }
-      else if (chapter === 3 && o.kind === 'falling') { this.drawBirdObstacle(fake); }
+      if (chapter === 1 && o.kind === 'falling') { this.drawFishObstacle(fake, warn); }
+      else if (chapter === 3 && o.kind === 'falling') { this.drawBirdObstacle(fake, warn); }
       else {
         switch (o.style) {
-          case 'rock': this.drawRock(fake); break
-          case 'metal': this.drawMetal(fake); break
-          case 'cloud': this.drawCloud(fake); break
-          case 'orb': this.drawOrb(fake); break
+          case 'rock': this.drawRock(fake, warn); break
+          case 'metal': this.drawMetal(fake, warn); break
+          case 'cloud': this.drawCloud(fake, warn); break
+          case 'orb': this.drawOrb(fake, warn); break
           case 'crystal': this.drawCrystal(fake); break
           case 'ice': this.drawIce(fake); break
-          default: this.drawRock(fake)
+          default: this.drawRock(fake, warn)
         }
-      }
-      // 大障碍（宽度>=12）描红边：高危警告信号（撞上重击）
-      if (o.width >= 12) {
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)'
-        ctx.lineWidth = 1.2
-        ctx.strokeRect(o.x - o.width / 2, o.y - o.height / 2, o.width, o.height)
       }
     }
     
@@ -870,16 +863,17 @@ export class SceneRenderer {
   }
   
   /** 鱼形障碍（海洋章）：椭圆身体 + 尾鳍 + 眼睛 + 背鳍 */
-  private drawFishObstacle(obs: Obstacle): void {
+  private drawFishObstacle(obs: Obstacle, warn?: boolean): void {
     const ctx = this.ctx
     const cx = obs.x + obs.width / 2
     const cy = obs.y + obs.height / 2
     const w = obs.width
     const h = obs.height
     // 身体（侧视鱼）
-    ctx.fillStyle = this.themeColor(obs)
     ctx.beginPath()
     ctx.ellipse(cx, cy, w * 0.42, h * 0.5, 0, 0, Math.PI * 2)
+    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 1.2; ctx.stroke() }
+    ctx.fillStyle = this.themeColor(obs)
     ctx.fill()
     // 尾巴（三角）
     ctx.beginPath()
@@ -913,16 +907,17 @@ export class SceneRenderer {
   }
   
   /** 鸟形障碍（天空章）：身体 + 双翅 + 嘴 */
-  private drawBirdObstacle(obs: Obstacle): void {
+  private drawBirdObstacle(obs: Obstacle, warn?: boolean): void {
     const ctx = this.ctx
     const cx = obs.x + obs.width / 2
     const cy = obs.y + obs.height / 2
     const w = obs.width
     const h = obs.height
-    ctx.fillStyle = this.themeColor(obs)
     // 身体（椭圆）
     ctx.beginPath()
     ctx.ellipse(cx, cy, w * 0.3, h * 0.34, 0, 0, Math.PI * 2)
+    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 1.2; ctx.stroke() }
+    ctx.fillStyle = this.themeColor(obs)
     ctx.fill()
     // 双翅（展开，V 形）
     ctx.beginPath()
@@ -981,7 +976,7 @@ export class SceneRenderer {
   }
   
   /** 岩石：不规则多边形 + 棱角高光（小行星/月岩） */
-  private drawRock(obs: Obstacle): void {
+  private drawRock(obs: Obstacle, warn?: boolean): void {
     const ctx = this.ctx
     const x = obs.x, y = obs.y, w = obs.width, h = obs.height
     // 伪随机顶点（基于位置 seed，形状稳定）
@@ -993,11 +988,12 @@ export class SceneRenderer {
       const wob = ((seed + i * 3) % 5 - 2) * 0.12
       pts.push([x + w * (t + wob * 0.5), y + h * (0.3 + ((seed * 7 + i * 13) % 5) * 0.12)])
     }
-    ctx.fillStyle = this.themeColor(obs)
     ctx.beginPath()
     ctx.moveTo(pts[0][0], pts[0][1])
     for (let i = 1; i < n; i++) ctx.lineTo(pts[i][0], pts[i][1])
     ctx.closePath()
+    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 1.2; ctx.stroke() }
+    ctx.fillStyle = this.themeColor(obs)
     ctx.fill()
     // 棱角高光
     ctx.fillStyle = 'rgba(255,255,255,0.15)'
@@ -1010,8 +1006,13 @@ export class SceneRenderer {
   }
   
   /** 金属：直角方板 + 四角铆钉 + 顶部高光（空间站/机械） */
-  private drawMetal(obs: Obstacle): void {
+  private drawMetal(obs: Obstacle, warn?: boolean): void {
     const ctx = this.ctx
+    if (warn) {
+      ctx.strokeStyle = 'rgba(239,68,68,0.9)'
+      ctx.lineWidth = 1.2
+      ctx.strokeRect(obs.x + 0.5, obs.y + 0.5, obs.width - 1, obs.height - 1)
+    }
     ctx.fillStyle = this.themeColor(obs)
     ctx.fillRect(obs.x, obs.y, obs.width, obs.height)
     // 顶部高光
@@ -1072,14 +1073,15 @@ export class SceneRenderer {
   }
   
   /** 云层：三圆云朵 + 半透明 */
-  private drawCloud(obs: Obstacle): void {
+  private drawCloud(obs: Obstacle, warn?: boolean): void {
     const ctx = this.ctx
     const cy = obs.y + obs.height / 2
-    ctx.fillStyle = 'rgba(226, 232, 240, 0.55)'
     ctx.beginPath()
     ctx.arc(obs.x + obs.width * 0.3, cy, obs.height * 0.55, 0, Math.PI * 2)
     ctx.arc(obs.x + obs.width * 0.55, cy - obs.height * 0.15, obs.height * 0.65, 0, Math.PI * 2)
     ctx.arc(obs.x + obs.width * 0.75, cy, obs.height * 0.5, 0, Math.PI * 2)
+    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 1.2; ctx.stroke() }
+    ctx.fillStyle = 'rgba(226, 232, 240, 0.55)'
     ctx.fill()
     // 底部平整
     ctx.fillStyle = 'rgba(148, 163, 184, 0.4)'
@@ -1112,14 +1114,15 @@ export class SceneRenderer {
   }
   
   /** 行星体：大圆 + 表面弧线 + 光环（引力星） */
-  private drawOrb(obs: Obstacle): void {
+  private drawOrb(obs: Obstacle, warn?: boolean): void {
     const ctx = this.ctx
     const cx = obs.x + obs.width / 2
     const cy = obs.y + obs.height / 2
     const R = Math.min(obs.width, obs.height) / 2
-    ctx.fillStyle = this.themeColor(obs)
     ctx.beginPath()
     ctx.arc(cx, cy, R, 0, Math.PI * 2)
+    if (warn) { ctx.strokeStyle = 'rgba(239,68,68,0.9)'; ctx.lineWidth = 1.2; ctx.stroke() }
+    ctx.fillStyle = this.themeColor(obs)
     ctx.fill()
     // 表面弧线（经线感）
     ctx.strokeStyle = 'rgba(255,255,255,0.2)'
