@@ -186,10 +186,13 @@ export function useRunnerLoop() {
           ship.armor--
           ship.invincible = rt.effInvincible   // 无敌帧（护甲升级缩短硬直）
           o.active = false
-          // 弹开
-          ship.vx = (ship.x < o.x ? -1 : 1) * 0.8
-          ship.vy = 0.6
+          // 弹开（大障碍击退更远）
+          const bigHit = o.width >= 12
+          ship.vx = (ship.x < o.x ? -1 : 1) * (bigHit ? 1.3 : 0.8)
+          ship.vy = bigHit ? 1.0 : 0.6
           rt.events.push('hit')
+          // 受击飘字
+          rt.floatTexts.push({ x: ship.x, y: ship.y - 6, text: bigHit ? '💥 重击!' : '-🛡', color: bigHit ? '#f87171' : '#fca5a5', life: 50 })
           if (ship.armor <= 0) {
             rt.state = 'lost'
             rt.failReason = 'armor'
@@ -212,16 +215,20 @@ export function useRunnerLoop() {
     for (const g of rt.gemsArr) {
       if (!g.collected && circleRectHit(ship.x, ship.y, SHIP_RADIUS, g.x - 3, g.y - 3, 6, 6)) {
         g.collected = true
-        rt.gems += gemValue(g.size)
+        const v = gemValue(g.size)
+        rt.gems += v
         rt.events.push('gem')
+        if (v >= 3) rt.floatTexts.push({ x: ship.x, y: ship.y - 6, text: `+${v} 💎`, color: v >= 6 ? '#ffd700' : '#c084fc', life: 45 })
       }
     }
     // 能量块（能量按大小档 12%/25%/40%）
     for (const eb of rt.energyBlocks) {
       if (!eb.collected && circleRectHit(ship.x, ship.y, SHIP_RADIUS + 1, eb.x - 3, eb.y - 3, 6, 6)) {
         eb.collected = true
-        rt.energy = Math.min(rt.maxEnergy, rt.energy + energyValue(eb.size))
+        const ev = energyValue(eb.size)
+        rt.energy = Math.min(rt.maxEnergy, rt.energy + ev)
         rt.events.push('energy')
+        if (ev >= 25) rt.floatTexts.push({ x: ship.x, y: ship.y - 6, text: `+${ev}% ⚡`, color: '#4ade80', life: 45 })
       }
     }
 

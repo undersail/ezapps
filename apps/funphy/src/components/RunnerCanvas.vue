@@ -138,7 +138,7 @@
         <div class="tip-title">🕹 操作说明</div>
         <div class="tip-row">←→ 移动 · ↑ 加速 · ↓ 刹车</div>
         <div class="tip-row">⚪ 宝石=升级货币 · 🟢 能量块=补能</div>
-        <div class="tip-row">🟡 金边=大障碍（危险）· ❓ 盲盒=随机奖励</div>
+        <div class="tip-row">🔴 红边=大障碍（危险）· ❓ 盲盒=随机奖励</div>
       </div>
 
       <!-- 首次进入太阳能区提示（同款卡片） -->
@@ -688,7 +688,7 @@ canvas {
 /* ==== 过场卡片（位置2：操作提示下方，多弹窗错位不重叠） ==== */
 .intro-card {
   position: absolute;
-  top: 176px;              /* 位置2：避开位置1（52px 操作提示，高约100px） */
+  top: 220px;              /* 位置2：避开位置1（52px 操作提示，4行高约165px） */
   left: 0;
   right: 0;
   margin: 0 auto;          /* 用 margin 居中，transform 留给动画 */

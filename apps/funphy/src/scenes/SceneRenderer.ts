@@ -386,10 +386,10 @@ export class SceneRenderer {
           default: this.drawRock(fake)
         }
       }
-      // 大障碍（宽度>=12）描金边：高危警告信号
+      // 大障碍（宽度>=12）描红边：高危警告信号（撞上重击）
       if (o.width >= 12) {
-        ctx.strokeStyle = 'rgba(253, 224, 71, 0.6)'
-        ctx.lineWidth = 1
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)'
+        ctx.lineWidth = 1.2
         ctx.strokeRect(o.x - o.width / 2, o.y - o.height / 2, o.width, o.height)
       }
     }
