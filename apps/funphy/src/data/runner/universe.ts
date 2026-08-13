@@ -1,10 +1,10 @@
 // V2 第六章：冲向宇宙 无限模式（红矮星/白矮星/黑洞，循环生成）
 import type { RunnerLevelDef } from '../../engine/runnerTypes'
 
-// 6-1 星际漫游（无限模式）：无通关点，里程挑战
+// 6-5 星际漫游（无限模式·终章）：无通关点，里程挑战
 // 生成序列为循环单元（500 里程一轮）：红矮星耀斑区 → 白矮星区 → 黑洞区
 export const universe1: RunnerLevelDef = {
-  id: '6-1',
+  id: '6-5',
   chapter: 6,
   name: '星际漫游',
   introCard: '🌌 太阳系已在身后！红矮星的耀斑、白矮星的高密度、黑洞的引力漩涡……\n这是无限探索模式，看你能走多远！',
@@ -50,9 +50,9 @@ export const universe1: RunnerLevelDef = {
   goal: { gems: 999 },
 }
 
-// 6-2 彗星航道：流星俯冲密集，快速反应
+// 6-1 彗星航道：流星俯冲密集，快速反应
 export const universe2: RunnerLevelDef = {
-  id: '6-2',
+  id: '6-1',
   chapter: 6,
   name: '彗星航道',
   introCard: '☄️ 彗星带到了！拖着长尾的流星群扑面而来……在碎片雨中穿行！',
@@ -114,9 +114,9 @@ export const universe2: RunnerLevelDef = {
   goal: { gems: 14 },
 }
 
-// 6-3 白矮星引力阱：高密度旋转体 + 引力混乱
+// 6-2 白矮星引力阱：高密度旋转体 + 引力混乱
 export const universe3: RunnerLevelDef = {
-  id: '6-3',
+  id: '6-2',
   chapter: 6,
   name: '白矮星引力阱',
   introCard: '💫 白矮星的质量密度惊人，轨道都被扭曲了！旋转的金属残骸在星井中打转……',
@@ -181,9 +181,9 @@ export const universe3: RunnerLevelDef = {
   goal: { gems: 15 },
 }
 
-// 6-4 黑洞边缘：巨型障碍 + 高速吞噬
+// 6-3 黑洞边缘：巨型障碍 + 高速吞噬
 export const universe4: RunnerLevelDef = {
-  id: '6-4',
+  id: '6-3',
   chapter: 6,
   name: '黑洞边缘',
   introCard: '🕳️ 黑洞的引力漩涡在吞噬一切！巨大残骸缓慢旋转，随时可能被吸入……贴边飞行是找死，走中间才是活路！',
@@ -248,12 +248,12 @@ export const universe4: RunnerLevelDef = {
   goal: { gems: 16 },
 }
 
-// 6-5 冲出太阳系：终极综合（全类型 + 最大密度）
+// 6-4 冲出银河系：终极综合（全类型 + 最大密度）
 export const universe5: RunnerLevelDef = {
-  id: '6-5',
+  id: '6-4',
   chapter: 6,
-  name: '冲出太阳系',
-  introCard: '🌠 太阳系最后一关！所有考验的合集——旋转、俯冲、巨型残骸、引力漩涡……证明你是宇宙最强飞行员！',
+  name: '冲出银河系',
+  introCard: '🌠 银河系最后一关！所有考验的合集——旋转、俯冲、巨型残骸、引力漩涡……证明你是银河最强飞行员！',
   length: 2000,
   baseFlow: 0.46,
   flowRange: 1.0,
@@ -327,5 +327,5 @@ export const universe5: RunnerLevelDef = {
   goal: { gems: 16 },
 }
 
-// 第 6 章关卡列表（无限模式 + 4 关终极挑战）
-export const universeLevels: RunnerLevelDef[] = [universe1, universe2, universe3, universe4, universe5]
+// 第 6 章关卡列表（4 关终极挑战 + 终章无限模式）
+export const universeLevels: RunnerLevelDef[] = [universe2, universe3, universe4, universe5, universe1]

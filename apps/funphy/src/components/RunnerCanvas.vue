@@ -95,8 +95,9 @@
       </div>
 
       <!-- 物理卡册弹窗 -->
-      <div class="overlay" v-if="showCardbook">
+      <div class="overlay" v-if="showCardbook" @click.self="showCardbook = false">
         <div class="overlay-card cardbook-card">
+          <button class="modal-close" @click="showCardbook = false" aria-label="关闭">✕</button>
           <h2>📚 物理卡册 · {{ ownedCards }}/{{ physicsCards.length }}</h2>
           <p class="cardbook-hint">通关关卡即可解锁对应物理卡</p>
           <div class="cardbook-grid">
@@ -127,7 +128,7 @@
         </div>
       </div>
 
-      <!-- 过场卡片（探险模式开场介绍，3s 自动消失/点击跳过） -->
+      <!-- 过场卡片（位置2：操作提示下方） -->
       <div class="intro-card" v-if="showIntro && gameState === 'playing'" @click="dismissIntro">
         <div class="intro-text">{{ introText }}</div>
         <div class="intro-skip">点击跳过</div>
@@ -712,6 +713,25 @@ canvas {
   color: #e2e8f0;
   white-space: pre-line;
 }
+.intro-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.intro-close:hover { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.intro-hint { margin-top: 8px; font-size: 0.7rem; color: rgba(255, 255, 255, 0.45); }
 .intro-skip {
   margin-top: 6px;
   font-size: 0.68rem;
@@ -1054,6 +1074,7 @@ canvas {
   z-index: 20;
 }
 .overlay-card {
+  position: relative;
   background: #0f172a;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 16px;
@@ -1061,6 +1082,25 @@ canvas {
   text-align: center;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
+/* 弹窗右上角关闭按钮 */
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-close:hover { background: rgba(255, 255, 255, 0.22); color: #fff; }
 .overlay-card h2 { margin: 0 0 14px; font-size: 1.5rem; }
 .result-line { margin: 6px 0; color: rgba(255,255,255,0.8); }
 .btn-primary {
