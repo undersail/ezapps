@@ -431,12 +431,12 @@ canvas {
   backdrop-filter: blur(4px);
   pointer-events: auto;
 }
-.armor-display { display: inline-flex; gap: 2px; }
+.armor-display { display: inline-flex; gap: 2px; white-space: nowrap; }
 .armor-heart { font-size: 0.8rem; }
 .armor-heart.empty { opacity: 0.25; filter: grayscale(1); }
-.gem-display { font-size: 0.85rem; font-weight: 600; }
+.gem-display { font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
 .hud-center { gap: 10px; }
-.stat { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: #e2e8f0; min-width: 44px; }
+.stat { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: #e2e8f0; min-width: 44px; white-space: nowrap; }
 .progress-wrap { display: flex; align-items: center; gap: 6px; }
 .progress-bar {
   width: 90px;
@@ -698,11 +698,11 @@ canvas {
 }
 .side-btn:active { transform: scale(0.9); }
 
-/* 右下冲刺键（与左下摇杆平齐） */
+/* 右下冲刺键（与左下摇杆垂直居中对齐） */
 .dash-fab {
   position: absolute;
   right: 18px;
-  bottom: 18px;
+  bottom: 38px;   /* 摇杆中心距底 70px - 冲刺键半径 32px */
   width: 64px;
   height: 64px;
   border-radius: 50%;
