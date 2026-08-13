@@ -15,6 +15,7 @@ export interface V2Progress {
   gems: number             // 宝石总累计
   upgrades: Upgrades
   cards: string[]          // 已解锁物理卡
+  levels: Record<string, boolean>  // 关卡完成状态（'1-1': true）
   bestDistance: number     // 宇宙关最佳里程（后续用）
 }
 
@@ -24,6 +25,7 @@ const DEFAULT_PROGRESS: V2Progress = {
   gems: 0,
   upgrades: { engine: 0, armor: 0, battery: 0 },
   cards: [],
+  levels: {},
   bestDistance: 0,
 }
 
@@ -90,6 +92,27 @@ export function useUpgrades() {
     }
   }
 
+  /** 标记关卡完成 */
+  function completeLevel(levelId: string) {
+    if (!progress.levels[levelId]) {
+      progress.levels[levelId] = true
+      save()
+    }
+  }
+
+  /** 关卡是否完成 */
+  function isLevelDone(levelId: string): boolean {
+    return !!progress.levels[levelId]
+  }
+
+  /** 关卡是否解锁：第 1 关始终解锁，或前一关已完成 */
+  function isLevelUnlocked(levelId: string, levels: { id: string }[]): boolean {
+    if (levelId === levels[0]?.id) return true
+    const idx = levels.findIndex(l => l.id === levelId)
+    if (idx <= 0) return false
+    return !!progress.levels[levels[idx - 1].id]
+  }
+
   /** 装备效果 → 物理参数修正 */
   function applyUpgrades(params: { thrust: number; energyDrain: number; armor: number; maxEnergy: number }): typeof params {
     const u = progress.upgrades
@@ -101,5 +124,5 @@ export function useUpgrades() {
     }
   }
 
-  return { progress, save, addGems, upgrade, unlockCard, applyUpgrades }
+  return { progress, save, addGems, upgrade, unlockCard, completeLevel, isLevelDone, isLevelUnlocked, applyUpgrades }
 }

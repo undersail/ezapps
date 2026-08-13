@@ -3,16 +3,42 @@
     <div class="canvas-area" ref="canvasAreaRef">
       <canvas ref="canvasRef"></canvas>
 
-      <!-- 大厅界面（V2-5 前极简版） -->
+      <!-- 大厅界面 -->
       <div class="menu-overlay" v-if="gameState === 'menu'">
-        <div class="menu-card">
+        <div class="menu-card wide">
           <h1>🚀 飞飞历险记</h1>
           <p class="menu-story">驾驶全能飞船，从海洋出发，穿越大陆与天空，冲向广袤宇宙！</p>
-          <div class="menu-legend">
-            <div class="legend-item"><span class="legend-dot white"></span> 宝石（升级装备）</div>
-            <div class="legend-item"><span class="legend-dot green"></span> 能量块（补充能量）</div>
-            <div class="legend-item"><span class="legend-dot gold"></span> 太阳能区（持续充能）</div>
+
+          <!-- 模式切换 -->
+          <div class="mode-tabs">
+            <button class="mode-tab" :class="{ active: lobbyMode === 'adventure' }" @click="lobbyMode = 'adventure'">🚀 探险</button>
+            <button class="mode-tab" :class="{ active: lobbyMode === 'revisit' }" @click="lobbyMode = 'revisit'">🔄 重游</button>
           </div>
+
+          <!-- 探险模式：进度 + 开始 -->
+          <div v-if="lobbyMode === 'adventure'">
+            <div class="menu-legend">
+              <div class="legend-item"><span class="legend-dot white"></span> 宝石（升级装备）</div>
+              <div class="legend-item"><span class="legend-dot green"></span> 能量块（补充能量）</div>
+              <div class="legend-item"><span class="legend-dot gold"></span> 太阳能区（持续充能）</div>
+            </div>
+            <button class="btn-primary" @click="handleStart">🚀 开始探险 · 第 {{ currentLevelIndex + 1 }}/{{ runnerLevels.length }} 关</button>
+          </div>
+
+          <!-- 重游模式：关卡卡片网格 -->
+          <div v-else class="level-grid">
+            <div
+              v-for="(lv, i) in runnerLevels"
+              :key="lv.id"
+              class="level-card"
+              :class="{ locked: !isUnlocked(i), done: upgrades.isLevelDone(lv.id) }"
+              @click="playLevel(i)"
+            >
+              <div class="level-card-name">{{ i + 1 }}. {{ lv.name }}</div>
+              <div class="level-card-state">{{ upgrades.isLevelDone(lv.id) ? '✅' : isUnlocked(i) ? '▶' : '🔒' }}</div>
+            </div>
+          </div>
+
           <!-- 飞船库：装备升级 -->
           <div class="shipyard">
             <div class="shipyard-title">🛠 飞船库 · 💎 {{ totalGems }}</div>
@@ -26,7 +52,6 @@
               </button>
             </div>
           </div>
-          <button class="btn-primary" @click="handleStart">🚀 开始探险 · 第 {{ currentLevelIndex + 1 }}/{{ runnerLevels.length }} 关</button>
         </div>
       </div>
 
@@ -381,6 +406,17 @@ function handleStart() {
   startLevel(runnerLevels[currentLevelIndex.value])
 }
 
+// 大厅模式（探险/重游）
+const lobbyMode = ref<'adventure' | 'revisit'>('adventure')
+function isUnlocked(i: number): boolean {
+  return upgrades.isLevelUnlocked(runnerLevels[i].id, runnerLevels)
+}
+function playLevel(i: number) {
+  if (!isUnlocked(i)) return
+  setLevelIndex(i)
+  startLevel(runnerLevels[i])
+}
+
 // 当前关卡信息
 const currentLevelName = computed(() => runnerLevels[currentLevelIndex.value]?.name || '海面初航')
 const isLastLevel = computed(() => currentLevelIndex.value >= runnerLevels.length - 1)
@@ -591,7 +627,56 @@ canvas {
   backdrop-filter: blur(6px);
 }
 .menu-card h1 { margin: 0 0 10px; font-size: 1.8rem; }
-.menu-story { margin: 0 0 18px; color: rgba(255,255,255,0.75); font-size: 0.9rem; line-height: 1.5; }
+.menu-story { margin: 0 0 16px; color: rgba(255,255,255,0.75); font-size: 0.9rem; line-height: 1.5; }
+.menu-card.wide { max-width: 400px; max-height: 88dvh; overflow-y: auto; }
+
+/* 模式切换 */
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.mode-tab {
+  flex: 1;
+  padding: 8px 0;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.7);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.mode-tab.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(99, 102, 241, 0.3));
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 重游关卡卡片 */
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.level-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(255,255,255,0.05);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.level-card:active { transform: scale(0.97); }
+.level-card.locked { opacity: 0.4; cursor: not-allowed; }
+.level-card.done { border-color: rgba(74, 222, 128, 0.4); }
+.level-card-name { font-size: 0.78rem; }
+.level-card-state { font-size: 0.9rem; }
 .menu-legend {
   display: flex;
   flex-direction: column;

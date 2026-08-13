@@ -181,6 +181,7 @@ export function useRunnerLoop() {
       rt.events.push('win')
       gameState.value = 'won'   // 同步 UI 状态（弹通关窗）
       upgrades.addGems(rt.gems) // 通关结算宝石（累计）
+      upgrades.completeLevel(level.id)  // 标记关卡完成（解锁下一关）
     }
 
     // ===== HUD 同步 =====
