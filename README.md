@@ -24,9 +24,11 @@
 
 | 子项目                                    | 简介                                  | 状态     |
 | ----------------------------------------- | ------------------------------------- | -------- |
-| 🚀 [飞飞历险记](/funphy/) · Funphy Adventure | WASD 控制的小飞飞物理小游戏            | 测试版   |
+| 🚀 [飞飞历险记](/funphy/) · Funphy Adventure | 垂直跑酷探险：驾驶飞船从海洋冲向宇宙，六章 30 关 + 无限模式，护甲/能量/装备升级/物理卡养成 | 测试版   |
 | 🔬 [物理实验室](/grimphy/) · Grimphy Lab     | 趣味物理实验动画演示                   | 测试版   |
 | 📐 [曼曼闯天涯](/funmath/) · FunMath Adventure | 数学闯关答题游戏                       | 测试版   |
+
+> 📖 [飞飞历险记 · 游戏手册](docs/funphy_game_manual.md)（玩法/操作/六章/成长全解）
 
 ### 添加新应用
 
@@ -93,7 +95,13 @@ Cloudflare Pages GitHub App  │  (国内访问加速备选)
 | 🐙 GitHub  | [@undersail](https://github.com/undersail)                |
 | 🇨🇳 Gitee  | [@undersail](https://gitee.com/undersail)                  |
 | 📮 公众号  | **科普狮**（一人即团队 · AI 创作干货与科普内容分享 · 灵感电台出品）|
-| 🔗 文章   | [试试用AI写歌吧，你想不到成本有多低](https://mp.weixin.qq.com/s/ogyq8aBVKmC0JUyi6Jlw_A) |
+
+### 📮 科普狮 · 微信公众号
+
+> AI 创作干货与科普内容分享，扫码关注 👇
+
+<!-- 二维码图片：将公众号二维码保存为 docs/assets/wechat-kepushi-qrcode.png 后取消下行注释 -->
+<!-- <p align="center"><img src="docs/assets/wechat-kepushi-qrcode.png" alt="科普狮公众号二维码" width="200"/></p> -->
 
 ---
 
@@ -111,4 +119,5 @@ Cloudflare Pages GitHub App  │  (国内访问加速备选)
 - ⏰ 最后更新：2026-08
 - 👤 单人维护，欢迎 PR / Issue
 - 📜 许可证：MIT
+- 📦 funphy 已完成 V2 改版：垂直跑酷探险（六章 30 关 + 无限模式 + 装备成长 + 物理卡）
 
