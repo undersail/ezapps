@@ -987,7 +987,7 @@ canvas {
   position: absolute;
   top: 50%;
   left: 50%;
-  margin: -20px 0 0 -20px;
+  margin: -20px 0 0 -20px;   /* 帽尺寸一半（40px 帽 → -20px）居中 */
   box-shadow: 0 2px 10px rgba(0,0,0,0.4);
 }
 .stick-wrap {
@@ -1132,7 +1132,7 @@ canvas {
 /* 大屏放大（≥768px）：摇杆/按钮整体变大（置于样式末尾，避免被覆盖） */
 @media (min-width: 768px) {
   .joystick-base { width: 144px; height: 144px; }
-  .joystick-knob { width: 52px; height: 52px; }
+  .joystick-knob { width: 52px; height: 52px; margin: -26px 0 0 -26px; }  /* 52px 帽 → -26px 保持居中 */
   .dash-fab { width: 84px; height: 84px; font-size: 2.2rem; }
   .side-btn { width: 58px; height: 58px; font-size: 1.5rem; }
   .side-btns { right: 18px; top: 76px; gap: 12px; }
