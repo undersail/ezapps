@@ -133,15 +133,17 @@
         <div class="intro-skip">点击跳过</div>
       </div>
 
-      <!-- 悬浮教学提示（首次游玩文字说明） -->
+      <!-- 悬浮教学提示（首次游玩，与过场卡片同款排版） -->
       <div class="runner-tip" v-if="gameState === 'playing' && runtime && runtime.progress < 30">
-        🕹 摇杆：←→ 移动 · ↑ 加速 · ↓ 刹车
-        <div class="tip-sub">⚪ 宝石=升级货币 · 🟢 能量块=补能</div>
+        <div class="tip-title">🕹 操作说明</div>
+        <div class="tip-row">←→ 移动 · ↑ 加速 · ↓ 刹车</div>
+        <div class="tip-row">⚪ 宝石=升级货币 · 🟢 能量块=补能</div>
       </div>
 
-      <!-- 首次进入太阳能区提示 -->
+      <!-- 首次进入太阳能区提示（同款卡片） -->
       <div class="runner-tip solar-tip" v-if="solarTipVisible">
-        🟡 太阳能区：持续充能！<div class="tip-sub">待在里面就能慢慢回满能量</div>
+        <div class="tip-title">🟡 太阳能区</div>
+        <div class="tip-row">持续充能！待在里面就能慢慢回满能量</div>
       </div>
 
       <!-- 暂停界面 -->
@@ -647,21 +649,27 @@ canvas {
   .hud-btn { padding: 3px 8px; font-size: 0.85rem; }
 }
 
+/* 操作提示（与过场卡片同款：尺寸/排版/图层一致） */
 .runner-tip {
   position: absolute;
   top: 52px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(2, 6, 23, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  padding: 6px 16px;
-  border-radius: 16px;
-  font-size: 0.8rem;
-  z-index: 5;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: min(420px, 86%);
+  background: rgba(2, 6, 23, 0.85);
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-radius: 14px;
+  padding: 14px 18px;
+  z-index: 7;              /* 与 intro-card 同层 */
   pointer-events: none;
-  white-space: nowrap;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+  text-align: center;
 }
-.tip-sub { font-size: 0.62rem; color: rgba(255,255,255,0.6); margin-top: 2px; }
+.tip-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; }
+.tip-row { font-size: 0.8rem; color: rgba(255,255,255,0.85); line-height: 1.7; }
+.tip-row + .tip-row { border-top: 1px solid rgba(148, 163, 184, 0.12); padding-top: 5px; }
 .solar-tip { border-color: rgba(253, 224, 71, 0.4); }
 
 /* ==== 过场卡片（上部居中，显眼位置） ==== */
