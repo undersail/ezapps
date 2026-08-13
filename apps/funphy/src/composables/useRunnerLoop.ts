@@ -192,7 +192,8 @@ export function useRunnerLoop() {
       gameState.value = 'won'   // 同步 UI 状态（弹通关窗）
       upgrades.addGems(rt.gems) // 通关结算宝石（累计）
       upgrades.completeLevel(level.id)  // 标记关卡完成（解锁下一关）
-      upgrades.unlockCard(level.id)     // 解锁对应物理卡
+      // 首次通关解锁物理卡：记录新卡，供通关界面自动弹出
+      if (upgrades.unlockCard(level.id)) lastNewCardId.value = level.id
     }
 
     // ===== HUD 同步 =====
@@ -252,6 +253,7 @@ export function useRunnerLoop() {
 
   // 关卡推进：返回下一关（无则 null → 回大厅）
   const currentLevelIndex = ref(0)
+  const lastNewCardId = ref('')   // 本次通关新解锁的物理卡（自动弹出）
   function advanceLevel(levels: RunnerLevelDef[]): RunnerLevelDef | null {
     const idx = currentLevelIndex.value + 1
     if (idx < levels.length) {
@@ -347,6 +349,6 @@ export function useRunnerLoop() {
     togglePause, resumeGame,
     setStickTouch, setViewSize,
     upgrades, dash,
-    currentLevelIndex, advanceLevel, setLevelIndex,
+    currentLevelIndex, advanceLevel, setLevelIndex, lastNewCardId,
   }
 }

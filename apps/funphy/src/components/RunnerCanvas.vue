@@ -100,12 +100,30 @@
           <h2>📚 物理卡册 · {{ ownedCards }}/{{ physicsCards.length }}</h2>
           <p class="cardbook-hint">通关关卡即可解锁对应物理卡</p>
           <div class="cardbook-grid">
-            <div v-for="c in physicsCards" :key="c.id" class="physics-card" :class="{ locked: !upgrades.progress.cards.includes(c.id) }">
+            <div v-for="c in physicsCards" :key="c.id" class="physics-card" :class="{ locked: !upgrades.progress.cards.includes(c.id) }" @click="upgrades.progress.cards.includes(c.id) && openCardDetail(c.id)">
               <div class="physics-card-name">{{ upgrades.progress.cards.includes(c.id) ? c.intuitionName : '🔒' }}</div>
               <div class="physics-card-desc">{{ upgrades.progress.cards.includes(c.id) ? c.formalName : '通关 ' + c.id + ' 解锁' }}</div>
             </div>
           </div>
           <button class="btn-secondary" @click="showCardbook = false">关闭</button>
+        </div>
+      </div>
+
+      <!-- 物理卡详情弹窗（点击卡片 / 首次获得自动弹出） -->
+      <div class="overlay" v-if="showCardDetail && selectedCard">
+        <div class="overlay-card card-detail-card">
+          <div class="card-detail-icon">🎴</div>
+          <h2>{{ selectedCard.intuitionName }}</h2>
+          <p class="card-detail-formal">{{ selectedCard.formalName }}</p>
+          <div class="card-detail-body">
+            <p class="card-detail-label">💡 直觉理解</p>
+            <p class="card-detail-text">{{ selectedCard.intuitionDesc }}</p>
+            <p class="card-detail-label">📐 公式</p>
+            <p class="card-detail-text">{{ selectedCard.formula }}</p>
+            <p class="card-detail-label">🏠 生活例子</p>
+            <p class="card-detail-text">{{ selectedCard.lifeExample }}</p>
+          </div>
+          <button class="btn-primary" @click="closeCardDetail">收下这张卡</button>
         </div>
       </div>
 
@@ -226,7 +244,7 @@ const {
   startLevel, retryLevel, backToMenu,
   togglePause, resumeGame,
   setStickTouch, setViewSize, upgrades, dash,
-  currentLevelIndex, advanceLevel, setLevelIndex,
+  currentLevelIndex, advanceLevel, setLevelIndex, lastNewCardId,
 } = useRunnerLoop()
 
 const totalGems = computed(() => upgrades.progress.gems)
@@ -254,6 +272,28 @@ const bestDistanceText = computed(() => upgrades.progress.bestDistance > 0 ? `${
 import { physicsCards } from '../data/physicsCards'
 const showCardbook = ref(false)
 const ownedCards = computed(() => physicsCards.filter(c => upgrades.progress.cards.includes(c.id)).length)
+
+// 卡片详情弹窗
+const showCardDetail = ref(false)
+const selectedCard = ref<(typeof physicsCards)[number] | null>(null)
+function openCardDetail(cardId: string) {
+  const c = physicsCards.find(x => x.id === cardId)
+  if (c && upgrades.progress.cards.includes(c.id)) {
+    selectedCard.value = c
+    showCardDetail.value = true
+  }
+}
+function closeCardDetail() {
+  showCardDetail.value = false
+  selectedCard.value = null
+}
+// 通关首次获得新卡 → 自动弹出详情（watch won 状态）
+watch(gameState, (s) => {
+  if (s === 'won' && lastNewCardId.value) {
+    openCardDetail(lastNewCardId.value)
+  }
+  if (s === 'menu') lastNewCardId.value = ''   // 回大厅清空
+})
 
 const fmtTime = computed(() => {
   const t = elapsedTime.value
@@ -608,7 +648,7 @@ canvas {
 /* ==== 过场卡片（上部居中，显眼位置） ==== */
 .intro-card {
   position: absolute;
-  top: 64px;
+  top: 116px;              /* 避开 HUD(60px) 与操作提示(52-100px) */
   left: 0;
   right: 0;
   margin: 0 auto;          /* 用 margin 居中，transform 留给动画 */
@@ -673,13 +713,13 @@ canvas {
 .lobby-story { margin: 0; color: rgba(255,255,255,0.75); font-size: 0.95rem; line-height: 1.6; }
 .lobby-main {
   background: rgba(10, 20, 35, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.15);
   border-radius: 16px;
   padding: 16px;
 }
 .lobby-start { width: 100%; }
 .lobby-footer {
   background: rgba(10, 20, 35, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.15);
   border-radius: 16px;
   padding: 14px 16px 18px;
 }
@@ -723,8 +763,20 @@ canvas {
   border-radius: 12px;
   padding: 12px 10px;
   text-align: center;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.1s;
 }
-.physics-card.locked { opacity: 0.45; filter: grayscale(0.8); }
+.physics-card:active { transform: scale(0.97); }
+.physics-card.locked { opacity: 0.45; filter: grayscale(0.8); cursor: default; }
+
+/* 卡片详情弹窗 */
+.card-detail-card { max-width: 380px; text-align: center; }
+.card-detail-icon { font-size: 2.4rem; }
+.card-detail-formal { margin: 0 0 12px; color: rgba(125, 211, 252, 0.9); font-size: 0.95rem; font-weight: 600; }
+.card-detail-body { text-align: left; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+.card-detail-label { margin: 8px 0 3px; font-size: 0.75rem; color: rgba(253, 224, 71, 0.85); font-weight: 600; }
+.card-detail-label:first-child { margin-top: 0; }
+.card-detail-text { margin: 0; font-size: 0.82rem; color: rgba(255,255,255,0.8); line-height: 1.6; }
 .physics-card-icon { font-size: 1.6rem; }
 .physics-card-name { font-size: 0.85rem; font-weight: 600; margin: 4px 0 4px; }
 .physics-card-desc { font-size: 0.7rem; color: rgba(255,255,255,0.6); line-height: 1.4; }

@@ -84,12 +84,14 @@ export function useUpgrades() {
     return true
   }
 
-  /** 解锁物理卡 */
-  function unlockCard(cardId: string) {
+  /** 解锁物理卡，返回是否本次新解锁 */
+  function unlockCard(cardId: string): boolean {
     if (!progress.cards.includes(cardId)) {
       progress.cards.push(cardId)
       save()
+      return true
     }
+    return false
   }
 
   /** 标记关卡完成 */
