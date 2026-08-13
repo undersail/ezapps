@@ -35,7 +35,7 @@ export const ocean1: RunnerLevelDef = {
     { at: 486, x: 35, obstacle: { kind: 'falling', style: 'rock', width: 11, height: 11, fallSpeed: 0.65 } },
     { at: 486, x: 75, obstacle: { kind: 'falling', style: 'rock', width: 9, height: 9, fallSpeed: 0.6 } },
     { at: 522, x: 110, gem: true },
-    { at: 567, x: 60, energy: true },
+    { at: 567, x: 60, gem: true, size: 'l' },   // 大宝石：高处+倒计时（演示）
     { at: 603, x: 45, obstacle: { kind: 'dive', style: 'rock', width: 8, height: 8, fallSpeed: 1.1 } },   // 俯冲鱼
     { at: 603, x: 85, obstacle: { kind: 'dive', style: 'rock', width: 8, height: 8, fallSpeed: 1.1 } },
     { at: 666, x: 70, gem: true },
@@ -50,7 +50,7 @@ export const ocean1: RunnerLevelDef = {
     { at: 990, x: 65, gem: true },
     { at: 1044, x: 40, obstacle: { kind: 'falling', style: 'rock', width: 11, height: 11, fallSpeed: 0.65, sway: 9, swaySpeed: 3.5 } },
     { at: 1044, x: 80, obstacle: { kind: 'falling', style: 'rock', width: 11, height: 11, fallSpeed: 0.65, sway: 9, swaySpeed: 3.5 } },
-    { at: 1098, x: 60, energy: true },
+    { at: 1098, x: 60, energy: true, size: 'l' },   // 大能量块：高处+倒计时（演示）
     { at: 1143, x: 50, obstacle: { kind: 'falling', style: 'rock', width: 10, height: 10, fallSpeed: 0.75, sway: 12, swaySpeed: 4 } },
     { at: 1179, x: 100, gem: true },
     { at: 1233, x: 35, obstacle: { kind: 'dive', style: 'rock', width: 10, height: 10, fallSpeed: 1.3 } },

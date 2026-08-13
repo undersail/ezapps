@@ -2,7 +2,7 @@
 import { ref, watch, onUnmounted } from 'vue'
 import type { Ref } from 'vue'
 import type { RunnerLevelDef, RunnerRuntime } from '../engine/runnerTypes'
-import { spawnRunnerEntities } from '../engine/runnerTypes'
+import { spawnRunnerEntities, gemValue, energyValue } from '../engine/runnerTypes'
 import * as Sound from '../utils/sound'
 import { useSound } from './useSound'
 import { useUpgrades } from './useUpgrades'
@@ -171,19 +171,19 @@ export function useRunnerLoop() {
         }
       }
     }
-    // 宝石
+    // 宝石（分值按大小档 1/3/6）
     for (const g of rt.gemsArr) {
-      if (!g.collected && circleRectHit(ship.x, ship.y, SHIP_RADIUS + 1, g.x - 3, g.y - 3, 6, 6)) {
+      if (!g.collected && circleRectHit(ship.x, ship.y, SHIP_RADIUS, g.x - 3, g.y - 3, 6, 6)) {
         g.collected = true
-        rt.gems++
+        rt.gems += gemValue(g.size)
         rt.events.push('gem')
       }
     }
-    // 能量块
+    // 能量块（能量按大小档 12%/25%/40%）
     for (const eb of rt.energyBlocks) {
       if (!eb.collected && circleRectHit(ship.x, ship.y, SHIP_RADIUS + 1, eb.x - 3, eb.y - 3, 6, 6)) {
         eb.collected = true
-        rt.energy = Math.min(rt.maxEnergy, rt.energy + 20)
+        rt.energy = Math.min(rt.maxEnergy, rt.energy + energyValue(eb.size))
         rt.events.push('energy')
       }
     }

@@ -364,42 +364,112 @@ export class SceneRenderer {
       ctx.fill()
     }
     
-    // 宝石（珍珠：白色圆珠）
+    // 宝石（菱形宝石：按章配色 + 💎切面高光；s/m/l 分级；l 带倒计时+星芒）
     for (const g of runtime.gemsArr) {
       if (g.collected) continue
       const bob = Math.sin(Date.now() / 300 + g.x) * 1
-      ctx.fillStyle = '#f8fafc'
+      const gy = g.y + bob
+      const glow = COLLECT_GLOW[runtime.level.chapter] || '#ffd700'
+      // 大块：消失倒计时闪烁
+      let alpha = 1
+      if (g.expiresIn > 0 && g.expiresIn <= 3) alpha = Math.sin(Date.now() / 150) > 0 ? 1 : 0.3
+      ctx.globalAlpha = alpha
+      const r = g.size === 'l' ? 3.4 : g.size === 'm' ? 2.9 : 2.3
+      // 菱形主体
+      ctx.fillStyle = glow
       ctx.beginPath()
-      ctx.arc(g.x, g.y + bob, 2.4, 0, Math.PI * 2)
+      ctx.moveTo(g.x, gy - r)
+      ctx.lineTo(g.x + r * 0.8, gy)
+      ctx.lineTo(g.x, gy + r)
+      ctx.lineTo(g.x - r * 0.8, gy)
+      ctx.closePath()
       ctx.fill()
-      ctx.fillStyle = 'rgba(255,255,255,0.9)'
+      // 💎 切面高光（白色交叉亮线）
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)'
+      ctx.lineWidth = 0.5
       ctx.beginPath()
-      ctx.arc(g.x - 0.8, g.y + bob - 0.8, 0.9, 0, Math.PI * 2)
-      ctx.fill()
+      ctx.moveTo(g.x, gy - r * 0.6)
+      ctx.lineTo(g.x + r * 0.35, gy - r * 0.1)
+      ctx.lineTo(g.x, gy + r * 0.4)
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(g.x - r * 0.5, gy - r * 0.2)
+      ctx.lineTo(g.x + r * 0.5, gy - r * 0.2)
+      ctx.stroke()
       // 光晕
-      ctx.globalAlpha = 0.25
-      ctx.fillStyle = '#f8fafc'
+      ctx.globalAlpha = alpha * 0.25
+      ctx.fillStyle = glow
       ctx.beginPath()
-      ctx.arc(g.x, g.y + bob, 4.5, 0, Math.PI * 2)
+      ctx.arc(g.x, gy, r * 2, 0, Math.PI * 2)
       ctx.fill()
+      // 大块：旋转星芒（稀有信号）
+      if (g.size === 'l') {
+        ctx.globalAlpha = alpha * 0.7
+        ctx.strokeStyle = '#fff'
+        ctx.lineWidth = 0.6
+        ctx.save()
+        ctx.translate(g.x, gy)
+        ctx.rotate(Date.now() / 800)
+        ctx.beginPath()
+        for (let i = 0; i < 4; i++) {
+          const a = Math.PI / 2 * i
+          ctx.moveTo(0, 0)
+          ctx.lineTo(Math.cos(a) * r * 2, Math.sin(a) * r * 2)
+        }
+        ctx.stroke()
+        ctx.restore()
+      }
       ctx.globalAlpha = 1
+      // 大块倒计时数字（剩余 <=3 显示）
+      if (g.expiresIn > 0 && g.expiresIn <= 3 && alpha === 1) {
+        ctx.fillStyle = '#fff'
+        ctx.font = 'bold 5px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.fillText(String(Math.ceil(g.expiresIn)), g.x, gy - r - 2.5)
+      }
     }
     
-    // 能量块（绿色菱形发光）
+    // 能量块（圆角方块 + ⚡ 图标；s/m/l 分级；l 带倒计时+脉冲光环）
     for (const eb of runtime.energyBlocks) {
       if (eb.collected) continue
-      ctx.save()
-      ctx.translate(eb.x, eb.y)
-      ctx.rotate(Math.PI / 4)
+      const bob = Math.sin(Date.now() / 300 + eb.x + 2) * 1
+      const ey = eb.y + bob
+      let alpha = 1
+      if (eb.expiresIn > 0 && eb.expiresIn <= 3) alpha = Math.sin(Date.now() / 150) > 0 ? 1 : 0.3
+      ctx.globalAlpha = alpha
+      const s = eb.size === 'l' ? 3.6 : eb.size === 'm' ? 3.1 : 2.6
+      // 圆角方块
       ctx.fillStyle = '#4ade80'
-      ctx.fillRect(-2.2, -2.2, 4.4, 4.4)
-      ctx.restore()
-      ctx.globalAlpha = 0.3
-      ctx.fillStyle = '#4ade80'
-      ctx.beginPath()
-      ctx.arc(eb.x, eb.y, 5, 0, Math.PI * 2)
+      this.roundRectPath(eb.x - s, ey - s, s * 2, s * 2, s * 0.45)
       ctx.fill()
+      // ⚡ 闪电图标（白色折线）
+      ctx.fillStyle = '#fff'
+      ctx.beginPath()
+      const lx = eb.x
+      ctx.moveTo(lx + s * 0.2, ey - s * 0.75)
+      ctx.lineTo(lx - s * 0.45, ey + s * 0.05)
+      ctx.lineTo(lx - s * 0.05, ey + s * 0.05)
+      ctx.lineTo(lx - s * 0.2, ey + s * 0.75)
+      ctx.lineTo(lx + s * 0.45, ey - s * 0.05)
+      ctx.lineTo(lx + s * 0.05, ey - s * 0.05)
+      ctx.closePath()
+      ctx.fill()
+      // 大块：脉冲光环
+      if (eb.size === 'l') {
+        ctx.globalAlpha = alpha * (0.2 + Math.sin(Date.now() / 300) * 0.12)
+        ctx.fillStyle = '#4ade80'
+        ctx.beginPath()
+        ctx.arc(eb.x, ey, s * 2.2, 0, Math.PI * 2)
+        ctx.fill()
+      }
       ctx.globalAlpha = 1
+      // 倒计时数字
+      if (eb.expiresIn > 0 && eb.expiresIn <= 3 && alpha === 1) {
+        ctx.fillStyle = '#fff'
+        ctx.font = 'bold 5px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.fillText(String(Math.ceil(eb.expiresIn)), eb.x, ey - s - 2.5)
+      }
     }
     
     // 飞船（新造型：船头朝上垂直飞船）
@@ -735,6 +805,19 @@ export class SceneRenderer {
   }
   
   // ============ 主题形态绘制 ============
+  
+  /** 圆角矩形路径（兼容旧 TS lib，不用 ctx.roundRect） */
+  private roundRectPath(x: number, y: number, w: number, h: number, r: number): void {
+    const ctx = this.ctx
+    const rr = Math.min(r, w / 2, h / 2)
+    ctx.beginPath()
+    ctx.moveTo(x + rr, y)
+    ctx.arcTo(x + w, y, x + w, y + h, rr)
+    ctx.arcTo(x + w, y + h, x, y + h, rr)
+    ctx.arcTo(x, y + h, x, y, rr)
+    ctx.arcTo(x, y, x + w, y, rr)
+    ctx.closePath()
+  }
   
   /** 鱼形障碍（海洋章）：椭圆身体 + 尾鳍 + 眼睛 + 背鳍 */
   private drawFishObstacle(obs: Obstacle): void {

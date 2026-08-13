@@ -24,6 +24,8 @@ export interface RunnerGem {
   x: number
   y: number
   collected: boolean
+  size: 's' | 'm' | 'l'     // 大小档（分值 1/3/6）
+  expiresIn: number         // 剩余秒（>0 显示倒计时，<=0 消失）
 }
 
 export interface RunnerEnergyBlock {
@@ -31,6 +33,8 @@ export interface RunnerEnergyBlock {
   x: number
   y: number
   collected: boolean
+  size: 's' | 'm' | 'l'     // 大小档（能量 12%/25%/40%）
+  expiresIn: number         // 剩余秒
 }
 
 export interface RunnerSolarZone {
@@ -57,6 +61,16 @@ export interface RunnerSpawnDef {
   }
   gem?: boolean              // 生成宝石
   energy?: boolean           // 生成能量块
+  size?: 's' | 'm' | 'l'     // 大小档（宝石分值 1/3/6，能量块 12%/25%/40%）
+  expiresIn?: number         // 秒，>0 时高处生成+消失倒计时（大块专属）
+}
+
+// 资源大小档 → 分值/能量
+export function gemValue(size: 's' | 'm' | 'l' | undefined): number {
+  return size === 'l' ? 6 : size === 'm' ? 3 : 1
+}
+export function energyValue(size: 's' | 'm' | 'l' | undefined): number {
+  return size === 'l' ? 40 : size === 'm' ? 25 : 12
 }
 
 // 关卡定义
@@ -137,10 +151,30 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
       })
     }
     if (def.gem) {
-      runtime.gemsArr.push({ id: `g_${def.at}_${def.x}`, x: sx, y: -45, collected: false })
+      // size 默认 s（1分）；大块（l）50% 高处生成 + 消失倒计时
+      const size = def.size || 's'
+      const high = size === 'l' && Math.random() < 0.5
+      runtime.gemsArr.push({
+        id: `g_${def.at}_${def.x}`,
+        x: sx,
+        y: high ? 8 + Math.random() * 14 : -45,   // 高处：直接出现在视口上部 y 8~22
+        collected: false,
+        size,
+        expiresIn: def.expiresIn ?? (size === 'l' ? 10 : 0),
+      })
     }
     if (def.energy) {
-      runtime.energyBlocks.push({ id: `e_${def.at}_${def.x}`, x: sx, y: -45, collected: false })
+      // size 默认 m（25%）；大块（l）50% 高处生成 + 消失倒计时
+      const size = def.energy === true && def.size ? def.size : 'm'
+      const high = size === 'l' && Math.random() < 0.5
+      runtime.energyBlocks.push({
+        id: `e_${def.at}_${def.x}`,
+        x: sx,
+        y: high ? 8 + Math.random() * 14 : -45,
+        collected: false,
+        size,
+        expiresIn: def.expiresIn ?? (size === 'l' ? 8 : 0),
+      })
     }
     // endless：一轮触发完，重置索引进入下一循环
     if (level.endless && runtime.nextSpawnIndex >= level.spawns.length) {
@@ -162,12 +196,20 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
   for (const g of runtime.gemsArr) {
     if (!g.collected) {
       g.y += flow + 0.15
+      if (g.expiresIn > 0) {
+        g.expiresIn -= 1 / 60
+        if (g.expiresIn <= 0) g.collected = true   // 倒计时结束消失
+      }
       if (g.y > viewH + 20) g.collected = true  // 回收（错过的宝石消失）
     }
   }
   for (const eb of runtime.energyBlocks) {
     if (!eb.collected) {
       eb.y += flow + 0.15
+      if (eb.expiresIn > 0) {
+        eb.expiresIn -= 1 / 60
+        if (eb.expiresIn <= 0) eb.collected = true
+      }
       if (eb.y > viewH + 20) eb.collected = true
     }
   }
