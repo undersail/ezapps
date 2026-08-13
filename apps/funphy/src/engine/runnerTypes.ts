@@ -257,7 +257,7 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
         y: high ? 8 + Math.random() * 14 : -45,   // 高处：直接出现在视口上部 y 8~22
         collected: false,
         size,
-        expiresIn: def.expiresIn ?? (size === 'l' ? 7 : 0),
+        expiresIn: def.expiresIn ?? (size === 'l' ? 5 : 0),
       })
     }
     if (def.energy) {
@@ -271,7 +271,7 @@ export function spawnRunnerEntities(runtime: RunnerRuntime, viewW: number, viewH
         y: high ? 8 + Math.random() * 14 : -45,
         collected: false,
         size,
-        expiresIn: def.expiresIn ?? (size === 'l' ? 6 : 0),
+        expiresIn: def.expiresIn ?? (size === 'l' ? 5 : 0),
       })
     }
     // endless：一轮触发完，重置索引进入下一循环
