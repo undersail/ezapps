@@ -11,6 +11,5 @@ id = "06fc5623de5c4beb8b31ccf4e46e9623"
 binding = "SAVE"
 id = "3a32d46ffd17407faf1da5b5b41dcaaf"
 
-# 签名密钥（前端可见，防小白作弊）
-[vars]
-API_SECRET = "ezapps-funphy-rank-2026"
+# 注意：签名密钥不走 vars（REST API 注入不生效）
+# 密钥在 src/index.ts 内（SECRET 常量，部署时同步轮换）；可改用 Dashboard Secret 环境变量覆盖
