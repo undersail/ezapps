@@ -2,7 +2,8 @@
 // 断网/失败静默降级（不影响单机游玩）
 
 const API_BASE = 'https://api.ezapps.cc/api'
-const API_SECRET = 'ezapps-funphy-rank-2026'   // 与 Worker vars 一致（防小白作弊）
+// 签名密钥：构建时注入（.env → VITE_API_SECRET），不写死在代码里
+const API_SECRET: string = import.meta.env.VITE_API_SECRET || ''
 
 async function hmac(data: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(API_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])

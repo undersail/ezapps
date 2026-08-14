@@ -32,3 +32,9 @@ coverage/
 __pycache__/
 .venv/
 *.pyc
+
+# 环境变量（密钥不入库）
+.env
+.env.local
+.env.production
+.env.production.local

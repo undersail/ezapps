@@ -4,10 +4,12 @@
 declare global {
   const RANK: KVNamespace
   const SAVE: KVNamespace
+  const API_SECRET: string | undefined   // Dashboard Secret 环境变量（可选）
 }
 
-// 签名密钥（前端可见，防小白作弊；高防需服务端权威计分）
-const API_SECRET = 'ezapps-funphy-rank-2026'
+// 签名密钥：优先读环境变量（Dashboard 配置 Secret），兜底内置
+// 内置值会在每次部署时同步更新（旧值作废）
+const SECRET: string = typeof API_SECRET !== 'undefined' && API_SECRET ? API_SECRET : '3aa76c4446df3a7bfcebd774783815d0'
 
 const CORS_ORIGINS = ['https://ezapps.cc', 'https://ezapps.pages.dev', 'http://localhost:5174', 'http://localhost:5173']
 
@@ -59,7 +61,7 @@ async function handleRequest(request: Request): Promise<Response> {
       if (Math.abs(Date.now() / 1000 - ts) > 600) {
         return new Response(JSON.stringify({ success: false, error: '时间戳过期' }), { status: 400, headers })
       }
-      const expect = await hmac(`${player}:${score}:${mode}:${level}:${ts}`, API_SECRET)
+      const expect = await hmac(`${player}:${score}:${mode}:${level}:${ts}`, SECRET)
       if (sig !== expect) {
         return new Response(JSON.stringify({ success: false, error: '签名无效' }), { status: 403, headers })
       }
@@ -110,7 +112,7 @@ async function handleRequest(request: Request): Promise<Response> {
     if (url.pathname === '/api/save/put' && request.method === 'POST') {
       const body = await request.json() as any
       const { player, data, ts, sig } = body
-      const expect = await hmac(`save:${player}:${JSON.stringify(data)}:${ts}`, API_SECRET)
+      const expect = await hmac(`save:${player}:${JSON.stringify(data)}:${ts}`, SECRET)
       if (sig !== expect) return new Response(JSON.stringify({ success: false, error: '签名无效' }), { status: 403, headers })
       await SAVE.put(`save:${player}`, JSON.stringify(data))
       return new Response(JSON.stringify({ success: true }), { headers })
