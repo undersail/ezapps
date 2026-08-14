@@ -14,10 +14,9 @@ const deviceId = Net.getDeviceId()
 const GAME_LIST = [
   { id: 'gomoku', emoji: '⚫', name: '五子棋', desc: '15×15 · 先五连者胜', seats: 2 },
   { id: 'reversi', emoji: '◐', name: '黑白棋', desc: '8×8 · 翻转吃子', seats: 2 },
-  { id: 'ccheckers', emoji: '🦘', name: '中国跳棋', desc: '六角星 · 2-6 人 · 跳子入营', seats: 3 },
+  { id: 'checkers', emoji: '🏁', name: '国际跳棋', desc: '8×8 · 斜走跳吃', seats: 2 },
 ]
 const gameId = ref('gomoku')
-const ccSeats = ref(3)
 
 // ===== 大厅状态 =====
 const matching = ref(false)
@@ -63,7 +62,7 @@ async function match() {
 }
 
 async function createRoom() {
-  const seats = gameId.value === 'ccheckers' ? ccSeats.value : 2
+  const seats = 2
   const res = await Net.createRoom(gameId.value, { deviceId, nick: myNick.value }, seats)
   if (res?.roomId) {
     roomCode.value = res.roomId
@@ -136,19 +135,22 @@ function cellClick(e: MouseEvent) {
   const px = e.clientX - rect.left
   const py = e.clientY - rect.top
 
-  if (curGame.value === 'ccheckers') {
-    // 六角星网格换算（与绘制 X/Y 一致）
-    const size = rect.width
-    const pad = size * 0.03
-    const cell = (size - pad * 2) / 16
-    const r = Math.round((py - pad) / cell)
-    const c = Math.round((px - pad) / cell)
-    const pt = r * 17 + c
-    if (board.value[pt] === undefined || board.value[pt] === -1) return
+  if (curGame.value === 'checkers') {
+    // 8×8 黑白格：点己方棋子选中 → 点目标格移动
+    const cell = rect.width / 8
+    const r = Math.floor(py / cell), c = Math.floor(px / cell)
+    if (r < 0 || r > 7 || c < 0 || c > 7) return
+    const pt = r * 8 + c
+    const v = board.value[pt]
+    const isMine = (v === 1 && mySeat.value === 0) || (v === 2 && mySeat.value === 1) || (v === 3 && mySeat.value === 0) || (v === 4 && mySeat.value === 1)
     if (selected.value === null) {
-      if (board.value[pt] === mySeat.value + 1) selected.value = pt
-    } else {
-      ws.value?.send({ type: 'move', move: { from: selected.value, to: pt } })
+      if (isMine) selected.value = pt
+    } else if (selected.value === pt) {
+      selected.value = null
+    } else if (isMine) {
+      selected.value = pt  // 换选
+    } else if (v === 0) {
+      ws.value?.send({ type: 'move', from: selected.value, to: pt })
       selected.value = null
     }
     return
@@ -192,7 +194,7 @@ function drawBoard() {
   canvas.height = size * dpr
   ctx.scale(dpr, dpr)
 
-  if (curGame.value === 'ccheckers') return drawCC(ctx, size)
+  if (curGame.value === 'checkers') return drawCheckers(ctx, size)
   if (curGame.value === 'reversi') return drawReversi(ctx, size)
 
   // ===== 五子棋 =====
@@ -240,6 +242,54 @@ function drawBoard() {
     }
   }
 }
+// ===== 国际跳棋棋盘（8×8 黑白格） =====
+function drawCheckers(ctx: CanvasRenderingContext2D, size: number) {
+  const cell = size / 8
+  // 浅色底
+  ctx.fillStyle = '#e8c98a'
+  ctx.fillRect(0, 0, size, size)
+  // 深色格
+  ctx.fillStyle = '#8a5a2b'
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if ((r + c) % 2 === 1) ctx.fillRect(c * cell, r * cell, cell, cell)
+    }
+  }
+  // 格子线
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  for (let i = 0; i <= 8; i++) {
+    ctx.moveTo(i * cell, 0); ctx.lineTo(i * cell, size)
+    ctx.moveTo(0, i * cell); ctx.lineTo(size, i * cell)
+  }
+  ctx.stroke()
+  // 棋子（1/3 黑方，2/4 白方；3/4 为王）
+  for (let i = 0; i < board.value.length; i++) {
+    const v = board.value[i]
+    if (!v || v === -1) continue
+    const r = Math.floor(i / 8), c = i % 8
+    const x = c * cell + cell / 2, y = r * cell + cell / 2
+    const isBlack = v === 1 || v === 3
+    ctx.fillStyle = isBlack ? '#3a3a3a' : '#f5f0e6'
+    ctx.beginPath(); ctx.arc(x, y, cell * 0.36, 0, Math.PI * 2); ctx.fill()
+    ctx.strokeStyle = isBlack ? '#111' : '#b0a890'
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+    if (v === 3 || v === 4) {
+      // 王棋：金色内环
+      ctx.strokeStyle = '#ffd700'
+      ctx.lineWidth = 2.5
+      ctx.beginPath(); ctx.arc(x, y, cell * 0.2, 0, Math.PI * 2); ctx.stroke()
+    }
+    if (selected.value === i) {
+      ctx.strokeStyle = '#fff'
+      ctx.lineWidth = 3.5
+      ctx.beginPath(); ctx.arc(x, y, cell * 0.36, 0, Math.PI * 2); ctx.stroke()
+    }
+  }
+}
+
 const lastMove = ref<{ r: number; c: number } | null>(null)
 
 // ===== 黑白棋棋盘（8×8 绿底） =====
@@ -433,12 +483,6 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <!-- 中国跳棋人数 -->
-      <div v-if="gameId === 'ccheckers'" class="seats-row">
-        <span>人数：</span>
-        <button v-for="n in [2, 3, 4, 6]" :key="n" class="seat-btn" :class="{ on: ccSeats === n }" @click="ccSeats = n">{{ n }}</button>
-      </div>
-
       <!-- 对战入口 -->
       <div class="game-card">
         <div class="game-card__head">
@@ -449,7 +493,7 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="game-card__actions">
-          <button v-if="gameId !== 'ccheckers'" class="btn btn-primary" :disabled="matching" @click="match">
+          <button class="btn btn-primary" :disabled="matching" @click="match">
             {{ matching ? '匹配中…' : '⚡ 快速匹配' }}
           </button>
           <button class="btn" @click="createRoom">🏠 创建房间</button>

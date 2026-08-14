@@ -4,7 +4,7 @@
 
 const SECRET: string = typeof API_SECRET !== 'undefined' && API_SECRET ? API_SECRET : 'ezchess-secret-2026'
 const CORS_ORIGINS = ['https://ezapps.cc', 'https://ezapps.pages.dev', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:5173']
-const GAMES = ['gomoku', 'reversi', 'ccheckers', 'xiangqi']
+const GAMES = ['gomoku', 'reversi', 'checkers', 'ccheckers', 'xiangqi']
 const BOARD = 15          // 五子棋棋盘 15×15
 const RECONNECT_MS = 60000
 const WAIT_TIMEOUT_MS = 60000
@@ -84,7 +84,75 @@ function rvHasMove(board: number[], seat: number): boolean {
   return false
 }
 
-// ==================== 中国跳棋（121 点六角星棋盘） ====================
+// ==================== 国际跳棋（8×8 黑白格） ====================
+const CK = 8
+function ckInit(): number[] {
+  const b = new Array(64).fill(0)
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if ((r + c) % 2 === 0) b[r * 8 + c] = -1   // 浅色格无效
+      else if (r < 3) b[r * 8 + c] = 1           // seat0 顶 3 行
+      else if (r > 4) b[r * 8 + c] = 2           // seat1 底 3 行
+    }
+  }
+  return b
+}
+function ckIsKing(v: number) { return v === 3 || v === 4 }
+function ckOwner(v: number) { if (v === 1 || v === 3) return 0; if (v === 2 || v === 4) return 1; return -1 }
+// 计算某玩家所有合法走法（跳吃优先）
+function ckMoves(board: number[], seat: number): { from: number; to: number; jump: boolean }[] {
+  const moves: { from: number; to: number; jump: boolean }[] = []
+  const dirs = [[1, -1], [1, 1], [-1, -1], [-1, 1]]
+  const forward = seat === 0 ? [1] : [-1]   // seat0 向下走，seat1 向上走
+  for (let i = 0; i < 64; i++) {
+    if (board[i] === -1 || board[i] === 0) continue   // 跳过浅色格和空格
+    const v = board[i]
+    if (ckOwner(v) !== seat) continue
+    const r = Math.floor(i / 8), c = i % 8
+    const isKing = ckIsKing(v)
+    const walkDirs = isKing ? dirs : dirs.filter(([dr]) => forward.includes(dr))
+    for (const [dr, dc] of walkDirs) {
+      // 一步走
+      const nr = r + dr, nc = c + dc
+      if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr * 8 + nc] === 0) {
+        moves.push({ from: i, to: nr * 8 + nc, jump: false })
+      }
+      // 跳吃：斜 2 格（王可跳任意距离，中间恰一敌子）
+      if (isKing) {
+        let mr = r + dr, mc = c + dc
+        while (mr >= 0 && mr < 8 && mc >= 0 && mc < 8) {
+          const mv = board[mr * 8 + mc]
+          if (mv === 0) { mr += dr; mc += dc; continue }
+          if (ckOwner(mv) !== seat) {
+            // 敌子后方连续空格都可落
+            let lr = mr + dr, lc = mc + dc
+            while (lr >= 0 && lr < 8 && lc >= 0 && lc < 8 && board[lr * 8 + lc] === 0) {
+              moves.push({ from: i, to: lr * 8 + lc, jump: true })
+              lr += dr; lc += dc
+            }
+          }
+          break
+        }
+      } else {
+        const mr = r + 2 * dr, mc = c + 2 * dc
+        if (mr >= 0 && mr < 8 && mc >= 0 && mc < 8) {
+          const mid = board[(r + dr) * 8 + (c + dc)]
+          if (mid !== 0 && mid !== -1 && ckOwner(mid) !== seat && board[mr * 8 + mc] === 0) {
+            moves.push({ from: i, to: mr * 8 + mc, jump: true })
+          }
+        }
+      }
+    }
+  }
+  return moves
+}
+// 王棋升级
+function ckPromote(board: number[], i: number) {
+  const r = Math.floor(i / 8), v = board[i]
+  if (v === 1 && r === 7) board[i] = 3
+  if (v === 2 && r === 0) board[i] = 4
+}
+
 const CC = 17
 const CC_DELTAS = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, 1], [1, -1]]
 function ccValidSet(): Set<number> {
@@ -320,6 +388,7 @@ export class GameRoom {
     this.phase = 'PLAYING'
     // 按棋种初始化棋盘
     if (this.game === 'reversi') this.board = rvInit()
+    else if (this.game === 'checkers') this.board = ckInit()
     else if (this.game === 'ccheckers') this.board = ccInit(this.seats)
     else this.board = emptyBoard()
     this.turn = Math.floor(Math.random() * this.players.length)
@@ -383,6 +452,55 @@ export class GameRoom {
         this.turn = opp
       }
       this.broadcast({ type: 'move_ok', seat, move: { r, c }, board: this.board, nextTurn: this.turn })
+      return
+    }
+
+    if (this.game === 'checkers') {
+      // 国际跳棋：{from, to} 移动
+      const { from, to } = msg
+      if (from === undefined || to === undefined) { this.sendTo(seat, { type: 'illegal', reason: '参数错误' }); return }
+      const moves = ckMoves(this.board, seat)
+      if (moves.length === 0) {
+        // 无子可动 → 判负
+        await this.finish(seat === 0 ? 2 : 1, '无子可动')
+        return
+      }
+      // 有跳吃必须跳吃
+      const jumps = moves.filter(m => m.jump)
+      const legal = (jumps.length > 0 ? jumps : moves).find(m => m.from === from && m.to === to)
+      if (!legal) { this.sendTo(seat, { type: 'illegal', reason: '非法走法' }); return }
+      // 应用走法
+      this.board[to] = this.board[from]
+      this.board[from] = 0
+      if (legal.jump) {
+        // 沿方向移除被跳过的敌子（王棋可能跳多格）
+        const fr = Math.floor(from / 8), fc = from % 8, tr = Math.floor(to / 8), tc = to % 8
+        const dr = Math.sign(tr - fr), dc = Math.sign(tc - fc)
+        let mr = fr + dr, mc = fc + dc
+        while (mr !== tr || mc !== tc) {
+          if (this.board[mr * 8 + mc] !== 0 && ckOwner(this.board[mr * 8 + mc]) !== seat) {
+            this.board[mr * 8 + mc] = 0
+          }
+          mr += dr; mc += dc
+        }
+      }
+      ckPromote(this.board, to)
+      // 连吃：该子还能跳吃则继续（不换人）；否则换人
+      const cont = ckMoves(this.board, seat).filter(m => m.jump && m.from === to)
+      if (legal.jump && cont.length > 0) {
+        this.broadcast({ type: 'state', board: this.board, turn: this.turn })
+        this.sendTo(seat, { type: 'must_capture', from: to })
+      } else {
+        this.turn = (this.turn + 1) % this.players.length
+        // 对方无子可动 → 判胜
+        const opp = ckMoves(this.board, this.turn)
+        if (opp.length === 0) {
+          await this.finish(seat + 1, '对方无子可动')
+          return
+        }
+        this.broadcast({ type: 'state', board: this.board, turn: this.turn })
+      }
+      this.timerAlarm = setTimeout(() => this.timeoutMove(this.turn), MOVE_TIME) as unknown as number
       return
     }
 

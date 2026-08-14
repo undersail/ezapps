@@ -6,7 +6,7 @@
 在 ezapps 平台上新增**经典棋类对战**游戏（EZChess）：
 - 🎯 五子棋（先上线，MVP）
 - ⚫ 黑白棋 / 奥赛罗
-- 🦘 中国跳棋（6 角星棋盘，**2-6 人**，跳子前进）
+- 🏁 国际跳棋（8×8 黑白格，斜走跳吃，**2 人**）
 - 🐘 中国象棋
 
 支持：**在线匹配对战 / 好友开房 / 观战 / 断线重连 / 战绩榜**，完全复用现有 `api.ezapps.cc` 的身份与排行榜体系。
@@ -43,10 +43,10 @@
 |---|---|---|---|---|
 | 五子棋 | 15×15 | 2 | 极简（落子判胜）| ✅ 轻松 |
 | 黑白棋 | 8×8 | 2 | 简单（翻转逻辑）| ✅ 轻松 |
-| 中国跳棋 | 17×17 六角星 | **2-6** | 中等（跳子前进）| ✅ 可以（无分支逻辑）|
+| 国际跳棋 | 8×8 黑白格 | 2 | 中等（斜走/跳吃/连吃/王棋）| ✅ 可以（纯逻辑无搜索）|
 | 中国象棋 | 9×10 | 2 | 较复杂（马脚/象眼/将帅）| ✅ 可以（纯逻辑无搜索）|
 
-> 中国跳棋说明：六角星形棋盘（5 个正六边形区域向外延伸），玩家 2-6 人，目标是把己方 10 子全部跳进对面对角营地。走法：一步一格（相邻点）或**隔子跳**（可连跳）。多玩家房间为 2-6 人桌。
+> 国际跳棋说明：8×8 黑白格，棋子斜走一步一格；**跳吃**（越过相邻敌子落其后方空格，可连跳）；到达对方底线升级**王棋**（可斜走任意格）；吃光对方或对方无子可动获胜。
 
 **统一规则接口**（每棋种实现）：
 ```ts
@@ -64,7 +64,7 @@ interface RulesEngine {
 ## 四、房间系统
 
 ```
-创建房间   POST /api/room/create { app:'ezchess', game:'gomoku'|'reversi'|'ccheckers'|'xiangqi', mode:'friend'|'match', players?: 2|3|4|6, player:{deviceId,nick} }
+创建房间   POST /api/room/create { app:'ezchess', game:'gomoku'|'reversi'|'checkers'|'xiangqi', mode:'friend'|'match', players?: 2|3|4|6, player:{deviceId,nick} }
 匹配对局   POST /api/room/match   { game:'gomoku' }  → 进入匹配队列（KV 队列，60 秒超时）
 加入房间   POST /api/room/join    { roomId, player }
 观战      POST /api/room/spectate { roomId }
@@ -73,7 +73,7 @@ interface RulesEngine {
 
 **房间类型**：
 - **2 人桌**：五子棋 / 黑白棋 / 中国象棋（好友开房 + 快速匹配）
-- **N 人桌（2-6）**：中国跳棋（好友开房选人数；满员开赛，房主可"人满即开"或"随时开赛"）
+- **双人桌**：全部棋种均为 2 人对战（国际跳棋同五子棋/黑白棋）
 
 **房间状态机**：
 ```
@@ -123,11 +123,11 @@ wss://ezchess-api.ezapps.cc/game/<roomId>?deviceId=xxx&token=<HMAC>
 ```ts
 class GameRoom extends DurableObject {
   state: {
-    game: 'gomoku'|'reversi'|'ccheckers'|'xiangqi'
-    seats: number                    // 2（象棋类）/ 2-6（中国跳棋）
+    game: 'gomoku'|'reversi'|'checkers'|'xiangqi'
+    seats: number                    // 2（全部棋种）
     phase: 'WAITING'|'READY'|'PLAYING'|'FINISHED'
     board: Board
-    players: { deviceId, nick, ws, seat }[]   // N 人（中国跳棋可 6 人）
+    players: { deviceId, nick, ws, seat }[]   // 2 人对战
     spectators: ws[]
     turn: number                     // 当前座位（N 人循环）
     timers: number[]                 // 每人独立计时
@@ -208,7 +208,7 @@ apps/ezchess/
 ├── src/engine/
 │   ├── gomoku.ts              # 五子棋规则（MVP）
 │   ├── reversi.ts             # 黑白棋规则
-│   ├── ccheckers.ts           # 中国跳棋规则（六角星棋盘 + N 人）
+│   ├── checkers.ts            # 国际跳棋规则（8×8 黑白格）
 │   └── xiangqi.ts             # 中国象棋规则
 ├── src/network/ws.ts          # WebSocket 封装（重连/心跳）
 ├── src/network/api.ts         # REST 封装（复用 ezapps-api 模式）
@@ -224,7 +224,7 @@ apps/ezchess/
 | 阶段 | 内容 | 工作量 |
 |---|---|---|
 | **M1** | 五子棋 MVP：DO 房间 + WS 协议 + 匹配 + Canvas 棋盘 + 积分榜 | ~2 天 |
-| **M2** | 黑白棋 + **中国跳棋（N 人桌 2-6 + 六角星棋盘 + 跳子规则）** | ~2 天 |
+| **M2** | 黑白棋 + **国际跳棋（斜走/跳吃/连吃/王棋）** | ~2 天 |
 | **M3** | 中国象棋（复杂规则）+ 计时器 + 聊天 | ~2 天 |
 | **M4** | 战绩 D1 + 复盘 + 排行榜细化 + 皮肤 | ~1 天 |
 
