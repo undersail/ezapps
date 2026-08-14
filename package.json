@@ -16,6 +16,8 @@
     "build": "pnpm build:webapp && pnpm build:funphy && pnpm build:grimphy && pnpm build:funmath",
     "preview": "pnpm --filter web-app preview",
     "lint": "pnpm --filter web-app lint",
-    "type-check": "pnpm -r --parallel type-check"
+    "type-check": "pnpm -r --parallel type-check",
+    "dev:ezchess": "pnpm --filter ezchess dev",
+    "build:ezchess": "pnpm --filter ezchess build"
   }
 }

@@ -1,0 +1,20 @@
+name = "ezchess-api"
+main = "src/index.ts"
+compatibility_date = "2026-08-14"
+
+# 复用现有 KV（排行榜/房间/匹配）
+[[kv_namespaces]]
+binding = "RANK"
+id = "06fc5623de5c4beb8b31ccf4e46e9623"
+
+[[kv_namespaces]]
+binding = "SAVE"
+id = "3a32d46ffd17407faf1da5b5b41dcaaf"
+
+# Durable Objects：每局 1 房间实例
+[durable_objects]
+bindings = [{ name = "GAME_ROOMS", class_name = "GameRoom" }]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GameRoom"]

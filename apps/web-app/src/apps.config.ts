@@ -48,4 +48,15 @@ export const apps: AppEntry[] = [
     path: '/funmath/',
     accent: '#10b981',
   },
+  {
+    id: 'ezchess',
+    title: '棋类对战',
+    emoji: '♟️',
+    tagline: 'EZChess',
+    description: '经典棋类在线对战：五子棋/黑白棋/中国跳棋/中国象棋，实时对战、服务端权威判棋。',
+    tags: ['棋类', '对战', 'BETA'],
+    status: 'beta',
+    path: '/ezchess/',
+    accent: '#6366f1',
+  },
 ]
