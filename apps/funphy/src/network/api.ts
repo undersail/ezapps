@@ -96,26 +96,6 @@ export async function fetchSave(): Promise<any | null> {
   return res?.data ?? null
 }
 
-/** 生成迁移码（旧设备） */
-export async function createMigrateCode(): Promise<string | null> {
-  const res = await req('/migrate/create', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ deviceId: getDeviceId() }),
-  })
-  return res?.code ?? null
-}
-
-/** 应用迁移码（新设备） */
-export async function applyMigrateCode(code: string): Promise<boolean> {
-  const res = await req('/migrate/apply', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, newDeviceId: getDeviceId() }),
-  })
-  return !!res?.success
-}
-
 /** 拉取每日挑战配置（日期 + 种子） */
 export async function fetchDailyCfg(): Promise<{ date: string; seed: number; length: number } | null> {
   const res = await req('/daily/cfg')

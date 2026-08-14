@@ -178,29 +178,6 @@ async function handleRequest(request: Request): Promise<Response> {
       return new Response(JSON.stringify({ success: true }), { headers })
     }
 
-    // ===== 迁移码（P3-1：换设备同步存档） =====
-    if (url.pathname === '/api/migrate/create' && request.method === 'POST') {
-      const body = await request.json() as any
-      const { deviceId } = body
-      if (!deviceId || deviceId.length > 64) return new Response(JSON.stringify({ success: false, error: '参数异常' }), { status: 400, headers })
-      // 6 位数字码
-      const code = String(Math.floor(100000 + Math.random() * 900000))
-      await RANK.put(`migrate:${code}`, deviceId, { expirationTtl: 86400 })
-      return new Response(JSON.stringify({ success: true, code }), { headers })
-    }
-    if (url.pathname === '/api/migrate/apply' && request.method === 'POST') {
-      const body = await request.json() as any
-      const { code, newDeviceId } = body
-      if (!code || !newDeviceId || newDeviceId.length > 64) return new Response(JSON.stringify({ success: false, error: '参数异常' }), { status: 400, headers })
-      const oldDev = await RANK.get(`migrate:${code}`)
-      if (!oldDev) return new Response(JSON.stringify({ success: false, error: '迁移码无效或过期' }), { status: 400, headers })
-      // 复制存档 + 成绩到新设备
-      const saveRaw = await SAVE.get(`save:${oldDev}`)
-      if (saveRaw) await SAVE.put(`save:${newDeviceId}`, saveRaw)
-      await RANK.delete(`migrate:${code}`)
-      return new Response(JSON.stringify({ success: true, migrated: !!saveRaw }), { headers })
-    }
-
     // ===== 健康检查 =====
     if (url.pathname === '/' || url.pathname === '/api/health') {
       return new Response(JSON.stringify({ success: true, name: 'ezapps-api', time: Date.now() }), { headers })
