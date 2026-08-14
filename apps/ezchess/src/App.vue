@@ -502,6 +502,10 @@ onUnmounted(() => {
           </button>
           <button class="btn" @click="createRoom">🏠 创建房间</button>
         </div>
+        <div class="game-card__note">
+          <p><b>⚡ 快速匹配</b>：自动配对同样点了「快速匹配」的玩家，约 120 秒内开赛</p>
+          <p><b>🏠 创建房间</b>：好友房，把房间号发给朋友，对方输入房间号加入</p>
+        </div>
       </div>
 
       <!-- 加入好友房 -->
@@ -557,9 +561,13 @@ onUnmounted(() => {
         <canvas ref="canvasRef" class="board" @click="cellClick"></canvas>
       </div>
 
-      <!-- 状态提示 -->
+      <!-- 状态提示（棋子图标按当前落子方颜色） -->
       <p class="status" v-if="!gameOver">
-        {{ phase === 'PLAYING' ? (turn === mySeat ? '轮到你落子 ⚫' : '等待对方落子…') : phase === 'FINISHED' ? '对局结束' : '等待开局（满 2 人自动开始）' }}
+        <template v-if="phase === 'PLAYING'">
+          {{ turn === mySeat ? '轮到你落子' : '等待对方落子…' }}
+          <span class="turn-dot" :style="{ background: turn === 0 ? '#111' : '#f5f0e6', borderColor: turn === 0 ? '#111' : '#999' }"></span>
+        </template>
+        <template v-else>{{ phase === 'FINISHED' ? '对局结束' : '等待开局（满 2 人自动开始）' }}</template>
       </p>
       <p class="status warn">{{ lastMsg }}</p>
 
@@ -592,6 +600,9 @@ input:focus { border-color: #6366f1; }
 .game-card h3 { margin: 0; }
 .game-card p { margin: 2px 0 0; color: #64748b; font-size: 0.82rem; min-height: 1.4em; }
 .game-card__actions { display: flex; gap: 8px; }
+.game-card__note { margin-top: 12px; padding: 10px 12px; background: #f1f5f9; border-radius: 10px; font-size: 0.78rem; color: #64748b; line-height: 1.6; }
+.game-card__note p { margin: 0; }
+.game-card__note b { color: #475569; }
 .game-picker { display: flex; gap: 10px; margin-bottom: 12px; }
 .game-pick { flex: 1; display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 14px; background: #fff; cursor: pointer; text-align: left; }
 .game-pick.on { border-color: #6366f1; background: #eef2ff; }
@@ -620,14 +631,16 @@ input:focus { border-color: #6366f1; }
 .room-title { font-weight: bold; font-size: 1.05rem; margin-right: 8px; }
 .room-id, .room-phase { color: #64748b; font-size: 0.78rem; margin-right: 6px; }
 .players { display: flex; justify-content: center; gap: 12px; margin-bottom: 12px; }
-.player-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #f1f5f9; font-size: 0.85rem; }
-.player-chip.me { border: 2px solid #6366f1; }
-.player-chip.active { background: #e0e7ff; }
+.player-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #f1f5f9; font-size: 0.85rem; border: 2px solid transparent; transition: background .2s, color .2s; }
+.player-chip.me { border-color: #6366f1; }
+.player-chip.active { background: #c7d2fe; color: #3730a3; }
+.player-chip.active .dot { border-color: #3730a3; }
 .player-chip .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #94a3b8; }
 .timer { color: #dc2626; font-weight: bold; font-size: 0.8rem; }
 .board-wrap { display: flex; justify-content: center; }
 .board { width: min(92vw, 480px); height: min(92vw, 480px); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); cursor: pointer; touch-action: none; }
-.status { text-align: center; color: #475569; font-size: 0.9rem; margin: 12px 0 4px; }
+.status { text-align: center; color: #475569; font-size: 0.9rem; margin: 12px 0 4px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.turn-dot { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid; vertical-align: middle; }
 .status.warn { color: #d97706; font-size: 0.8rem; min-height: 1.2em; }
 .over-box { text-align: center; margin-top: 14px; padding: 18px; border-radius: 16px; background: #eef2ff; }
 .over-box h2 { margin: 0 0 8px; }
