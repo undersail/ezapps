@@ -128,6 +128,7 @@ export interface RunnerRuntime {
   failReason: 'armor' | 'timeout' | null
   events: string[]           // 'hit' | 'gem' | 'energy' | 'win' | 'dash'
   floatTexts: { x: number; y: number; text: string; color: string; life: number }[]  // 飘字动效（盲盒结果等）
+  hits: number               // 受击次数（轨迹校验用）
 }
 
 // 盲盒块生成间隔（按难度档：T1 无 / T2-T3 500 / T4 400 / T5 330 / T6 280 里程）

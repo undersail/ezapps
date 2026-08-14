@@ -64,16 +64,14 @@ export function useUpgrades() {
   const progress = reactive<V2Progress>(loadProgress())
   if (!progress.savedAt) progress.savedAt = Date.now()
 
-  // 云存档：节流上传（30 秒内只传一次），有昵称才同步
+  // 云存档：节流上传（30 秒内只传一次），deviceId 身份（P3）
   let lastCloudSync = 0
   async function cloudUpload() {
-    const nick = localStorage.getItem('funphy_nickname')
-    if (!nick) return
     const now = Date.now()
     if (now - lastCloudSync < 30000) return
     lastCloudSync = now
     const { submitSave } = await import('../network/api')
-    await submitSave(nick, JSON.parse(JSON.stringify(progress)))
+    await submitSave(JSON.parse(JSON.stringify(progress)))
   }
 
   function save() {
@@ -84,10 +82,8 @@ export function useUpgrades() {
 
   /** 拉取云端存档：云端比本地新 → 恢复并提示刷新（返回 true 表示已恢复） */
   async function syncCloud(): Promise<boolean> {
-    const nick = localStorage.getItem('funphy_nickname')
-    if (!nick) return false
     const { fetchSave } = await import('../network/api')
-    const cloud = await fetchSave(nick)
+    const cloud = await fetchSave()
     if (!cloud || !cloud.savedAt) return false
     if (cloud.savedAt > progress.savedAt) {
       Object.assign(progress, cloud)

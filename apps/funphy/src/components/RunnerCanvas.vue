@@ -208,13 +208,23 @@
             <input v-model="nickInput" class="nick-input" maxlength="20" placeholder="输入昵称参与排行" @keyup.enter="saveNick" />
             <button class="btn-secondary" style="margin:0" @click="saveNick">保存</button>
           </div>
+          <!-- 设备迁移（换设备同步存档） -->
+          <div class="migrate-box">
+            <div class="migrate-dev">📱 设备指纹：<code>{{ deviceTag }}</code></div>
+            <div class="migrate-actions">
+              <button class="rank-tab" @click="genMigrate">生成迁移码</button>
+              <input v-model="migrateInput" class="nick-input" style="max-width:110px" maxlength="6" placeholder="6位码" />
+              <button class="rank-tab" @click="applyMigrate">接收存档</button>
+            </div>
+            <div class="migrate-info" v-if="migrateMsg">{{ migrateMsg }}</div>
+          </div>
           <!-- 榜单 -->
           <div class="rank-list">
             <div v-if="!rankList.length" class="rank-empty">暂无成绩，去挑战！🏁</div>
             <div v-for="(r, i) in rankList" :key="i" class="rank-row" :class="{ 'rank-me': r.player === nickInput }">
               <span class="rank-no">{{ i + 1 }}</span>
-              <span class="rank-player">{{ r.player }}</span>
-              <span class="rank-score">{{ r.score }} 里程</span>
+              <span class="rank-player">{{ r.player }}<span v-if="r.dev" class="rank-dev">#{{ r.dev }}</span></span>
+              <span class="rank-score">{{ r.score }}<template v-if="r.time"> · {{ fmtTime2(r.time) }}</template></span>
             </div>
           </div>
           <div class="rank-mine" v-if="myRank > 0">我的排名：第 {{ myRank }} 名</div>
@@ -371,16 +381,36 @@ function saveNick() {
   if (nick) upgrades.syncCloud().then(restored => { if (restored) location.reload() })
 }
 
-// 挂载时：有昵称 → 拉取云存档（云端较新则恢复）
+// ===== P3-1 设备迁移（换设备同步存档） =====
+const deviceTag = computed(() => Net.getDeviceId().slice(0, 8))
+const migrateInput = ref('')
+const migrateMsg = ref('')
+async function genMigrate() {
+  migrateMsg.value = ''
+  const code = await Net.createMigrateCode()
+  migrateMsg.value = code ? `✅ 迁移码：${code}（24 小时内有效，新设备输入接收）` : '❌ 网络异常，请稍后再试'
+}
+async function applyMigrate() {
+  migrateMsg.value = ''
+  const code = migrateInput.value.trim()
+  if (code.length !== 6) { migrateMsg.value = '请输入 6 位迁移码'; return }
+  const ok = await Net.applyMigrateCode(code)
+  migrateMsg.value = ok ? '✅ 存档已接收！正在刷新…' : '❌ 迁移码无效或过期'
+  if (ok) setTimeout(() => location.reload(), 800)
+}
+function fmtTime2(sec: number): string {
+  const m = Math.floor(sec / 60), s = sec % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+// 挂载时：拉取云存档（deviceId 身份，云端较新则恢复）
 onMounted(() => {
-  if (Net.getNickname()) {
-    upgrades.syncCloud().then(restored => {
-      if (restored) {
-        // 云端进度恢复：刷新界面数据
-        location.reload()
-      }
-    })
-  }
+  upgrades.syncCloud().then(restored => {
+    if (restored) {
+      // 云端进度恢复：刷新界面数据
+      location.reload()
+    }
+  })
 })
 
 // 卡片详情弹窗
@@ -1237,6 +1267,12 @@ canvas {
 .rank-score { color: #7dd3fc; font-weight: bold; }
 .rank-empty { text-align: center; color: rgba(255,255,255,0.45); padding: 20px 0; font-size: 0.85rem; }
 .rank-mine { margin-top: 12px; text-align: center; color: #fbbf24; font-weight: bold; }
+.rank-dev { color: rgba(148,163,184,0.6); font-size: 0.72rem; margin-left: 3px; }
+.migrate-box { margin-bottom: 12px; padding: 8px 10px; border: 1px dashed rgba(148,163,184,0.25); border-radius: 8px; font-size: 0.75rem; }
+.migrate-dev { color: rgba(255,255,255,0.6); margin-bottom: 6px; }
+.migrate-dev code { color: #7dd3fc; }
+.migrate-actions { display: flex; gap: 6px; align-items: center; justify-content: center; }
+.migrate-info { margin-top: 6px; color: #4ade80; font-size: 0.72rem; }
 .overlay-card h2 { margin: 0 0 14px; font-size: 1.5rem; }
 .result-line { margin: 6px 0; color: rgba(255,255,255,0.8); }
 .btn-primary {

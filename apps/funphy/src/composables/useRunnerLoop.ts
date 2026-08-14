@@ -81,6 +81,7 @@ export function useRunnerLoop() {
       failReason: null,
       events: [],
       floatTexts: [],
+      hits: 0,
     }
   }
 
@@ -198,7 +199,8 @@ export function useRunnerLoop() {
           ship.vx = (ship.x < o.x ? -1 : 1) * (bigHit ? 1.3 : 0.8)
           ship.vy = bigHit ? 1.0 : 0.6
           rt.events.push('hit')
-          // 受击飘字
+          // 受击飘字 + 轨迹计数
+          rt.hits++
           rt.floatTexts.push({ x: ship.x, y: ship.y - 6, text: bigHit ? '💥 重击!' : '-🛡', color: bigHit ? '#f87171' : '#fca5a5', life: 50 })
           if (ship.armor <= 0) {
             rt.state = 'lost'
@@ -212,15 +214,15 @@ export function useRunnerLoop() {
                 upgrades.progress.bestDistance = dist
                 upgrades.save()
               }
-              // 联网：上传成绩（静默失败）
+              // 联网：上传成绩（静默失败，带轨迹校验）
               import('../network/api').then(m => {
                 const nick = m.getNickname()
-                if (nick) m.submitRank(nick, Math.max(dist, upgrades.progress.bestDistance), 'endless', '6-5')
+                if (nick) m.submitRank(nick, Math.max(dist, upgrades.progress.bestDistance), 'endless', '6-5', { hits: rt.hits, playSeconds: Math.floor(rt.time) })
               }).catch(() => {})
             } else if (level.id === 'daily') {
               import('../network/api').then(m => {
                 const nick = m.getNickname()
-                if (nick) m.submitRank(nick, Math.floor(rt.progress), 'daily', 'daily')
+                if (nick) m.submitRank(nick, Math.floor(rt.progress), 'daily', 'daily', { hits: rt.hits, playSeconds: Math.floor(rt.time) }, Math.floor(rt.time))
               }).catch(() => {})
             }
           }
@@ -261,11 +263,11 @@ export function useRunnerLoop() {
       rt.state = 'won'
       rt.events.push('win')
       gameState.value = 'won'   // 同步 UI 状态（弹通关窗）
-      // 每日挑战通关：提交满分成绩
+      // 每日挑战通关：提交满分成绩（带用时，同分按用时排名）
       if (level.id === 'daily') {
         import('../network/api').then(m => {
           const nick = m.getNickname()
-          if (nick) m.submitRank(nick, Math.floor(rt.progress), 'daily', 'daily')
+          if (nick) m.submitRank(nick, Math.floor(rt.progress), 'daily', 'daily', { hits: rt.hits, playSeconds: Math.floor(rt.time) }, Math.floor(rt.time))
         }).catch(() => {})
       }
       upgrades.addGems(rt.gems) // 通关结算宝石（累计）
