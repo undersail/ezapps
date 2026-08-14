@@ -208,11 +208,7 @@
             <input v-model="nickInput" class="nick-input" maxlength="20" placeholder="输入昵称参与排行" @keyup.enter="saveNick" />
             <button class="btn-secondary" style="margin:0" @click="saveNick">保存</button>
           </div>
-          <!-- 设备身份（昵称 + 设备码） -->
-          <div class="migrate-box">
-            <div class="migrate-dev">📱 设备码：<code>{{ deviceTag }}</code>（昵称+设备码 = 唯一身份）</div>
-          </div>
-          <!-- 榜单 -->
+          <!-- 榜单（昵称#设备码 组合显示） -->
           <div class="rank-list">
             <div v-if="!rankList.length" class="rank-empty">暂无成绩，去挑战！🏁</div>
             <div v-for="(r, i) in rankList" :key="i" class="rank-row" :class="{ 'rank-me': r.player === nickInput }">
@@ -375,8 +371,7 @@ function saveNick() {
   if (nick) upgrades.syncCloud().then(restored => { if (restored) location.reload() })
 }
 
-// ===== 设备身份（昵称 + 设备码 = 唯一性） =====
-const deviceTag = computed(() => Net.getDeviceId().slice(0, 8))
+// ===== 设备身份（昵称 + 设备码组合显示在榜单） =====
 function fmtTime2(sec: number): string {
   const m = Math.floor(sec / 60), s = sec % 60
   return `${m}:${String(s).padStart(2, '0')}`
@@ -1247,11 +1242,6 @@ canvas {
 .rank-empty { text-align: center; color: rgba(255,255,255,0.45); padding: 20px 0; font-size: 0.85rem; }
 .rank-mine { margin-top: 12px; text-align: center; color: #fbbf24; font-weight: bold; }
 .rank-dev { color: rgba(148,163,184,0.6); font-size: 0.72rem; margin-left: 3px; }
-.migrate-box { margin-bottom: 12px; padding: 8px 10px; border: 1px dashed rgba(148,163,184,0.25); border-radius: 8px; font-size: 0.75rem; }
-.migrate-dev { color: rgba(255,255,255,0.6); margin-bottom: 6px; }
-.migrate-dev code { color: #7dd3fc; }
-.migrate-actions { display: flex; gap: 6px; align-items: center; justify-content: center; }
-.migrate-info { margin-top: 6px; color: #4ade80; font-size: 0.72rem; }
 .overlay-card h2 { margin: 0 0 14px; font-size: 1.5rem; }
 .result-line { margin: 6px 0; color: rgba(255,255,255,0.8); }
 .btn-primary {
