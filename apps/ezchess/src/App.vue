@@ -282,10 +282,10 @@ function drawCC(ctx: CanvasRenderingContext2D, size: number) {
   const cell = (size - pad * 2) / 16
   ctx.fillStyle = '#f5e6c8'
   ctx.fillRect(0, 0, size, size)
-  // 六角星区域填充
+  // 六角星区域填充（6 个外凸角：顶/右上/右下/底/左下/左上）
   ctx.fillStyle = '#e8c98a'
   ctx.beginPath()
-  const starPts = [[0, 8], [4, 12], [12, 12], [16, 8], [12, 4], [4, 0]].map(([r, c]) => [pad + c * cell, pad + r * cell])
+  const starPts = [[0, 8], [4, 12], [12, 12], [16, 8], [12, 0], [4, 0]].map(([r, c]) => [pad + c * cell, pad + r * cell])
   ctx.moveTo(starPts[0][0], starPts[0][1])
   for (const [x, y] of starPts.slice(1)) ctx.lineTo(x, y)
   ctx.closePath()
@@ -294,7 +294,7 @@ function drawCC(ctx: CanvasRenderingContext2D, size: number) {
   ctx.lineWidth = 1.5
   ctx.stroke()
 
-  // 营地三角高亮
+  // 营地圆点标记（避免 polygon 连线锯齿）
   const COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899']
   const campPolys = [
     [[0, 8], [1, 7], [1, 8], [2, 6], [2, 7], [2, 8], [3, 5], [3, 6], [3, 7], [3, 8]],
@@ -305,13 +305,10 @@ function drawCC(ctx: CanvasRenderingContext2D, size: number) {
     [[4, 0], [4, 1], [4, 2], [4, 3], [5, 0], [5, 1], [5, 2], [6, 0], [6, 1], [7, 0]],
   ]
   campPolys.forEach((pts, i) => {
-    ctx.fillStyle = COLORS[i] + '22'
-    ctx.beginPath()
-    const [fr, fc] = pts[0]
-    ctx.moveTo(pad + fc * cell, pad + fr * cell)
-    for (const [r, c] of pts.slice(1)) ctx.lineTo(pad + c * cell, pad + r * cell)
-    ctx.closePath()
-    ctx.fill()
+    ctx.fillStyle = COLORS[i] + '30'
+    for (const [r, c] of pts) {
+      ctx.beginPath(); ctx.arc(pad + c * cell, pad + r * cell, cell * 0.42, 0, Math.PI * 2); ctx.fill()
+    }
   })
 
   // 所有有效点（小圆点）
