@@ -205,13 +205,18 @@ export function useRunnerLoop() {
             rt.failReason = 'armor'
             failText.value = '💥 护甲耗尽！'
             gameState.value = 'lost'   // 同步 UI 状态（弹失败窗）
-            // 无限模式：记录最佳里程
+            // 无限模式：记录最佳里程 + 上传排行榜
             if (level.endless) {
               const dist = Math.floor(rt.progress)
               if (dist > upgrades.progress.bestDistance) {
                 upgrades.progress.bestDistance = dist
                 upgrades.save()
               }
+              // 联网：上传成绩（静默失败）
+              import('../network/api').then(m => {
+                const nick = m.getNickname()
+                if (nick) m.submitRank(nick, Math.max(dist, upgrades.progress.bestDistance), 'endless', '6-5')
+              }).catch(() => {})
             }
           }
           break

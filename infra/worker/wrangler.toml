@@ -1,0 +1,16 @@
+name = "ezapps-api"
+main = "src/index.ts"
+compatibility_date = "2026-08-13"
+
+# KV 绑定（P0 排行榜 / P1 云存档）
+[[kv_namespaces]]
+binding = "RANK"
+id = "06fc5623de5c4beb8b31ccf4e46e9623"
+
+[[kv_namespaces]]
+binding = "SAVE"
+id = "3a32d46ffd17407faf1da5b5b41dcaaf"
+
+# 签名密钥（前端可见，防小白作弊）
+[vars]
+API_SECRET = "ezapps-funphy-rank-2026"

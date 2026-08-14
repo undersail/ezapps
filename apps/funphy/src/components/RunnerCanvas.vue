@@ -56,7 +56,8 @@
                 </button>
               </div>
             </div>
-            <button class="cardbook-btn" @click="showCardbook = true">📚 物理卡册 {{ ownedCards }}/{{ physicsCards.length }}</button>
+            <button class="cardbook-btn" @click="openCardbook">📚 物理卡册 {{ ownedCards }}/{{ physicsCards.length }}</button>
+            <button class="cardbook-btn" @click="openRank">🏅 排行榜</button>
             <a class="home-link" href="/">🏠 返回 ezapps 主页</a>
           </div>
         </div>
@@ -191,6 +192,29 @@
       <!-- 右下冲刺键（与左摇杆平齐，动作区对称） -->
       <button class="dash-fab" v-if="gameState === 'playing'" @click="dash" aria-label="冲刺">⚡</button>
 
+      <!-- 排行榜弹窗 -->
+      <div class="overlay" v-if="showRank" @click.self="showRank = false">
+        <div class="overlay-card rank-card">
+          <button class="modal-close" @click="showRank = false" aria-label="关闭">✕</button>
+          <h2>🏅 排行榜 · 无限模式</h2>
+          <!-- 昵称设置 -->
+          <div class="nick-row">
+            <input v-model="nickInput" class="nick-input" maxlength="20" placeholder="输入昵称参与排行" @keyup.enter="saveNick" />
+            <button class="btn-secondary" style="margin:0" @click="saveNick">保存</button>
+          </div>
+          <!-- 榜单 -->
+          <div class="rank-list">
+            <div v-if="!rankList.length" class="rank-empty">暂无成绩，去无限模式挑战！🏁</div>
+            <div v-for="(r, i) in rankList" :key="i" class="rank-row" :class="{ 'rank-me': r.player === nickInput }">
+              <span class="rank-no">{{ i + 1 }}</span>
+              <span class="rank-player">{{ r.player }}</span>
+              <span class="rank-score">{{ r.score }} 里程</span>
+            </div>
+          </div>
+          <div class="rank-mine" v-if="myRank > 0">我的排名：第 {{ myRank }} 名</div>
+        </div>
+      </div>
+
       <!-- 升级弹窗（暂停游戏） -->
       <div class="overlay" v-if="showShipyard">
         <div class="overlay-card">
@@ -292,8 +316,29 @@ const bestDistanceText = computed(() => upgrades.progress.bestDistance > 0 ? `${
 // 物理卡册（V1 物理卡数据，30 张，id 与关卡对应）
 import { physicsCards } from '../data/physicsCards'
 import * as Sound from '../utils/sound'
+import * as Net from '../network/api'
 const showCardbook = ref(false)
 const ownedCards = computed(() => physicsCards.filter(c => upgrades.progress.cards.includes(c.id)).length)
+
+// 排行榜（无限模式）
+const showRank = ref(false)
+const rankList = ref<Net.RankEntry[]>([])
+const nickInput = ref(Net.getNickname())
+const myRank = ref(0)
+function openCardbook() { showCardbook.value = true }
+async function openRank() {
+  showRank.value = true
+  nickInput.value = Net.getNickname() || nickInput.value
+  await refreshRank()
+}
+async function refreshRank() {
+  const list = await Net.fetchTop('endless', 10)
+  if (list) rankList.value = list
+}
+function saveNick() {
+  const nick = nickInput.value.trim()
+  if (nick) Net.setNickname(nick)
+}
 
 // 卡片详情弹窗
 const showCardDetail = ref(false)
@@ -1103,6 +1148,41 @@ canvas {
   justify-content: center;
 }
 .modal-close:hover { background: rgba(255, 255, 255, 0.22); color: #fff; }
+
+/* 排行榜弹窗 */
+.rank-card { max-width: 420px; width: 92%; }
+.nick-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+.nick-input {
+  flex: 1;
+  max-width: 220px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(148,163,184,0.3);
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: #fff;
+  font-size: 0.85rem;
+  outline: none;
+}
+.nick-input:focus { border-color: #38bdf8; }
+.rank-list { max-height: 300px; overflow-y: auto; text-align: left; }
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+.rank-row:nth-child(odd) { background: rgba(255,255,255,0.04); }
+.rank-row.rank-me { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); }
+.rank-no { width: 24px; text-align: center; font-weight: bold; color: #94a3b8; }
+.rank-row:nth-child(1) .rank-no { color: #fbbf24; }
+.rank-row:nth-child(2) .rank-no { color: #cbd5e1; }
+.rank-row:nth-child(3) .rank-no { color: #d97706; }
+.rank-player { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-score { color: #7dd3fc; font-weight: bold; }
+.rank-empty { text-align: center; color: rgba(255,255,255,0.45); padding: 20px 0; font-size: 0.85rem; }
+.rank-mine { margin-top: 12px; text-align: center; color: #fbbf24; font-weight: bold; }
 .overlay-card h2 { margin: 0 0 14px; font-size: 1.5rem; }
 .result-line { margin: 6px 0; color: rgba(255,255,255,0.8); }
 .btn-primary {
