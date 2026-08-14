@@ -4,6 +4,8 @@
 const API_BASE = 'https://api.ezapps.cc/api'
 // 签名密钥：构建时注入（.env → VITE_API_SECRET），不写死在代码里
 const API_SECRET: string = import.meta.env.VITE_API_SECRET || ''
+// 应用标识（后端隔离维度：funphy / funmath）
+const APP = 'funphy'
 
 async function hmac(data: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(API_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
@@ -48,21 +50,21 @@ export interface Trail {
   playSeconds: number // 游玩秒数
 }
 
-/** 提交成绩（无限模式/每日挑战），带 deviceId + 轨迹 */
+/** 提交成绩（无限模式/每日挑战），带 deviceId + 轨迹 + app 隔离 */
 export async function submitRank(player: string, score: number, mode: 'endless' | 'daily', level: string, trail?: Trail, time?: number): Promise<{ rank: number; top: RankEntry[] } | null> {
   const deviceId = getDeviceId()
   const ts = Math.floor(Date.now() / 1000)
-  const sig = await hmac(`${player}:${score}:${mode}:${level}:${ts}:${deviceId}`)
+  const sig = await hmac(`${APP}:${player}:${score}:${mode}:${level}:${ts}:${deviceId}`)
   return req('/rank/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ player, score, mode, level, ts, sig, deviceId, trail, time }),
+    body: JSON.stringify({ app: APP, player, score, mode, level, ts, sig, deviceId, trail, time }),
   })
 }
 
-/** 拉取排行榜 TOP */
+/** 拉取排行榜 TOP（按 app + mode 隔离） */
 export async function fetchTop(mode: 'endless' | 'daily' = 'endless', limit = 10): Promise<RankEntry[] | null> {
-  const res = await req(`/rank/top?mode=${mode}&limit=${limit}`)
+  const res = await req(`/rank/top?app=${APP}&mode=${mode}&limit=${limit}`)
   return res?.list ?? null
 }
 
@@ -76,23 +78,23 @@ export function setNickname(name: string): void {
   localStorage.setItem('funphy_nickname', name.slice(0, 20))
 }
 
-/** 上传云存档（绑定 deviceId） */
+/** 上传云存档（绑定 deviceId + app） */
 export async function submitSave(data: any): Promise<boolean> {
   const deviceId = getDeviceId()
   const ts = Math.floor(Date.now() / 1000)
-  const sig = await hmac(`save:${deviceId}:${JSON.stringify(data)}:${ts}`)
+  const sig = await hmac(`save:${APP}:${deviceId}:${JSON.stringify(data)}:${ts}`)
   const res = await req('/save/put', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ deviceId, data, ts, sig }),
+    body: JSON.stringify({ app: APP, deviceId, data, ts, sig }),
   })
   return !!res?.success
 }
 
-/** 拉取云存档（当前设备） */
+/** 拉取云存档（当前设备 + app） */
 export async function fetchSave(): Promise<any | null> {
   const deviceId = getDeviceId()
-  const res = await req(`/save/get?deviceId=${encodeURIComponent(deviceId)}`)
+  const res = await req(`/save/get?app=${APP}&deviceId=${encodeURIComponent(deviceId)}`)
   return res?.data ?? null
 }
 

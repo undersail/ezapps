@@ -57,22 +57,29 @@ async function handleRequest(request: Request): Promise<Response> {
   try {
     // ===== 排行榜 TOP =====
     if (url.pathname === '/api/rank/top' && request.method === 'GET') {
+      const app = url.searchParams.get('app') || ''
       const mode = url.searchParams.get('mode') || 'endless'
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '10', 10) || 10, 100)
-      const key = `rank:${mode}:all`
+      if (!['funphy', 'funmath'].includes(app)) {
+        return new Response(JSON.stringify({ success: false, error: 'app 参数无效' }), { status: 400, headers })
+      }
+      const key = `rank:${app}:${mode}:all`
       const raw = await RANK.get(key)
       const list = raw ? (JSON.parse(raw) as any[]).slice(0, limit) : []
       // 返回条目带设备指纹（前 8 位）区分同名
       const out = list.map((r: any) => ({ ...r, dev: (r.deviceId || '').slice(0, 8) }))
-      return new Response(JSON.stringify({ success: true, mode, list: out }), { headers })
+      return new Response(JSON.stringify({ success: true, app, mode, list: out }), { headers })
     }
 
     // ===== 提交成绩 =====
     if (url.pathname === '/api/rank/submit' && request.method === 'POST') {
       const body = await request.json() as any
-      const { player, score, mode, level, ts, sig, deviceId, trail, time } = body
-      if (!player || typeof score !== 'number' || !mode || !level || !ts || !sig || !deviceId) {
+      const { player, score, mode, level, ts, sig, deviceId, trail, time, app } = body
+      if (!player || typeof score !== 'number' || !mode || !level || !ts || !sig || !deviceId || !app) {
         return new Response(JSON.stringify({ success: false, error: '参数不完整' }), { status: 400, headers })
+      }
+      if (!['funphy', 'funmath'].includes(app)) {
+        return new Response(JSON.stringify({ success: false, error: 'app 参数无效' }), { status: 400, headers })
       }
       // 基础校验（P3-4 数据卫生）
       if (score < 0 || score > MAX_SCORE || player.length > 20 || player.length < 1 || deviceId.length > 64) {
@@ -81,8 +88,8 @@ async function handleRequest(request: Request): Promise<Response> {
       if (Math.abs(Date.now() / 1000 - ts) > 600) {
         return new Response(JSON.stringify({ success: false, error: '时间戳过期' }), { status: 400, headers })
       }
-      // HMAC 签名校验
-      const expect = await hmac(`${player}:${score}:${mode}:${level}:${ts}:${deviceId}`, SECRET)
+      // HMAC 签名校验（app 纳入签名，防止跨应用伪造）
+      const expect = await hmac(`${app}:${player}:${score}:${mode}:${level}:${ts}:${deviceId}`, SECRET)
       if (sig !== expect) {
         return new Response(JSON.stringify({ success: false, error: '签名无效' }), { status: 403, headers })
       }
@@ -113,7 +120,7 @@ async function handleRequest(request: Request): Promise<Response> {
       }
 
       // P3-2 分数单调性：同设备新分 < 历史 90% 拒绝（防刷低分干扰）
-      const bestKey = `best:${mode}:${deviceId}`
+      const bestKey = `best:${app}:${mode}:${deviceId}`
       const best = parseFloat((await RANK.get(bestKey)) || '0')
       if (best > 0 && score < best * 0.9) {
         return new Response(JSON.stringify({ success: false, error: '成绩低于个人记录' }), { status: 400, headers })
@@ -122,8 +129,16 @@ async function handleRequest(request: Request): Promise<Response> {
 
       // 更新榜单（里程降序；daily 同里程按用时升序）
       // 同设备去重：只保留最优成绩（最高分；同分取更快用时）
-      const key = `rank:${mode}:all`
+      const key = `rank:${app}:${mode}:all`
       const raw = await RANK.get(key)
+      // 兼容迁移：旧 key（无 app 前缀，funphy 数据）→ 新 key
+      if (!raw) {
+        const legacyKey = `rank:${mode}:all`
+        const legacy = await RANK.get(legacyKey)
+        if (legacy) {
+          await RANK.put(key, legacy)   // 迁移一次后旧 key 不再使用
+        }
+      }
       const all = raw ? JSON.parse(raw) as any[] : []
       const oldEntries = all.filter((r: any) => r.deviceId === deviceId)
       const list = all.filter((r: any) => r.deviceId !== deviceId)
@@ -144,7 +159,7 @@ async function handleRequest(request: Request): Promise<Response> {
       const top = list.slice(0, 100)
       await RANK.put(key, JSON.stringify(top))
       if (mode === 'daily') {
-        const dkey = `rank:daily:${today()}`
+        const dkey = `rank:${app}:daily:${today()}`
         const dall = JSON.parse((await RANK.get(dkey)) || '[]') as any[]
         const dlist = dall.filter((r: any) => r.deviceId !== deviceId)
         dlist.push(keep)
@@ -170,23 +185,24 @@ async function handleRequest(request: Request): Promise<Response> {
     // ===== 云存档（P3-1：绑定 deviceId） =====
     if (url.pathname === '/api/save/get' && request.method === 'GET') {
       const dev = url.searchParams.get('deviceId') || ''
-      if (!dev || dev.length > 64) return new Response(JSON.stringify({ success: false, error: '参数异常' }), { status: 400, headers })
-      const raw = await SAVE.get(`save:${dev}`)
+      const app = url.searchParams.get('app') || ''
+      if (!dev || dev.length > 64 || !['funphy', 'funmath'].includes(app)) return new Response(JSON.stringify({ success: false, error: '参数异常' }), { status: 400, headers })
+      const raw = await SAVE.get(`save:${app}:${dev}`)
       return new Response(JSON.stringify({ success: true, data: raw ? JSON.parse(raw) : null }), { headers })
     }
     if (url.pathname === '/api/save/put' && request.method === 'POST') {
       const body = await request.json() as any
-      const { data, ts, sig, deviceId } = body
-      if (!deviceId || deviceId.length > 64) return new Response(JSON.stringify({ success: false, error: '参数异常' }), { status: 400, headers })
+      const { data, ts, sig, deviceId, app } = body
+      if (!deviceId || deviceId.length > 64 || !['funphy', 'funmath'].includes(app)) return new Response(JSON.stringify({ success: false, error: '参数异常' }), { status: 400, headers })
       // 存档大小限制 ≤ 20KB（P3-4 数据卫生）
       const size = JSON.stringify(data).length
       if (size > 20000) return new Response(JSON.stringify({ success: false, error: '存档过大' }), { status: 400, headers })
-      const expect = await hmac(`save:${deviceId}:${JSON.stringify(data)}:${ts}`, SECRET)
+      const expect = await hmac(`save:${app}:${deviceId}:${JSON.stringify(data)}:${ts}`, SECRET)
       if (sig !== expect) return new Response(JSON.stringify({ success: false, error: '签名无效' }), { status: 403, headers })
       if (!(await writeBudgetOk())) {
         return new Response(JSON.stringify({ success: false, error: '服务器忙，请稍后再试' }), { status: 503, headers })
       }
-      await SAVE.put(`save:${deviceId}`, JSON.stringify(data))
+      await SAVE.put(`save:${app}:${deviceId}`, JSON.stringify(data))
       return new Response(JSON.stringify({ success: true }), { headers })
     }
 
