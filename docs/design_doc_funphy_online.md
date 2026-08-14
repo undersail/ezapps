@@ -1,6 +1,25 @@
 # 飞飞历险记 · 联网功能设计方案
 > Cloudflare Workers + KV 免费后端 · 2026-08-13
 
+## ✅ 实施状态（2026-08-14 全部完成）
+
+| 阶段 | 功能 | 状态 |
+|---|---|---|
+| **P0** | 🏅 全球排行榜（无限模式）| ✅ 已上线 |
+| **P1** | ☁️ 云存档（跨设备进度同步）| ✅ 已上线 |
+| **P2** | 📅 每日挑战（全服同种子关卡 + 日榜）| ✅ 已上线 |
+
+**线上地址**：https://api.ezapps.cc（Cloudflare Workers `ezapps-api`）
+
+## 实际实现要点（与方案的差异）
+
+1. **部署方式**：wrangler CLI 在国内网络不可用（npm 源 + API 均 fetch failed）→ 改用 **REST API + esbuild 打包**部署（`PUT /accounts/{id}/workers/scripts/{name}` multipart 上传）
+2. **脚本格式**：`application/javascript+module` 上传报 "Unexpected token 'export'" → 改用 **service-worker 格式**（addEventListener + esbuild --format=iife）
+3. **vars 注入不生效**：CF vars API 无权限 + multipart vars 未生效 → **API_SECRET 硬编码进 Worker 代码**（防小白作弊足够）
+4. **KV 绑定**：bindings/settings API 无权限 → 上传时 **metadata 内嵌 bindings**（multipart metadata JSON）一次搞定
+5. **自定义域**：workers.dev 域名国内超时（实测）→ 绑 `api.ezapps.cc`（用户 Dashboard 操作，Token 无 Zone 路由权限）
+6. **KV 缓存**：DELETE key 后读仍有缓存 → 用 PUT 覆盖空数组立即生效
+
 ## 一、目标
 
 在现有 Cloudflare Pages 静态托管基础上，为 funphy 游戏增加联网能力：
