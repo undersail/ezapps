@@ -6,7 +6,7 @@
 在 ezapps 平台上新增**经典棋类对战**游戏（EZChess）：
 - 🎯 五子棋（先上线，MVP）
 - ⚫ 黑白棋 / 奥赛罗
-- 🦘 跳棋
+- 🦘 中国跳棋（6 角星棋盘，**2-6 人**，跳子前进）
 - 🐘 中国象棋
 
 支持：**在线匹配对战 / 好友开房 / 观战 / 断线重连 / 战绩榜**，完全复用现有 `api.ezapps.cc` 的身份与排行榜体系。
@@ -39,12 +39,14 @@
 
 ## 三、游戏与规则引擎
 
-| 游戏 | 棋盘 | 规则校验复杂度 | 服务端校验可行性 |
-|---|---|---|---|
-| 五子棋 | 15×15 | 极简（落子判胜）| ✅ 轻松 |
-| 黑白棋 | 8×8 | 简单（翻转逻辑）| ✅ 轻松 |
-| 跳棋 | 8×8 对角 | 中等（走法/连跳）| ✅ 可以 |
-| 中国象棋 | 9×10 | 较复杂（马脚/象眼/将帅）| ✅ 可以（纯逻辑无搜索）|
+| 游戏 | 棋盘 | 玩家数 | 规则校验复杂度 | 服务端校验可行性 |
+|---|---|---|---|---|
+| 五子棋 | 15×15 | 2 | 极简（落子判胜）| ✅ 轻松 |
+| 黑白棋 | 8×8 | 2 | 简单（翻转逻辑）| ✅ 轻松 |
+| 中国跳棋 | 17×17 六角星 | **2-6** | 中等（跳子前进）| ✅ 可以（无分支逻辑）|
+| 中国象棋 | 9×10 | 2 | 较复杂（马脚/象眼/将帅）| ✅ 可以（纯逻辑无搜索）|
+
+> 中国跳棋说明：六角星形棋盘（5 个正六边形区域向外延伸），玩家 2-6 人，目标是把己方 10 子全部跳进对面对角营地。走法：一步一格（相邻点）或**隔子跳**（可连跳）。多玩家房间为 2-6 人桌。
 
 **统一规则接口**（每棋种实现）：
 ```ts
@@ -62,17 +64,21 @@ interface RulesEngine {
 ## 四、房间系统
 
 ```
-创建房间   POST /api/room/create { app:'ezchess', game:'gomoku', mode:'friend'|'match', player:{deviceId,nick} }
+创建房间   POST /api/room/create { app:'ezchess', game:'gomoku'|'reversi'|'ccheckers'|'xiangqi', mode:'friend'|'match', players?: 2|3|4|6, player:{deviceId,nick} }
 匹配对局   POST /api/room/match   { game:'gomoku' }  → 进入匹配队列（KV 队列，60 秒超时）
 加入房间   POST /api/room/join    { roomId, player }
 观战      POST /api/room/spectate { roomId }
 离开/认输  WS 消息 { type:'resign' | 'leave' }
 ```
 
+**房间类型**：
+- **2 人桌**：五子棋 / 黑白棋 / 中国象棋（好友开房 + 快速匹配）
+- **N 人桌（2-6）**：中国跳棋（好友开房选人数；满员开赛，房主可"人满即开"或"随时开赛"）
+
 **房间状态机**：
 ```
-WAITING → READY(双方就位) → PLAYING → FINISHED(胜负/和棋/超时) → 删除 DO
-              └── 60 秒超时 → 关闭(通知单人胜利)
+WAITING(等人，可 2-6) → READY(满员/房主开赛) → PLAYING → FINISHED(胜负/和棋/超时) → 删除 DO
+              └── 60 秒超时（未满员）→ 关闭(通知现有玩家)
 ```
 
 **匹配机制（轻量）**：
@@ -92,16 +98,18 @@ wss://ezchess-api.ezapps.cc/game/<roomId>?deviceId=xxx&token=<HMAC>
 // 客户端 → 服务端
 { type: 'move',    move: { from?: [r,c], to: [r,c] } }
 { type: 'resign' }
+{ type: 'ready' }                               // N 人桌：准备就绪（房主开赛）
 { type: 'chat',    text: string }           // 快捷短语
 { type: 'ping' }
 
 // 服务端 → 客户端
-{ type: 'state',   board, turn, timer, phase }          // 全量状态（开局/重连）
-{ type: 'move_ok', move, board, nextTurn }              // 落子成功 + 增量
+{ type: 'state',   board, turn, timer, phase, seats }   // 全量状态（开局/重连）
+{ type: 'move_ok', move, board, nextTurn }              // 落子成功 + 增量（N 人循环）
 { type: 'illegal', reason }                             // 非法走法
-{ type: 'gameover', winner, reason, score }             // 胜负结算
-{ type: 'timer',   player, remaining }                  // 倒计时同步
-{ type: 'opponent_left', graceSeconds }                 // 对方掉线（60s 重连窗口）
+{ type: 'gameover', winner, reason, score }             // 胜负结算（N 人按名次）
+{ type: 'timer',   seat, remaining }                    // 倒计时同步（每座位独立）
+{ type: 'player_joined', player, seats }                // N 人桌有人加入
+{ type: 'opponent_left', graceSeconds }                 // 有人掉线（60s 重连窗口）
 { type: 'chat',    player, text }
 ```
 
@@ -115,20 +123,21 @@ wss://ezchess-api.ezapps.cc/game/<roomId>?deviceId=xxx&token=<HMAC>
 ```ts
 class GameRoom extends DurableObject {
   state: {
-    game: 'gomoku'|'reversi'|'checkers'|'xiangqi'
+    game: 'gomoku'|'reversi'|'ccheckers'|'xiangqi'
+    seats: number                    // 2（象棋类）/ 2-6（中国跳棋）
     phase: 'WAITING'|'READY'|'PLAYING'|'FINISHED'
     board: Board
-    players: { [seat:0|1]: { deviceId, nick, ws } }
+    players: { deviceId, nick, ws, seat }[]   // N 人（中国跳棋可 6 人）
     spectators: ws[]
-    turn: 0|1
-    timers: [ms, ms]
-    moves: Move[]                 // 复盘用
-    seed?: number                 // 先手随机
+    turn: number                     // 当前座位（N 人循环）
+    timers: number[]                 // 每人独立计时
+    moves: Move[]                    // 复盘用
+    seed?: number                    // 先手随机（2 人局）
   }
   async fetch(req)        // WS 升级入口 + REST 房间操作
-  handleMove(player, move) // 校验 → apply → 广播
-  handleDisconnect(ws)     // 60s 重连窗口
-  finish(result)           // 结算 → KV 存档 → 释放
+  handleMove(seat, move)  // 校验 → apply → 广播（N 人循环下一位）
+  handleDisconnect(ws)    // 60s 重连窗口
+  finish(result)          // 结算 → KV 存档 → 释放
 }
 ```
 
@@ -199,7 +208,7 @@ apps/ezchess/
 ├── src/engine/
 │   ├── gomoku.ts              # 五子棋规则（MVP）
 │   ├── reversi.ts             # 黑白棋规则
-│   ├── checkers.ts            # 跳棋规则
+│   ├── ccheckers.ts           # 中国跳棋规则（六角星棋盘 + N 人）
 │   └── xiangqi.ts             # 中国象棋规则
 ├── src/network/ws.ts          # WebSocket 封装（重连/心跳）
 ├── src/network/api.ts         # REST 封装（复用 ezapps-api 模式）
@@ -215,7 +224,7 @@ apps/ezchess/
 | 阶段 | 内容 | 工作量 |
 |---|---|---|
 | **M1** | 五子棋 MVP：DO 房间 + WS 协议 + 匹配 + Canvas 棋盘 + 积分榜 | ~2 天 |
-| **M2** | 黑白棋 + 跳棋（规则引擎扩展 + 观战）| ~1.5 天 |
+| **M2** | 黑白棋 + **中国跳棋（N 人桌 2-6 + 六角星棋盘 + 跳子规则）** | ~2 天 |
 | **M3** | 中国象棋（复杂规则）+ 计时器 + 聊天 | ~2 天 |
 | **M4** | 战绩 D1 + 复盘 + 排行榜细化 + 皮肤 | ~1 天 |
 
