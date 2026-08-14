@@ -121,10 +121,21 @@ async function handleRequest(request: Request): Promise<Response> {
       if (score > best) await RANK.put(bestKey, String(score))
 
       // 更新榜单（里程降序；daily 同里程按用时升序）
+      // 同设备去重：只保留最优成绩（最高分；同分取更快用时）
       const key = `rank:${mode}:all`
       const raw = await RANK.get(key)
-      const list = raw ? JSON.parse(raw) as any[] : []
-      list.push({ player, score, level, ts, deviceId, time: time || 0 })
+      const all = raw ? JSON.parse(raw) as any[] : []
+      const oldEntries = all.filter((r: any) => r.deviceId === deviceId)
+      const list = all.filter((r: any) => r.deviceId !== deviceId)
+      const bestOld = oldEntries.length
+        ? oldEntries.reduce((a: any, b: any) => (b.score > a.score || (b.score === a.score && (b.time || 0) < (a.time || 0)) ? b : a))
+        : null
+      const entry = { player, score, level, ts, deviceId, time: time || 0 }
+      let keep = entry
+      if (bestOld && (bestOld.score > entry.score || (bestOld.score === entry.score && (bestOld.time || 0) <= entry.time))) {
+        keep = bestOld   // 旧成绩更优，保留旧的
+      }
+      list.push(keep)
       if (mode === 'daily') {
         list.sort((a: any, b: any) => b.score - a.score || (a.time || 0) - (b.time || 0))
       } else {
@@ -134,12 +145,13 @@ async function handleRequest(request: Request): Promise<Response> {
       await RANK.put(key, JSON.stringify(top))
       if (mode === 'daily') {
         const dkey = `rank:daily:${today()}`
-        const drows = JSON.parse((await RANK.get(dkey)) || '[]') as any[]
-        drows.push({ player, score, level, ts, deviceId, time: time || 0 })
-        drows.sort((a: any, b: any) => b.score - a.score || (a.time || 0) - (b.time || 0))
-        await RANK.put(dkey, JSON.stringify(drows.slice(0, 100)), { expirationTtl: 604800 })
+        const dall = JSON.parse((await RANK.get(dkey)) || '[]') as any[]
+        const dlist = dall.filter((r: any) => r.deviceId !== deviceId)
+        dlist.push(keep)
+        dlist.sort((a: any, b: any) => b.score - a.score || (a.time || 0) - (b.time || 0))
+        await RANK.put(dkey, JSON.stringify(dlist.slice(0, 100)), { expirationTtl: 604800 })
       }
-      const rank = top.findIndex((r: any) => r.deviceId === deviceId && r.ts === ts)
+      const rank = top.findIndex((r: any) => r.deviceId === deviceId)
       return new Response(JSON.stringify({ success: true, rank: rank === -1 ? top.length : rank + 1, top: top.slice(0, 10).map((r: any) => ({ ...r, dev: (r.deviceId || '').slice(0, 8) })) }), { headers })
     }
 
