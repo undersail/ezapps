@@ -7,7 +7,7 @@ const CORS_ORIGINS = ['https://ezapps.cc', 'https://ezapps.pages.dev', 'http://l
 const GAMES = ['gomoku', 'reversi', 'checkers', 'ccheckers', 'xiangqi']
 const BOARD = 15          // 五子棋棋盘 15×15
 const RECONNECT_MS = 60000
-const WAIT_TIMEOUT_MS = 60000
+const WAIT_TIMEOUT_MS = 120000
 const TURN_MS = 15 * 60 * 1000   // 每方 15 分钟
 
 function corsHeaders(origin: string | null): Record<string, string> {
@@ -621,27 +621,29 @@ async function handleRequest(request: Request, env: any): Promise<Response> {
     return json({ success: true, roomId, wsUrl: `/game/${roomId}/ws?deviceId=${encodeURIComponent(deviceId)}&nick=${encodeURIComponent(nick)}` }, 200, origin)
   }
 
-  // 快速匹配
+  // 快速匹配（匹配即建房：队列存房间号，第 2 人直接加入）
   if (url.pathname === '/api/room/match' && request.method === 'POST') {
     const body = await request.json() as any
     const game = body.game || 'gomoku'
     const deviceId = body.player?.deviceId || ''
     const nick = body.player?.nick || '玩家'
     if (!GAMES.includes(game) || !deviceId) return json({ error: '参数异常' }, 400, origin)
-    // 匹配队列：等一个对手
     const matchKey = `match:${game}`
     const waiting = await env.RANK.get(matchKey)
     if (waiting) {
-      const opp = JSON.parse(waiting)
+      // 有等待中的匹配房 → 加入（满员自动开赛）
       await env.RANK.delete(matchKey)
-      const roomId = uid()
-      const id = env.GAME_ROOMS.idFromName(roomId)
-      const stub = env.GAME_ROOMS.get(id)
-      await stub.fetch('http://room/init', { method: 'POST', body: JSON.stringify({ game, seats: 2, roomId }) })
-      return json({ success: true, roomId, opp: opp.nick, wsUrl: `/game/${roomId}/ws?deviceId=${encodeURIComponent(deviceId)}&nick=${encodeURIComponent(nick)}` }, 200, origin)
+      const { roomId } = JSON.parse(waiting)
+      return json({ success: true, roomId, opp: '对手', wsUrl: `/game/${roomId}/ws?deviceId=${encodeURIComponent(deviceId)}&nick=${encodeURIComponent(nick)}` }, 200, origin)
     }
-    await env.RANK.put(matchKey, JSON.stringify({ deviceId, nick }), { expirationTtl: 60 })
-    return json({ success: true, waiting: true }, 200, origin)
+    // 无等待者 → 创建匹配房并入队
+    const roomId = uid()
+    const id = env.GAME_ROOMS.idFromName(roomId)
+    const stub = env.GAME_ROOMS.get(id)
+    await stub.fetch('http://room/init', { method: 'POST', body: JSON.stringify({ game, seats: 2, roomId }) })
+    await env.RANK.put(`room:${roomId}`, JSON.stringify({ game, seats: 2, mode: 'match', owner: deviceId, createdAt: Date.now() }), { expirationTtl: 7200 })
+    await env.RANK.put(matchKey, JSON.stringify({ roomId }), { expirationTtl: 120 })
+    return json({ success: true, roomId, waiting: true, wsUrl: `/game/${roomId}/ws?deviceId=${encodeURIComponent(deviceId)}&nick=${encodeURIComponent(nick)}` }, 200, origin)
   }
 
   // 房间信息

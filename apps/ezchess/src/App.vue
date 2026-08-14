@@ -54,8 +54,10 @@ async function match() {
   try {
     const res = await Net.matchRoom(gameId.value, { deviceId, nick: myNick.value })
     if (!res) { roomErr.value = '网络异常，请稍后再试'; return }
-    if (res.waiting) { roomErr.value = '正在匹配对手…（60 秒超时）'; return }
-    if (res.roomId) { enterRoom(res.roomId) }
+    if (res.roomId) {
+      if (res.waiting) roomErr.value = '已进入匹配房，等待对手加入…（120 秒超时）'
+      enterRoom(res.roomId)
+    }
   } finally {
     matching.value = false
   }
