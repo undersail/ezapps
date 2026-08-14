@@ -83,6 +83,7 @@ async function joinRoom() {
 
 function enterRoom(id: string) {
   roomId.value = id
+  ;(window as any).__ccRoom = id   // 调试用：暴露完整房间号
   stage.value = 'room'
   board.value = []
   gameOver.value = null
@@ -136,14 +137,23 @@ function cellClick(e: MouseEvent) {
   const py = e.clientY - rect.top
 
   if (curGame.value === 'ccheckers') {
-    // 六角星：换算点坐标（与绘制 cellX/cellY 一致）
+    // 六角蜂窝网格换算（与绘制 X/Y 一致：奇数行偏移半格）
     const size = rect.width
-    const pad = size * 0.03
-    const cellX = (size - pad * 2) / 13
+    const pad = size * 0.04
+    const cellX = (size - pad * 2) / 9
     const cellY = (size - pad * 2) / 16
-    const r = Math.round((py - pad) / cellY)
-    const c = Math.round((px - pad) / cellX)
-    const pt = r * 17 + c
+    const X = (r: number, c: number) => pad + c * cellX + (r % 2) * cellX * 0.5
+    const Y = (r: number) => pad + r * cellY
+    // 反算 r/c（从最近的点）
+    let best: { r: number; c: number; d: number } | null = null
+    for (let r = 0; r < 17; r++) {
+      for (let c = 0; c < 9; c++) {
+        const d = Math.hypot(px - X(r, c), py - Y(r))
+        if (!best || d < best.d) best = { r, c, d }
+      }
+    }
+    if (!best || best.d > cellX * 0.55) return
+    const pt = best.r * 17 + best.c
     if (board.value[pt] === undefined || board.value[pt] === -1) return
     if (selected.value === null) {
       if (board.value[pt] === mySeat.value + 1) selected.value = pt
@@ -280,26 +290,37 @@ function ccPtPos(pt: number): { r: number; c: number } {
   return { r: Math.floor(pt / CC3), c: pt % CC3 }
 }
 function drawCC(ctx: CanvasRenderingContext2D, size: number) {
-  const pad = size * 0.03
-  const cellX = (size - pad * 2) / 13   // 13 列（最宽行 12 格）
+  const pad = size * 0.04
+  const cellX = (size - pad * 2) / 9    // 81 点棋盘宽 9 列（含半格偏移余量）
   const cellY = (size - pad * 2) / 16   // 17 行
-  const X = (c: number) => pad + c * cellX
+  // 六角蜂窝网格：奇数行偏移半格
+  const X = (r: number, c: number) => pad + c * cellX + (r % 2) * cellX * 0.5
   const Y = (r: number) => pad + r * cellY
   ctx.fillStyle = '#f5e6c8'
   ctx.fillRect(0, 0, size, size)
 
-  // 有效点
-  const lens = [1, 2, 3, 4, 13, 12, 11, 10, 9, 10, 11, 12, 13, 4, 3, 2, 1]
+  // 有效点（81 点，行宽 1..9..1）
+  const lens = [1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1]
   const valid = new Set<number>()
   for (let r = 0; r < 17; r++) {
-    const len = lens[r]
-    const c0 = r < 4 ? 8 - r : (r < 9 ? r - 4 : (r < 13 ? 13 - len : 9 - len))
-    for (let i = 0; i < len; i++) valid.add(r * 17 + (c0 + i))
+    for (let i = 0; i < lens[r]; i++) valid.add(r * 17 + i)
   }
   const inValid = (r: number, c: number) => valid.has(r * 17 + c)
 
+  // 六边形区域填充（6 尖点连线：顶/右上/右下/底/左下/左上）
+  ctx.fillStyle = '#e8c98a'
+  ctx.beginPath()
+  const outline = [[0, 0], [4, 4], [12, 4], [16, 0], [12, 0], [4, 0]]
+  ctx.moveTo(X(outline[0][0], outline[0][1]), Y(outline[0][0]))
+  for (const [r, c] of outline.slice(1)) ctx.lineTo(X(r, c), Y(r))
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(139,90,43,0.55)'
+  ctx.lineWidth = 2
+  ctx.stroke()
+
   // 蜂窝网格连线（右/下/右下 3 方向去重）
-  ctx.strokeStyle = 'rgba(139,90,43,0.28)'
+  ctx.strokeStyle = 'rgba(139,90,43,0.3)'
   ctx.lineWidth = 1
   const EDGE_DELTAS = [[0, 1], [1, 0], [1, -1]]
   ctx.beginPath()
@@ -307,39 +328,27 @@ function drawCC(ctx: CanvasRenderingContext2D, size: number) {
     const r = Math.floor(pt / 17), c = pt % 17
     for (const [dr, dc] of EDGE_DELTAS) {
       if (inValid(r + dr, c + dc)) {
-        ctx.moveTo(X(c), Y(r))
-        ctx.lineTo(X(c + dc), Y(r + dr))
+        ctx.moveTo(X(r, c), Y(r))
+        ctx.lineTo(X(r + dr, c + dc), Y(r + dr))
       }
     }
   }
   ctx.stroke()
 
-  // 星形轮廓（顶/右上/右下/底/左下/左凹/左上：右边缘是直线）
-  ctx.fillStyle = '#e8c98a'
-  ctx.beginPath()
-  const outline = [[0, 8], [4, 12], [12, 12], [16, 8], [12, 0], [8, 4], [4, 0]]
-  ctx.moveTo(X(outline[0][1]), Y(outline[0][0]))
-  for (const [r, c] of outline.slice(1)) ctx.lineTo(X(c), Y(r))
-  ctx.closePath()
-  ctx.fill()
-  ctx.strokeStyle = 'rgba(139,90,43,0.5)'
-  ctx.lineWidth = 2
-  ctx.stroke()
-
-  // 营地圆点标记
+  // 营地标记（与服务端一致：6 角各 10 点）
   const COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899']
-  const campPolys = [
-    [[0, 8], [1, 7], [1, 8], [2, 6], [2, 7], [2, 8], [3, 5], [3, 6], [3, 7], [3, 8]],
-    [[4, 9], [4, 10], [4, 11], [4, 12], [5, 10], [5, 11], [5, 12], [6, 11], [6, 12], [7, 12]],
-    [[9, 12], [10, 11], [10, 12], [11, 10], [11, 11], [11, 12], [12, 9], [12, 10], [12, 11], [12, 12]],
-    [[13, 5], [13, 6], [13, 7], [13, 8], [14, 6], [14, 7], [14, 8], [15, 7], [15, 8], [16, 8]],
-    [[9, 0], [10, 0], [10, 1], [11, 0], [11, 1], [11, 2], [12, 0], [12, 1], [12, 2], [12, 3]],
-    [[4, 0], [4, 1], [4, 2], [4, 3], [5, 0], [5, 1], [5, 2], [6, 0], [6, 1], [7, 0]],
+  const camps = [
+    [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1], [2, 2], [3, 0], [3, 1], [3, 2], [3, 3]],
+    [[4, 4], [5, 3], [5, 4], [6, 4], [6, 5], [6, 6], [7, 4], [7, 5], [7, 6], [7, 7]],
+    [[9, 4], [9, 5], [9, 6], [9, 7], [10, 4], [10, 5], [10, 6], [11, 3], [11, 4], [12, 4]],
+    [[13, 0], [13, 1], [13, 2], [13, 3], [14, 0], [14, 1], [14, 2], [15, 0], [15, 1], [16, 0]],
+    [[9, 0], [9, 1], [9, 2], [9, 3], [10, 0], [10, 1], [10, 2], [11, 0], [11, 1], [12, 0]],
+    [[4, 0], [5, 0], [5, 1], [6, 0], [6, 1], [6, 2], [7, 0], [7, 1], [7, 2], [7, 3]],
   ]
-  campPolys.forEach((pts, i) => {
-    ctx.fillStyle = COLORS[i] + '28'
+  camps.forEach((pts, i) => {
+    ctx.fillStyle = COLORS[i] + '2e'
     for (const [r, c] of pts) {
-      ctx.beginPath(); ctx.arc(X(c), Y(r), cellX * 0.4, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath(); ctx.arc(X(r, c), Y(r), cellX * 0.4, 0, Math.PI * 2); ctx.fill()
     }
   })
 
@@ -348,16 +357,15 @@ function drawCC(ctx: CanvasRenderingContext2D, size: number) {
   ctx.lineWidth = 1.2
   for (const pt of valid) {
     const r = Math.floor(pt / 17), c = pt % 17
-    ctx.beginPath(); ctx.arc(X(c), Y(r), 2.8, 0, Math.PI * 2); ctx.stroke()
+    ctx.beginPath(); ctx.arc(X(r, c), Y(r), 2.8, 0, Math.PI * 2); ctx.stroke()
   }
   // 棋子 + 选中高亮
   for (let pt = 0; pt < board.value.length; pt++) {
     const v = board.value[pt]
     if (!v || v === -1) continue
     const r = Math.floor(pt / 17), c = pt % 17
-    const x = X(c), y = Y(r)
     ctx.fillStyle = COLORS[(v - 1) % 6]
-    ctx.beginPath(); ctx.arc(x, y, cellX * 0.36, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.arc(X(r, c), Y(r), cellX * 0.34, 0, Math.PI * 2); ctx.fill()
     ctx.strokeStyle = 'rgba(0,0,0,0.4)'
     ctx.lineWidth = 1.5
     ctx.stroke()

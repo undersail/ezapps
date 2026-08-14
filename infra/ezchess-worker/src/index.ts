@@ -84,24 +84,19 @@ function rvHasMove(board: number[], seat: number): boolean {
   return false
 }
 
-// ==================== 中国跳棋（17×17 六角星 121 点） ====================
+// ==================== 中国跳棋（81 点标准六角形棋盘） ====================
 const CC = 17
 const CC_DELTAS = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, 1], [1, -1]]
 function ccValidSet(): Set<number> {
   const s = new Set<number>()
-  // 行点数：r0-3: 1-4；r4-8: 13-9；r9-12: 10-13；r13-16: 4-1
-  const lens = [1, 2, 3, 4, 13, 12, 11, 10, 9, 10, 11, 12, 13, 4, 3, 2, 1]
+  // 标准 81 点：行宽 1,2,3,4,5,6,7,8,9,8,7,6,5,4,3,2,1（左对齐）
+  const lens = [1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1]
   for (let r = 0; r < CC; r++) {
-    const len = lens[r]
-    // 行起点：顶三角居中靠左；r4-8 左对齐递增；r9-12 右对齐（13-len）；底三角居中（9-len）
-    const c0 = r < 4 ? 8 - r : (r < 9 ? r - 4 : (r < 13 ? 13 - len : 9 - len))
-    for (let i = 0; i < len; i++) s.add(r * CC + (c0 + i))
+    for (let i = 0; i < lens[r]; i++) s.add(r * CC + i)
   }
   return s
 }
-// 预计算：有效点 + 营地（6 个几何三角，各 10 点，互不重叠）
 const CC_VALID = ccValidSet()
-const CC_VERTS = [0 * CC + 8, 4 * CC + 0, 12 * CC + 0, 16 * CC + 8, 12 * CC + 12, 4 * CC + 12]
 function ccNeighbors(pt: number): number[] {
   const r = Math.floor(pt / CC), c = pt % CC
   const out: number[] = []
@@ -113,21 +108,21 @@ function ccNeighbors(pt: number): number[] {
   return out
 }
 function ccCamps(): number[][] {
-  // 几何三角（固定点集）：顶 r0-3 / 右上 / 右下 / 底 r13-16 / 左下 / 左上
+  // 几何三角营地（各 10 点，行内左右分离不重叠）
   const p = (r: number, c: number) => r * CC + c
   return [
     // camp0 顶：r0-3 全部
-    [p(0, 8), p(1, 7), p(1, 8), p(2, 6), p(2, 7), p(2, 8), p(3, 5), p(3, 6), p(3, 7), p(3, 8)],
-    // camp1 右上：r4 c9-12, r5 c10-12, r6 c11-12, r7 c12
-    [p(4, 9), p(4, 10), p(4, 11), p(4, 12), p(5, 10), p(5, 11), p(5, 12), p(6, 11), p(6, 12), p(7, 12)],
-    // camp2 右下：r9 c12, r10 c11-12, r11 c10-12, r12 c9-12
-    [p(9, 12), p(10, 11), p(10, 12), p(11, 10), p(11, 11), p(11, 12), p(12, 9), p(12, 10), p(12, 11), p(12, 12)],
+    [p(0, 0), p(1, 0), p(1, 1), p(2, 0), p(2, 1), p(2, 2), p(3, 0), p(3, 1), p(3, 2), p(3, 3)],
+    // camp1 右上：r4 c4 + r5 c3-4 + r6 c4-6 + r7 c4-7
+    [p(4, 4), p(5, 3), p(5, 4), p(6, 4), p(6, 5), p(6, 6), p(7, 4), p(7, 5), p(7, 6), p(7, 7)],
+    // camp2 右下：r9 c4-7 + r10 c4-6 + r11 c3-4 + r12 c4
+    [p(9, 4), p(9, 5), p(9, 6), p(9, 7), p(10, 4), p(10, 5), p(10, 6), p(11, 3), p(11, 4), p(12, 4)],
     // camp3 底：r13-16 全部
-    [p(13, 5), p(13, 6), p(13, 7), p(13, 8), p(14, 6), p(14, 7), p(14, 8), p(15, 7), p(15, 8), p(16, 8)],
-    // camp4 左下：r9 c0, r10 c0-1, r11 c0-2, r12 c0-3
-    [p(9, 0), p(10, 0), p(10, 1), p(11, 0), p(11, 1), p(11, 2), p(12, 0), p(12, 1), p(12, 2), p(12, 3)],
-    // camp5 左上：r4 c0-3, r5 c0-2, r6 c0-1, r7 c0
-    [p(4, 0), p(4, 1), p(4, 2), p(4, 3), p(5, 0), p(5, 1), p(5, 2), p(6, 0), p(6, 1), p(7, 0)],
+    [p(13, 0), p(13, 1), p(13, 2), p(13, 3), p(14, 0), p(14, 1), p(14, 2), p(15, 0), p(15, 1), p(16, 0)],
+    // camp4 左下：r9 c0-3 + r10 c0-2 + r11 c0-1 + r12 c0
+    [p(9, 0), p(9, 1), p(9, 2), p(9, 3), p(10, 0), p(10, 1), p(10, 2), p(11, 0), p(11, 1), p(12, 0)],
+    // camp5 左上：r4 c0 + r5 c0-1 + r6 c0-2 + r7 c0-3
+    [p(4, 0), p(5, 0), p(5, 1), p(6, 0), p(6, 1), p(6, 2), p(7, 0), p(7, 1), p(7, 2), p(7, 3)],
   ]
 }
 const CC_CAMPS = ccCamps()
@@ -164,7 +159,7 @@ export class GameRoom {
   seats = 2
   phase: 'WAITING' | 'READY' | 'PLAYING' | 'FINISHED' = 'WAITING'
   board: number[] = emptyBoard()
-  players: { deviceId: string; nick: string; seat: number; ws: WebSocket | null; reconnectTimer?: number }[] = []
+  players: { deviceId: string; nick: string; seat: number; ws: WebSocket | null; reconnectTimer?: number; disconnectAt?: number }[] = []
   spectators: WebSocket[] = []
   turn = 0
   timers: number[] = []
@@ -246,7 +241,7 @@ export class GameRoom {
       const [client, server] = Object.values(pair) as WebSocket[]
       server.accept()
 
-      // 已有玩家 → 重连恢复；新玩家 → 入座
+      // 已有玩家 → 重连恢复；新玩家 → 入座（可顶替掉线超时的座位）
       let player = this.players.find(p => p.deviceId === deviceId)
       if (player) {
         if (player.reconnectTimer) { clearTimeout(player.reconnectTimer); player.reconnectTimer = undefined }
@@ -270,6 +265,20 @@ export class GameRoom {
         } else {
           this.armWaitTimer()
         }
+      } else if (this.phase === 'WAITING' && this.players.length >= this.seats) {
+        // 房间已满但有人掉线（重连窗口内）：新玩家顶替掉线超 15 秒的座位
+        const idx = this.players.findIndex(p => !p.ws && p.disconnectAt && Date.now() - p.disconnectAt > 15000)
+        if (idx >= 0) {
+          const old = this.players[idx]
+          if (old.reconnectTimer) { clearTimeout(old.reconnectTimer); old.reconnectTimer = undefined }
+          this.players[idx] = { deviceId, nick: nick.slice(0, 12), seat: old.seat, ws: server }
+          this.broadcast({ type: 'player_joined', player: { nick, seat: old.seat }, seats: this.players.length })
+          server.send(JSON.stringify({ type: 'state', game: this.game, seats: this.seats, phase: this.phase, players: this.players.map(p => ({ nick: p.nick, seat: p.seat })), mySeat: old.seat }))
+          await this.start()
+        } else {
+          this.spectators.push(server)
+          server.send(JSON.stringify({ type: 'state', game: this.game, seats: this.seats, phase: this.phase, board: this.board, turn: this.turn, timers: this.timers, players: this.players.map(p => ({ nick: p.nick, seat: p.seat })), spectator: true }))
+        }
       } else {
         // 观战
         this.spectators.push(server)
@@ -290,6 +299,7 @@ export class GameRoom {
         const idx = this.players.findIndex(p => p.ws === server)
         if (idx >= 0) {
           this.players[idx].ws = null
+          this.players[idx].disconnectAt = Date.now()   // 记录掉线时间（供顶替判定）
           // 60 秒重连窗口
           this.players[idx].reconnectTimer = setTimeout(() => {
             if (this.phase === 'PLAYING' && !this.players[idx].ws) {
