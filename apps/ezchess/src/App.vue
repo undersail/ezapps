@@ -10,6 +10,15 @@ const nickInput = ref(Net.getNickname())
 const myNick = ref(Net.getNickname() || '玩家')
 const deviceId = Net.getDeviceId()
 
+// ===== 游戏选择 =====
+const GAME_LIST = [
+  { id: 'gomoku', emoji: '⚫', name: '五子棋', desc: '15×15 · 先五连者胜', seats: 2 },
+  { id: 'reversi', emoji: '◐', name: '黑白棋', desc: '8×8 · 翻转吃子', seats: 2 },
+  { id: 'ccheckers', emoji: '🦘', name: '中国跳棋', desc: '六角星 · 2-6 人 · 跳子入营', seats: 3 },
+]
+const gameId = ref('gomoku')
+const ccSeats = ref(3)
+
 // ===== 大厅状态 =====
 const matching = ref(false)
 const rankList = ref<{ player: string; score: number; dev?: string }[]>([])
@@ -27,6 +36,8 @@ const players = ref<{ nick: string; seat: number; online?: boolean }[]>([])
 const timers = ref<number[]>([])
 const gameOver = ref<{ winner: number; reason: string; scores: number[] } | null>(null)
 const lastMsg = ref('')
+const curGame = ref('gomoku')
+const selected = ref<number | null>(null)   // 中国跳棋选中的点
 
 function saveNick() {
   const nick = nickInput.value.trim()
@@ -42,7 +53,7 @@ async function match() {
   matching.value = true
   roomErr.value = ''
   try {
-    const res = await Net.matchRoom('gomoku', { deviceId, nick: myNick.value })
+    const res = await Net.matchRoom(gameId.value, { deviceId, nick: myNick.value })
     if (!res) { roomErr.value = '网络异常，请稍后再试'; return }
     if (res.waiting) { roomErr.value = '正在匹配对手…（60 秒超时）'; return }
     if (res.roomId) { enterRoom(res.roomId) }
@@ -52,10 +63,11 @@ async function match() {
 }
 
 async function createRoom() {
-  const res = await Net.createRoom('gomoku', { deviceId, nick: myNick.value })
+  const seats = gameId.value === 'ccheckers' ? ccSeats.value : 2
+  const res = await Net.createRoom(gameId.value, { deviceId, nick: myNick.value }, seats)
   if (res?.roomId) {
     roomCode.value = res.roomId
-    roomErr.value = `好友房已创建，房间号：${res.roomId}（对方输入此号加入）`
+    roomErr.value = `好友房已创建，房间号：${res.roomId}（${seats} 人桌，${seats > 2 ? '满员自动开赛' : '对方输入此号加入'}）`
     enterRoom(res.roomId)
   } else {
     roomErr.value = '建房失败，请稍后再试'
@@ -72,16 +84,18 @@ async function joinRoom() {
 function enterRoom(id: string) {
   roomId.value = id
   stage.value = 'room'
-  board.value = new Array(BOARD * BOARD).fill(0)
+  board.value = []
   gameOver.value = null
   players.value = []
   timers.value = []
   phase.value = 'WAITING'
   lastMsg.value = ''
+  selected.value = null
 
   const gameWs = new GameWS(Net.wsUrl(id, { deviceId, nick: myNick.value }))
   gameWs.on('*', () => { /* 所有消息 */ })
   gameWs.on('state', (m) => {
+    if (m.game) curGame.value = m.game
     if (m.board) board.value = m.board
     if (typeof m.turn === 'number') turn.value = m.turn
     if (m.timers) timers.value = m.timers
@@ -118,11 +132,33 @@ function cellClick(e: MouseEvent) {
   }
   const canvas = e.target as HTMLCanvasElement
   const rect = canvas.getBoundingClientRect()
-  const size = 14 / rect.width * (e.clientX - rect.left)
-  const r = Math.round((e.clientY - rect.top) / rect.width * 14)
-  const c = Math.round(size)
-  if (r < 0 || r >= BOARD || c < 0 || c >= BOARD) return
-  if (board.value[r * BOARD + c] !== 0) return
+  const px = e.clientX - rect.left
+  const py = e.clientY - rect.top
+
+  if (curGame.value === 'ccheckers') {
+    // 六角星：按 17×17 网格换算点坐标
+    const size = rect.width
+    const cell = size / 17
+    const r = Math.floor(py / cell)
+    const c = Math.floor(px / cell)
+    const pt = r * 17 + c
+    if (board.value[pt] === undefined || board.value[pt] === -1) return
+    if (selected.value === null) {
+      if (board.value[pt] === mySeat.value + 1) selected.value = pt
+    } else {
+      ws.value?.send({ type: 'move', move: { from: selected.value, to: pt } })
+      selected.value = null
+    }
+    return
+  }
+
+  // 五子棋 / 黑白棋：网格点击
+  const size = curGame.value === 'reversi' ? 8 : 15
+  const cell = rect.width / size
+  const r = Math.floor(py / cell)
+  const c = Math.floor(px / cell)
+  if (r < 0 || r >= size || c < 0 || c >= size) return
+  if (curGame.value === 'gomoku' && board.value[r * 15 + c] !== 0) return
   ws.value?.send({ type: 'move', move: { r, c } })
 }
 
@@ -153,6 +189,11 @@ function drawBoard() {
   canvas.width = size * dpr
   canvas.height = size * dpr
   ctx.scale(dpr, dpr)
+
+  if (curGame.value === 'ccheckers') return drawCC(ctx, size)
+  if (curGame.value === 'reversi') return drawReversi(ctx, size)
+
+  // ===== 五子棋 =====
   const cell = size / (BOARD + 1)
   const pad = cell
 
@@ -199,6 +240,112 @@ function drawBoard() {
 }
 const lastMove = ref<{ r: number; c: number } | null>(null)
 
+// ===== 黑白棋棋盘（8×8 绿底） =====
+const RV2 = 8
+function drawReversi(ctx: CanvasRenderingContext2D, size: number) {
+  const cell = size / RV2
+  // 绿底棋盘
+  ctx.fillStyle = '#2d8a4e'
+  ctx.fillRect(0, 0, size, size)
+  for (let r = 0; r < RV2; r++) for (let c = 0; c < RV2; c++) {
+    if ((r + c) % 2 === 0) {
+      ctx.fillStyle = 'rgba(0,0,0,0.08)'
+      ctx.fillRect(c * cell, r * cell, cell, cell)
+    }
+  }
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)'
+  ctx.lineWidth = 1
+  for (let i = 0; i <= RV2; i++) {
+    ctx.beginPath(); ctx.moveTo(i * cell, 0); ctx.lineTo(i * cell, size); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(0, i * cell); ctx.lineTo(size, i * cell); ctx.stroke()
+  }
+  // 棋子
+  for (let r = 0; r < RV2; r++) for (let c = 0; c < RV2; c++) {
+    const v = board.value[r * RV2 + c]
+    if (!v) continue
+    const x = c * cell + cell / 2, y = r * cell + cell / 2
+    const grad = ctx.createRadialGradient(x - cell * 0.15, y - cell * 0.15, cell * 0.08, x, y, cell * 0.42)
+    if (v === 1) { grad.addColorStop(0, '#3a3a3a'); grad.addColorStop(1, '#0a0a0a') }
+    else { grad.addColorStop(0, '#ffffff'); grad.addColorStop(1, '#bdbdbd') }
+    ctx.fillStyle = grad
+    ctx.beginPath(); ctx.arc(x, y, cell * 0.42, 0, Math.PI * 2); ctx.fill()
+  }
+}
+
+// ===== 中国跳棋六角星棋盘 =====
+const CC3 = 17
+function ccPtPos(pt: number): { r: number; c: number } {
+  return { r: Math.floor(pt / CC3), c: pt % CC3 }
+}
+function drawCC(ctx: CanvasRenderingContext2D, size: number) {
+  const pad = size * 0.04
+  const cell = (size - pad * 2) / 16
+  ctx.fillStyle = '#f5e6c8'
+  ctx.fillRect(0, 0, size, size)
+  // 六角星区域填充
+  ctx.fillStyle = '#e8c98a'
+  ctx.beginPath()
+  const starPts = [[0, 8], [4, 12], [12, 12], [16, 8], [12, 4], [4, 0]].map(([r, c]) => [pad + c * cell, pad + r * cell])
+  ctx.moveTo(starPts[0][0], starPts[0][1])
+  for (const [x, y] of starPts.slice(1)) ctx.lineTo(x, y)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(139,90,43,0.4)'
+  ctx.lineWidth = 1.5
+  ctx.stroke()
+
+  // 营地三角高亮
+  const COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899']
+  const campPolys = [
+    [[0, 8], [1, 7], [1, 8], [2, 6], [2, 7], [2, 8], [3, 5], [3, 6], [3, 7], [3, 8]],
+    [[4, 9], [4, 10], [4, 11], [4, 12], [5, 10], [5, 11], [5, 12], [6, 11], [6, 12], [7, 12]],
+    [[9, 12], [10, 11], [10, 12], [11, 10], [11, 11], [11, 12], [12, 9], [12, 10], [12, 11], [12, 12]],
+    [[13, 5], [13, 6], [13, 7], [13, 8], [14, 6], [14, 7], [14, 8], [15, 7], [15, 8], [16, 8]],
+    [[9, 0], [10, 0], [10, 1], [11, 0], [11, 1], [11, 2], [12, 0], [12, 1], [12, 2], [12, 3]],
+    [[4, 0], [4, 1], [4, 2], [4, 3], [5, 0], [5, 1], [5, 2], [6, 0], [6, 1], [7, 0]],
+  ]
+  campPolys.forEach((pts, i) => {
+    ctx.fillStyle = COLORS[i] + '22'
+    ctx.beginPath()
+    const [fr, fc] = pts[0]
+    ctx.moveTo(pad + fc * cell, pad + fr * cell)
+    for (const [r, c] of pts.slice(1)) ctx.lineTo(pad + c * cell, pad + r * cell)
+    ctx.closePath()
+    ctx.fill()
+  })
+
+  // 所有有效点（小圆点）
+  const valid = new Set<number>()
+  const lens = [1, 2, 3, 4, 13, 12, 11, 10, 9, 10, 11, 12, 13, 4, 3, 2, 1]
+  for (let r = 0; r < CC3; r++) {
+    const len = lens[r]
+    const c0 = r < 4 ? 8 - r : (r < 9 ? r - 4 : (r < 13 ? 13 - len : 9 - len))
+    for (let i = 0; i < len; i++) valid.add(r * CC3 + (c0 + i))
+  }
+  ctx.fillStyle = 'rgba(139,90,43,0.35)'
+  for (const pt of valid) {
+    const { r, c } = ccPtPos(pt)
+    ctx.beginPath(); ctx.arc(pad + c * cell, pad + r * cell, 2.5, 0, Math.PI * 2); ctx.fill()
+  }
+  // 棋子 + 选中高亮
+  for (let pt = 0; pt < board.value.length; pt++) {
+    const v = board.value[pt]
+    if (!v || v === -1) continue
+    const { r, c } = ccPtPos(pt)
+    const x = pad + c * cell, y = pad + r * cell
+    ctx.fillStyle = COLORS[(v - 1) % 6]
+    ctx.beginPath(); ctx.arc(x, y, cell * 0.38, 0, Math.PI * 2); ctx.fill()
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)'
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+    if (selected.value === pt) {
+      ctx.strokeStyle = '#fff'
+      ctx.lineWidth = 3
+      ctx.stroke()
+    }
+  }
+}
+
 let raf = 0
 function renderLoop() {
   drawBoard()
@@ -231,17 +378,40 @@ onUnmounted(() => {
         <button class="btn" @click="saveNick">保存</button>
       </div>
 
+      <!-- 游戏选择 -->
+      <div class="game-picker">
+        <button
+          v-for="g in GAME_LIST"
+          :key="g.id"
+          class="game-pick"
+          :class="{ on: gameId === g.id }"
+          @click="gameId = g.id"
+        >
+          <span class="game-pick__emoji">{{ g.emoji }}</span>
+          <div>
+            <h3>{{ g.name }}</h3>
+            <p>{{ g.desc }}</p>
+          </div>
+        </button>
+      </div>
+
+      <!-- 中国跳棋人数 -->
+      <div v-if="gameId === 'ccheckers'" class="seats-row">
+        <span>人数：</span>
+        <button v-for="n in [2, 3, 4, 6]" :key="n" class="seat-btn" :class="{ on: ccSeats === n }" @click="ccSeats = n">{{ n }}</button>
+      </div>
+
       <!-- 对战入口 -->
       <div class="game-card">
         <div class="game-card__head">
-          <span class="game-card__emoji">⚫</span>
+          <span class="game-card__emoji">{{ GAME_LIST.find(g => g.id === gameId)?.emoji }}</span>
           <div>
-            <h3>五子棋</h3>
-            <p>15×15 棋盘 · 先五连者胜 · 15 分钟包干</p>
+            <h3>{{ GAME_LIST.find(g => g.id === gameId)?.name }}</h3>
+            <p>{{ GAME_LIST.find(g => g.id === gameId)?.desc }} · 15 分钟包干</p>
           </div>
         </div>
         <div class="game-card__actions">
-          <button class="btn btn-primary" :disabled="matching" @click="match">
+          <button v-if="gameId !== 'ccheckers'" class="btn btn-primary" :disabled="matching" @click="match">
             {{ matching ? '匹配中…' : '⚡ 快速匹配' }}
           </button>
           <button class="btn" @click="createRoom">🏠 创建房间</button>
@@ -271,10 +441,11 @@ onUnmounted(() => {
 
     <!-- ===== 对局页 ===== -->
     <section v-else class="room">
+      <!-- 房间标题按棋种 -->
       <header class="room-head">
         <button class="btn back" @click="backToLobby">← 大厅</button>
         <div class="room-info">
-          <span class="room-title">⚫ 五子棋</span>
+          <span class="room-title">{{ GAME_LIST.find(g => g.id === curGame)?.emoji }} {{ GAME_LIST.find(g => g.id === curGame)?.name }}</span>
           <span class="room-id">房间 {{ roomId.slice(0, 8) }}</span>
           <span class="room-phase">{{ phase === 'PLAYING' ? '对局中' : phase === 'FINISHED' ? '已结束' : '等待玩家…' }}</span>
         </div>
@@ -330,6 +501,15 @@ input:focus { border-color: #6366f1; }
 .game-card h3 { margin: 0; }
 .game-card p { margin: 2px 0 0; color: #64748b; font-size: 0.82rem; }
 .game-card__actions { display: flex; gap: 8px; }
+.game-picker { display: flex; gap: 10px; margin-bottom: 12px; }
+.game-pick { flex: 1; display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 14px; background: #fff; cursor: pointer; text-align: left; }
+.game-pick.on { border-color: #6366f1; background: #eef2ff; }
+.game-pick__emoji { font-size: 1.6rem; }
+.game-pick h3 { margin: 0; font-size: 0.95rem; }
+.game-pick p { margin: 2px 0 0; font-size: 0.72rem; color: #64748b; }
+.seats-row { display: flex; gap: 8px; align-items: center; justify-content: center; margin-bottom: 12px; font-size: 0.9rem; }
+.seat-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #e2e8f0; background: #fff; cursor: pointer; font-weight: bold; }
+.seat-btn.on { border-color: #6366f1; background: #eef2ff; color: #4338ca; }
 .hint { text-align: center; color: #64748b; font-size: 0.85rem; margin: 6px 0; }
 .rank-box { border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; background: #fafafa; }
 .rank-box h3 { margin: 0 0 10px; font-size: 1rem; }
