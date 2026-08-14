@@ -57,6 +57,7 @@
               </div>
             </div>
             <button class="cardbook-btn" @click="openCardbook">📚 物理卡册 {{ ownedCards }}/{{ physicsCards.length }}</button>
+            <button class="cardbook-btn" @click="openDaily">📅 每日挑战</button>
             <button class="cardbook-btn" @click="openRank">🏅 排行榜</button>
             <a class="home-link" href="/">🏠 返回 ezapps 主页</a>
           </div>
@@ -196,7 +197,12 @@
       <div class="overlay" v-if="showRank" @click.self="showRank = false">
         <div class="overlay-card rank-card">
           <button class="modal-close" @click="showRank = false" aria-label="关闭">✕</button>
-          <h2>🏅 排行榜 · 无限模式</h2>
+          <h2>🏅 排行榜</h2>
+          <!-- 模式切换 -->
+          <div class="rank-tabs">
+            <button class="rank-tab" :class="{ on: rankMode === 'endless' }" @click="switchRankMode('endless')">🌌 无限总榜</button>
+            <button class="rank-tab" :class="{ on: rankMode === 'daily' }" @click="switchRankMode('daily')">📅 今日榜</button>
+          </div>
           <!-- 昵称设置 -->
           <div class="nick-row">
             <input v-model="nickInput" class="nick-input" maxlength="20" placeholder="输入昵称参与排行" @keyup.enter="saveNick" />
@@ -204,7 +210,7 @@
           </div>
           <!-- 榜单 -->
           <div class="rank-list">
-            <div v-if="!rankList.length" class="rank-empty">暂无成绩，去无限模式挑战！🏁</div>
+            <div v-if="!rankList.length" class="rank-empty">暂无成绩，去挑战！🏁</div>
             <div v-for="(r, i) in rankList" :key="i" class="rank-row" :class="{ 'rank-me': r.player === nickInput }">
               <span class="rank-no">{{ i + 1 }}</span>
               <span class="rank-player">{{ r.player }}</span>
@@ -320,11 +326,29 @@ import * as Net from '../network/api'
 const showCardbook = ref(false)
 const ownedCards = computed(() => physicsCards.filter(c => upgrades.progress.cards.includes(c.id)).length)
 
+// 每日挑战：拉取当日配置 → 种子生成关卡 → 开玩
+import { generateDailyLevel } from '../data/dailyLevel'
+const dailyLoading = ref(false)
+async function openDaily() {
+  if (dailyLoading.value) return
+  dailyLoading.value = true
+  try {
+    const res = await Net.fetchDailyCfg()
+    if (!res) { alert('网络异常，请稍后再试'); return }
+    const lv = generateDailyLevel(res.seed)
+    lv.introCard = `📅 ${res.date} 每日挑战（种子 ${res.seed}）\n全服同一片障碍海！跑得越远排名越高！`
+    startLevel(lv)
+  } finally {
+    dailyLoading.value = false
+  }
+}
+
 // 排行榜（无限模式）
 const showRank = ref(false)
 const rankList = ref<Net.RankEntry[]>([])
 const nickInput = ref(Net.getNickname())
 const myRank = ref(0)
+const rankMode = ref<'endless' | 'daily'>('endless')
 function openCardbook() { showCardbook.value = true }
 async function openRank() {
   showRank.value = true
@@ -332,8 +356,13 @@ async function openRank() {
   await refreshRank()
 }
 async function refreshRank() {
-  const list = await Net.fetchTop('endless', 10)
+  const list = await Net.fetchTop(rankMode.value, 10)
   if (list) rankList.value = list
+}
+function switchRankMode(mode: 'endless' | 'daily') {
+  rankMode.value = mode
+  rankList.value = []
+  refreshRank()
 }
 function saveNick() {
   const nick = nickInput.value.trim()
@@ -1165,6 +1194,17 @@ canvas {
 
 /* 排行榜弹窗 */
 .rank-card { max-width: 420px; width: 92%; }
+.rank-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
+.rank-tab {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(148,163,184,0.25);
+  border-radius: 8px;
+  padding: 5px 14px;
+  color: rgba(255,255,255,0.65);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.rank-tab.on { background: rgba(56, 189, 248, 0.2); border-color: #38bdf8; color: #fff; }
 .nick-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
 .nick-input {
   flex: 1;

@@ -74,3 +74,9 @@ export async function fetchSave(player: string): Promise<any | null> {
   const res = await req(`/save/get?player=${encodeURIComponent(player)}`)
   return res?.data ?? null
 }
+
+/** 拉取每日挑战配置（日期 + 种子） */
+export async function fetchDailyCfg(): Promise<{ date: string; seed: number; length: number } | null> {
+  const res = await req('/daily/cfg')
+  return res?.success ? res : null
+}

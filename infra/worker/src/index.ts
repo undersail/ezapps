@@ -88,6 +88,19 @@ async function handleRequest(request: Request): Promise<Response> {
       return new Response(JSON.stringify({ success: true, rank: rank === -1 ? top.length : rank + 1, top: top.slice(0, 10) }), { headers })
     }
 
+    // ===== 每日挑战配置（日期 → 确定性种子，全服一致） =====
+    if (url.pathname === '/api/daily/cfg' && request.method === 'GET') {
+      const date = new Date().toISOString().slice(0, 10)
+      // 简单字符串哈希 → 种子（每天自动换）
+      let h = 2166136261
+      for (const c of 'daily-' + date) {
+        h ^= c.charCodeAt(0)
+        h = Math.imul(h, 16777619)
+      }
+      const seed = (h >>> 0) % 100000
+      return new Response(JSON.stringify({ success: true, date, seed, length: 1200 }), { headers })
+    }
+
     // ===== 云存档（P1）=====
     if (url.pathname === '/api/save/get' && request.method === 'GET') {
       const player = url.searchParams.get('player') || ''

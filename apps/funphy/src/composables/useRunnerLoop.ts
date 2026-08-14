@@ -205,7 +205,7 @@ export function useRunnerLoop() {
             rt.failReason = 'armor'
             failText.value = '💥 护甲耗尽！'
             gameState.value = 'lost'   // 同步 UI 状态（弹失败窗）
-            // 无限模式：记录最佳里程 + 上传排行榜
+            // 无限模式：记录最佳里程 + 上传排行榜；每日挑战：上传当日成绩
             if (level.endless) {
               const dist = Math.floor(rt.progress)
               if (dist > upgrades.progress.bestDistance) {
@@ -216,6 +216,11 @@ export function useRunnerLoop() {
               import('../network/api').then(m => {
                 const nick = m.getNickname()
                 if (nick) m.submitRank(nick, Math.max(dist, upgrades.progress.bestDistance), 'endless', '6-5')
+              }).catch(() => {})
+            } else if (level.id === 'daily') {
+              import('../network/api').then(m => {
+                const nick = m.getNickname()
+                if (nick) m.submitRank(nick, Math.floor(rt.progress), 'daily', 'daily')
               }).catch(() => {})
             }
           }
@@ -256,10 +261,20 @@ export function useRunnerLoop() {
       rt.state = 'won'
       rt.events.push('win')
       gameState.value = 'won'   // 同步 UI 状态（弹通关窗）
+      // 每日挑战通关：提交满分成绩
+      if (level.id === 'daily') {
+        import('../network/api').then(m => {
+          const nick = m.getNickname()
+          if (nick) m.submitRank(nick, Math.floor(rt.progress), 'daily', 'daily')
+        }).catch(() => {})
+      }
       upgrades.addGems(rt.gems) // 通关结算宝石（累计）
-      upgrades.completeLevel(level.id)  // 标记关卡完成（解锁下一关）
-      // 首次通关解锁物理卡：记录新卡，供通关界面自动弹出
-      if (upgrades.unlockCard(level.id)) lastNewCardId.value = level.id
+      // 每日挑战无对应关卡/卡片，跳过解锁（防污染 30 关进度）
+      if (level.id !== 'daily') {
+        upgrades.completeLevel(level.id)  // 标记关卡完成（解锁下一关）
+        // 首次通关解锁物理卡：记录新卡，供通关界面自动弹出
+        if (upgrades.unlockCard(level.id)) lastNewCardId.value = level.id
+      }
     }
 
     // ===== HUD 同步 =====
