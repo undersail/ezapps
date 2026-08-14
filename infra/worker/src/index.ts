@@ -11,7 +11,7 @@ declare global {
 // 签名密钥：优先读环境变量（Dashboard 配置 Secret），兜底内置（部署时同步轮换）
 const SECRET: string = typeof API_SECRET !== 'undefined' && API_SECRET ? API_SECRET : '3aa76c4446df3a7bfcebd774783815d0'
 
-const CORS_ORIGINS = ['https://ezapps.cc', 'https://ezapps.pages.dev', 'http://localhost:5174', 'http://localhost:5173']
+const CORS_ORIGINS = ['https://ezapps.cc', 'https://ezapps.pages.dev', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5173']
 const DAILY_WRITE_LIMIT = 800      // 每日写入熔断（免费额度 1000 的 80%）
 const MAX_SCORE = 50000            // 分数上限
 const MAX_TRAIL_SECONDS = 600      // 单局最长秒数
@@ -170,16 +170,21 @@ async function handleRequest(request: Request): Promise<Response> {
       return new Response(JSON.stringify({ success: true, rank: rank === -1 ? top.length : rank + 1, top: top.slice(0, 10).map((r: any) => ({ ...r, dev: (r.deviceId || '').slice(0, 8) })) }), { headers })
     }
 
-    // ===== 每日挑战配置（日期 → 确定性种子，全服一致） =====
+    // ===== 每日挑战配置（按 app + 日期 → 确定性种子，全服一致） =====
     if (url.pathname === '/api/daily/cfg' && request.method === 'GET') {
+      const app = url.searchParams.get('app') || 'funphy'
+      if (!['funphy', 'funmath'].includes(app)) {
+        return new Response(JSON.stringify({ success: false, error: 'app 参数无效' }), { status: 400, headers })
+      }
       const date = today()
       let h = 2166136261
-      for (const c of 'daily-' + date) {
+      for (const c of `daily-${app}-${date}`) {
         h ^= c.charCodeAt(0)
         h = Math.imul(h, 16777619)
       }
       const seed = (h >>> 0) % 100000
-      return new Response(JSON.stringify({ success: true, date, seed, length: 1200 }), { headers })
+      const length = app === 'funmath' ? 10 : 1200   // funmath：10 题
+      return new Response(JSON.stringify({ success: true, app, date, seed, length }), { headers })
     }
 
     // ===== 云存档（P3-1：绑定 deviceId） =====

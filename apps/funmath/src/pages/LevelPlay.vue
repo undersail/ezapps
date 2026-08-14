@@ -2,7 +2,7 @@
 // 普通关卡答题页（基于 V0 改造，支持多关卡题库）
 // 完成时回调：emit('complete', { score, total, stars, levelId })
 
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { Level, Question } from '../types'
 import { chapters } from '../data/chapters'
 import { getQuestionsByIds } from '../data/questions'
@@ -12,15 +12,24 @@ import { playSound } from '../utils/sound'
 
 interface Props {
   levelId: string           // '1-1' / '1-2' ...
+  dailyQuestions?: Question[]  // 每日挑战：外部注入题目（种子选题）
 }
 
 interface Emits {
-  (e: 'complete', result: { score: number; total: number; stars: 0 | 1 | 2 | 3; levelId: string }): void
+  (e: 'complete', result: { score: number; total: number; stars: 0 | 1 | 2 | 3; levelId: string; time: number }): void
   (e: 'back'): void
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+// 每日挑战计时（秒）
+const elapsed = ref(0)
+let timerId: number | undefined
+onMounted(() => {
+  timerId = window.setInterval(() => { elapsed.value += 1 }, 1000)
+})
+onUnmounted(() => { if (timerId) clearInterval(timerId) })
 
 // 查找关卡配置
 const level = computed<Level | null>(() => {
@@ -31,9 +40,12 @@ const level = computed<Level | null>(() => {
   return null
 })
 
-// 该关卡的题库（带随机生成的 options）
+// 该关卡的题库（带随机生成的 options）；每日挑战用外部注入题目
 type QuestionWithOptions = Question & { options: number[] }
 const levelQuestions = computed<QuestionWithOptions[]>(() => {
+  if (props.dailyQuestions && props.dailyQuestions.length > 0) {
+    return withOptions(props.dailyQuestions)
+  }
   if (!level.value) return []
   return withOptions(getQuestionsByIds(level.value.questionIds))
 })
@@ -99,11 +111,11 @@ function finish() {
   let stars: 0 | 1 | 2 | 3 = 0
   if (correct === tot) stars = 3
   else if (correct >= tot * 0.8) stars = 2
-  else if (correct >= level.value.passScore) stars = 1
+  else if (correct >= (level.value?.passScore ?? Math.ceil(tot * 0.6))) stars = 1
   else stars = 0
   // 音效：通关时播放（1星及以上算通过）
   if (stars > 0) playSound('complete')
-  emit('complete', { score: score.value, total: tot, stars, levelId: props.levelId })
+  emit('complete', { score: score.value, total: tot, stars, levelId: props.levelId, time: elapsed.value })
 }
 
 // 进度轨 cell 状态
@@ -124,19 +136,19 @@ const difficultyStars = computed(() => '⭐'.repeat(level.value?.difficulty ?? 0
 </script>
 
 <template>
-  <div class="level-play" v-if="level && levelQuestions.length > 0">
+  <div class="level-play" v-if="(level || (props.dailyQuestions?.length ?? 0) > 0) && levelQuestions.length > 0">
     <!-- 顶部 HUD -->
     <header class="level-play__head">
       <button class="back-btn" @click="$emit('back')" aria-label="返回地图">←</button>
       <div class="level-play__title">
-        <span class="emoji">{{ level.emoji }}</span>
-        <h2>{{ level.title }}</h2>
+        <span class="emoji">{{ level?.emoji ?? '📅' }}</span>
+        <h2>{{ level?.title ?? '每日挑战' }}</h2>
       </div>
       <div class="level-play__difficulty">{{ difficultyStars }}</div>
     </header>
 
     <!-- 关卡知识点提示 -->
-    <p class="level-play__knowledge">📚 {{ level.knowledge }}</p>
+    <p class="level-play__knowledge">📚 {{ level?.knowledge ?? '全服同题 · 比得分比速度！' }}</p>
 
     <!-- 进度 HUD -->
     <div class="hud">

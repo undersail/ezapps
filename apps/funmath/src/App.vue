@@ -61,6 +61,66 @@ const storyEmoji = ref('✨')
 const progress = useGameProgress()
 const sound = useSound()
 
+// ================ 联网：排行榜 / 每日挑战 ================
+import * as Net from './network/api'
+import { pickDailyQuestions } from './utils/daily'
+import type { Question as DailyQuestion } from './types'
+
+const showRank = ref(false)
+const rankList = ref<Net.RankEntry[]>([])
+const rankMode = ref<'stars' | 'daily'>('stars')
+const nickInput = ref(Net.getNickname())
+const dailyQuestions = ref<DailyQuestion[]>([])
+const dailyLoading = ref(false)
+const dailySeed = ref(0)
+
+async function refreshRank() {
+  const list = await Net.fetchTop(rankMode.value, 10)
+  if (list) rankList.value = list
+}
+function switchRankMode(m: 'stars' | 'daily') {
+  rankMode.value = m
+  rankList.value = []
+  refreshRank()
+}
+async function openRank() {
+  showRank.value = true
+  nickInput.value = Net.getNickname() || nickInput.value
+  await refreshRank()
+}
+function saveNick() {
+  const nick = nickInput.value.trim()
+  if (nick) Net.setNickname(nick)
+}
+/** 每日挑战：拉配置 → 种子选题 → 进入答题 */
+async function openDaily() {
+  if (dailyLoading.value) return
+  dailyLoading.value = true
+  try {
+    const cfg = await Net.fetchDailyCfg()
+    if (!cfg) { alert('网络异常，请稍后再试'); return }
+    dailySeed.value = cfg.seed
+    dailyQuestions.value = pickDailyQuestions(cfg.seed, cfg.length)
+    mode.value = 'story'
+    currentLevelId.value = null
+    stage.value = 'level'
+  } finally {
+    dailyLoading.value = false
+  }
+}
+/** 上传总星数到排行榜（静默） */
+function uploadStars() {
+  const nick = Net.getNickname()
+  if (!nick) return
+  Net.submitRank(nick, progress.state.value.totalStars, 'stars', 'all')
+}
+/** 每日挑战完成：提交得分+用时 */
+function uploadDaily(score: number, time: number) {
+  const nick = Net.getNickname()
+  if (!nick) return
+  Net.submitRank(nick, score, 'daily', 'daily', time)
+}
+
 // 计算关卡信息
 const currentLevelInfo = computed(() => {
   if (!currentLevelId.value) return null
@@ -203,8 +263,15 @@ function onStoryDone() {
   storyShow.value = false
 }
 
-function onLevelComplete(result: { score: number; total: number; stars: 0 | 1 | 2 | 3; levelId: string }) {
-  progress.recordLevelComplete(result.levelId, result.score, result.total, result.stars)
+function onLevelComplete(result: { score: number; total: number; stars: 0 | 1 | 2 | 3; levelId: string; time?: number }) {
+  if (dailyQuestions.value.length > 0) {
+    // 每日挑战：不记录关卡进度，直接提交得分+用时
+    uploadDaily(result.score, result.time ?? 0)
+    dailyQuestions.value = []
+  } else {
+    progress.recordLevelComplete(result.levelId, result.score, result.total, result.stars)
+    uploadStars()   // 上传最新总星数（静默）
+  }
   lastResult.value = result
   stage.value = 'levelResult'
 }
@@ -383,7 +450,16 @@ onErrorCaptured((err) => {
           <h3 class="mode-card__title">自由闯关</h3>
           <p class="mode-card__desc">选择已解锁的任意关卡<br />自由练习、刷分、复习</p>
         </button>
+
+        <button class="mode-card mode-card--daily" @click="openDaily">
+          <span class="mode-card__emoji">📅</span>
+          <h3 class="mode-card__title">每日挑战</h3>
+          <p class="mode-card__desc">全服同 10 题<br />比得分、比速度！</p>
+        </button>
       </div>
+
+      <!-- 排行榜入口 -->
+      <button class="rank-entry" @click="openRank">🏅 排行榜 · 星榜/今日榜</button>
 
       <!-- 进度统计 -->
       <div class="progress-stats">
@@ -433,10 +509,11 @@ onErrorCaptured((err) => {
       @enter-boss="onEnterBoss"
     />
 
-    <!-- 关卡答题（特性 2） -->
+    <!-- 关卡答题（特性 2）；每日挑战用注入题目 -->
     <LevelPlay
-      v-else-if="stage === 'level' && currentLevelId"
-      :level-id="currentLevelId"
+      v-else-if="stage === 'level' && (currentLevelId || dailyQuestions.length > 0)"
+      :level-id="currentLevelId || 'daily'"
+      :daily-questions="dailyQuestions"
       @back="backToMap"
       @complete="onLevelComplete"
     />
@@ -545,6 +622,30 @@ onErrorCaptured((err) => {
       <p class="score">你答对了 <b>{{ score }}</b> / {{ questions.length }} 题</p>
       <button class="start-btn" @click="retry">回到大厅</button>
     </section>
+
+    <!-- 排行榜弹窗（独立于 stage 链） -->
+    <div v-if="showRank" class="rank-overlay" @click.self="showRank = false">
+      <div class="rank-card">
+        <button class="rank-close" @click="showRank = false">✕</button>
+        <h2>🏅 排行榜</h2>
+        <div class="rank-tabs">
+          <button class="rank-tab" :class="{ on: rankMode === 'stars' }" @click="switchRankMode('stars')">⭐ 总星榜</button>
+          <button class="rank-tab" :class="{ on: rankMode === 'daily' }" @click="switchRankMode('daily')">📅 今日榜</button>
+        </div>
+        <div class="rank-nick">
+          <input v-model="nickInput" maxlength="20" placeholder="输入昵称参与排行" @keyup.enter="saveNick" />
+          <button class="rank-save" @click="saveNick">保存</button>
+        </div>
+        <div class="rank-list">
+          <div v-if="!rankList.length" class="rank-empty">暂无成绩，去挑战！🏁</div>
+          <div v-for="(r, i) in rankList" :key="i" class="rank-row">
+            <span class="rank-no">{{ i + 1 }}</span>
+            <span class="rank-player">{{ r.player }}<span v-if="r.dev" class="rank-dev">#{{ r.dev }}</span></span>
+            <span class="rank-score">{{ r.score }}<template v-if="r.time"> · {{ Math.floor(r.time / 60) }}:{{ String(r.time % 60).padStart(2, '0') }}</template></span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <footer class="foot">
       <a href="/">← 返回 EZAPPS 主页</a>
@@ -859,4 +960,110 @@ onErrorCaptured((err) => {
 
 .foot { margin-top: 3rem; }
 .foot a { color: #059669; text-decoration: none; font-weight: 500; }
+
+/* ===== 联网：排行榜 / 每日挑战 ===== */
+.mode-card--daily { border-color: #f59e0b; }
+.mode-card--daily:hover { border-color: #fbbf24; background: #fffbeb; }
+.mode-card--daily .mode-card__title { color: #b45309; }
+
+.rank-entry {
+  margin: 14px auto 4px;
+  display: block;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+.rank-entry:active { transform: scale(0.96); }
+
+.rank-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.72);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.rank-card {
+  position: relative;
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  padding: 24px 26px;
+  width: 92%;
+  max-width: 420px;
+  color: #e2e8f0;
+  text-align: center;
+  max-height: 82vh;
+  overflow-y: auto;
+}
+.rank-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+}
+.rank-card h2 { margin: 0 0 12px; font-size: 1.3rem; }
+.rank-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
+.rank-tab {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(148,163,184,0.25);
+  border-radius: 8px;
+  padding: 5px 14px;
+  color: rgba(255,255,255,0.65);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.rank-tab.on { background: rgba(245, 158, 11, 0.2); border-color: #f59e0b; color: #fff; }
+.rank-nick { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+.rank-nick input {
+  flex: 1;
+  max-width: 220px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(148,163,184,0.3);
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: #fff;
+  font-size: 0.85rem;
+  outline: none;
+}
+.rank-save {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  color: #fff;
+  cursor: pointer;
+}
+.rank-list { max-height: 320px; overflow-y: auto; text-align: left; }
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+.rank-row:nth-child(odd) { background: rgba(255,255,255,0.04); }
+.rank-no { width: 24px; text-align: center; font-weight: bold; color: #94a3b8; }
+.rank-row:nth-child(1) .rank-no { color: #fbbf24; }
+.rank-row:nth-child(2) .rank-no { color: #cbd5e1; }
+.rank-row:nth-child(3) .rank-no { color: #d97706; }
+.rank-player { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-dev { color: rgba(148,163,184,0.6); font-size: 0.72rem; margin-left: 3px; }
+.rank-score { color: #fbbf24; font-weight: bold; }
+.rank-empty { text-align: center; color: rgba(255,255,255,0.45); padding: 20px 0; font-size: 0.85rem; }
 </style>
