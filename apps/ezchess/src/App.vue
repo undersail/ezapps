@@ -315,8 +315,8 @@ function drawCC(ctx: CanvasRenderingContext2D, size: number) {
   for (const [r, c] of outline.slice(1)) ctx.lineTo(X(r, c), Y(r))
   ctx.closePath()
   ctx.fill()
-  ctx.strokeStyle = 'rgba(139,90,43,0.55)'
-  ctx.lineWidth = 2
+  ctx.strokeStyle = 'rgba(139,90,43,0.7)'
+  ctx.lineWidth = 3
   ctx.stroke()
 
   // 蜂窝网格连线（右/下/右下 3 方向去重）
@@ -335,7 +335,7 @@ function drawCC(ctx: CanvasRenderingContext2D, size: number) {
   }
   ctx.stroke()
 
-  // 营地标记（与服务端一致：6 角各 10 点）
+  // 营地：实色三角角区（标准中国跳棋样式）+ 圆点
   const COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899']
   const camps = [
     [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1], [2, 2], [3, 0], [3, 1], [3, 2], [3, 3]],
@@ -345,8 +345,26 @@ function drawCC(ctx: CanvasRenderingContext2D, size: number) {
     [[9, 0], [9, 1], [9, 2], [9, 3], [10, 0], [10, 1], [10, 2], [11, 0], [11, 1], [12, 0]],
     [[4, 0], [5, 0], [5, 1], [6, 0], [6, 1], [6, 2], [7, 0], [7, 1], [7, 2], [7, 3]],
   ]
+  // 营地三角角点（顶点 + 底边两端）
+  const campTris = [
+    [[0, 0], [3, 0], [3, 3]],
+    [[4, 4], [7, 4], [7, 7]],
+    [[9, 4], [9, 7], [12, 4]],
+    [[13, 0], [13, 3], [16, 0]],
+    [[9, 0], [9, 3], [12, 0]],
+    [[4, 0], [7, 0], [7, 3]],
+  ]
+  campTris.forEach((tri, i) => {
+    ctx.fillStyle = COLORS[i] + '30'
+    ctx.beginPath()
+    ctx.moveTo(X(tri[0][0], tri[0][1]), Y(tri[0][0]))
+    ctx.lineTo(X(tri[1][0], tri[1][1]), Y(tri[1][0]))
+    ctx.lineTo(X(tri[2][0], tri[2][1]), Y(tri[2][0]))
+    ctx.closePath()
+    ctx.fill()
+  })
   camps.forEach((pts, i) => {
-    ctx.fillStyle = COLORS[i] + '2e'
+    ctx.fillStyle = COLORS[i] + '40'
     for (const [r, c] of pts) {
       ctx.beginPath(); ctx.arc(X(r, c), Y(r), cellX * 0.4, 0, Math.PI * 2); ctx.fill()
     }
