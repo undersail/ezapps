@@ -9,7 +9,7 @@
       <span class="hero__logo-text">EZAPPS</span>
       <span class="hero__logo-dot" aria-hidden="true"></span>
     </div>
-    <p class="tag">由 Jack 持续打磨的工具游戏合集，简单但好玩儿好用。</p>
+    <p class="tag">Focus on Simple Design</p>
   </header>
 </template>
 
