@@ -84,6 +84,8 @@ function enterRoom(id: string) {
   roomId.value = id
   ;(window as any).__ccRoom = id   // 调试用：暴露完整房间号
   stage.value = 'room'
+  // 立即按大厅选择设置棋种，避免先渲染五子棋再切换（闪烁）
+  curGame.value = GAME_LIST.find(g => g.id === gameId.value) ? gameId.value : 'gomoku'
   board.value = []
   gameOver.value = null
   players.value = []
@@ -519,6 +521,11 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
+
+      <!-- 返回主页 -->
+      <footer class="lobby-foot">
+        <a href="/">← 返回 ezapps 主页</a>
+      </footer>
     </section>
 
     <!-- ===== 对局页 ===== -->
@@ -578,17 +585,17 @@ input:focus { border-color: #6366f1; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .danger { color: #dc2626; border-color: #fca5a5; }
 .game-card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 14px; background: #fafafa; }
-.game-card__head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.game-card__head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; min-height: 52px; }
 .game-card__emoji { font-size: 2rem; }
 .game-card h3 { margin: 0; }
-.game-card p { margin: 2px 0 0; color: #64748b; font-size: 0.82rem; }
+.game-card p { margin: 2px 0 0; color: #64748b; font-size: 0.82rem; min-height: 1.4em; }
 .game-card__actions { display: flex; gap: 8px; }
 .game-picker { display: flex; gap: 10px; margin-bottom: 12px; }
 .game-pick { flex: 1; display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 14px; background: #fff; cursor: pointer; text-align: left; }
 .game-pick.on { border-color: #6366f1; background: #eef2ff; }
 .game-pick__emoji { font-size: 1.6rem; }
 .game-pick h3 { margin: 0; font-size: 0.95rem; }
-.game-pick p { margin: 2px 0 0; font-size: 0.72rem; color: #64748b; }
+.game-pick p { margin: 2px 0 0; font-size: 0.72rem; color: #64748b; min-height: 2em; line-height: 1.1; }
 .seats-row { display: flex; gap: 8px; align-items: center; justify-content: center; margin-bottom: 12px; font-size: 0.9rem; }
 .seat-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #e2e8f0; background: #fff; cursor: pointer; font-weight: bold; }
 .seat-btn.on { border-color: #6366f1; background: #eef2ff; color: #4338ca; }
@@ -602,6 +609,9 @@ input:focus { border-color: #6366f1; }
 .rank-dev { color: #94a3b8; font-size: 0.72rem; }
 .rank-score { color: #6366f1; font-weight: bold; }
 .rank-empty { color: #94a3b8; text-align: center; padding: 12px; font-size: 0.85rem; }
+.lobby-foot { text-align: center; margin-top: 18px; }
+.lobby-foot a { color: #64748b; text-decoration: none; font-size: 0.85rem; padding: 6px 14px; border-radius: 10px; }
+.lobby-foot a:hover { background: #eef2ff; color: #4338ca; }
 
 .room-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .room-info { flex: 1; text-align: center; }
