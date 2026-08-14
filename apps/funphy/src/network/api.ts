@@ -56,3 +56,21 @@ export function getNickname(): string {
 export function setNickname(name: string): void {
   localStorage.setItem('funphy_nickname', name.slice(0, 20))
 }
+
+/** 上传云存档（进度快照） */
+export async function submitSave(player: string, data: any): Promise<boolean> {
+  const ts = Math.floor(Date.now() / 1000)
+  const sig = await hmac(`save:${player}:${JSON.stringify(data)}:${ts}`)
+  const res = await req('/save/put', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ player, data, ts, sig }),
+  })
+  return !!res?.success
+}
+
+/** 拉取云存档 */
+export async function fetchSave(player: string): Promise<any | null> {
+  const res = await req(`/save/get?player=${encodeURIComponent(player)}`)
+  return res?.data ?? null
+}

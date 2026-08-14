@@ -17,6 +17,7 @@ export interface V2Progress {
   cards: string[]          // 已解锁物理卡
   levels: Record<string, boolean>  // 关卡完成状态（'1-1': true）
   bestDistance: number     // 宇宙关最佳里程（后续用）
+  savedAt: number          // 最后保存时间戳（云存档比较用）
 }
 
 const DEFAULT_PROGRESS: V2Progress = {
@@ -27,6 +28,7 @@ const DEFAULT_PROGRESS: V2Progress = {
   cards: [],
   levels: {},
   bestDistance: 0,
+  savedAt: 0,
 }
 
 // 升级成本（宝石）：每级递增
@@ -60,9 +62,39 @@ export function loadProgress(): V2Progress {
 
 export function useUpgrades() {
   const progress = reactive<V2Progress>(loadProgress())
+  if (!progress.savedAt) progress.savedAt = Date.now()
+
+  // 云存档：节流上传（30 秒内只传一次），有昵称才同步
+  let lastCloudSync = 0
+  async function cloudUpload() {
+    const nick = localStorage.getItem('funphy_nickname')
+    if (!nick) return
+    const now = Date.now()
+    if (now - lastCloudSync < 30000) return
+    lastCloudSync = now
+    const { submitSave } = await import('../network/api')
+    await submitSave(nick, JSON.parse(JSON.stringify(progress)))
+  }
 
   function save() {
+    progress.savedAt = Date.now()
     localStorage.setItem(SAVE_KEY, JSON.stringify(progress))
+    cloudUpload()
+  }
+
+  /** 拉取云端存档：云端比本地新 → 恢复并提示刷新（返回 true 表示已恢复） */
+  async function syncCloud(): Promise<boolean> {
+    const nick = localStorage.getItem('funphy_nickname')
+    if (!nick) return false
+    const { fetchSave } = await import('../network/api')
+    const cloud = await fetchSave(nick)
+    if (!cloud || !cloud.savedAt) return false
+    if (cloud.savedAt > progress.savedAt) {
+      Object.assign(progress, cloud)
+      localStorage.setItem(SAVE_KEY, JSON.stringify(progress))
+      return true
+    }
+    return false
   }
 
   /** 结算宝石（关卡完成后累计） */
@@ -136,5 +168,5 @@ export function useUpgrades() {
     }
   }
 
-  return { progress, save, addGems, upgrade, unlockCard, completeLevel, isLevelDone, isLevelUnlocked, applyUpgrades, controlParams }
+  return { progress, save, addGems, upgrade, unlockCard, completeLevel, isLevelDone, isLevelUnlocked, applyUpgrades, controlParams, syncCloud, cloudUpload }
 }

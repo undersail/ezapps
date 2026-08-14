@@ -338,7 +338,21 @@ async function refreshRank() {
 function saveNick() {
   const nick = nickInput.value.trim()
   if (nick) Net.setNickname(nick)
+  // 保存昵称后立即同步云端进度（有存档则恢复）
+  if (nick) upgrades.syncCloud().then(restored => { if (restored) location.reload() })
 }
+
+// 挂载时：有昵称 → 拉取云存档（云端较新则恢复）
+onMounted(() => {
+  if (Net.getNickname()) {
+    upgrades.syncCloud().then(restored => {
+      if (restored) {
+        // 云端进度恢复：刷新界面数据
+        location.reload()
+      }
+    })
+  }
+})
 
 // 卡片详情弹窗
 const showCardDetail = ref(false)
