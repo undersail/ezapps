@@ -2,13 +2,6 @@
 // 架构：REST（建房/匹配）+ WebSocket（对局）+ Durable Object（每局 1 实例）
 // 结算：服务端权威记分（无客户端伪造空间），写 rank:ezchess:<game>:all
 
-declare global {
-  const RANK: KVNamespace
-  const SAVE: KVNamespace
-  const GAME_ROOMS: DurableObjectNamespace
-  const API_SECRET: string | undefined
-}
-
 const SECRET: string = typeof API_SECRET !== 'undefined' && API_SECRET ? API_SECRET : 'ezchess-secret-2026'
 const CORS_ORIGINS = ['https://ezapps.cc', 'https://ezapps.pages.dev', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:5173']
 const GAMES = ['gomoku', 'reversi', 'ccheckers', 'xiangqi']
@@ -90,6 +83,14 @@ export class GameRoom {
   }
 
   async fetch(req: Request): Promise<Response> {
+    try {
+      return await this._handleFetch(req)
+    } catch (e: any) {
+      return new Response(JSON.stringify({ error: 'DO 内部错误: ' + (e?.message || String(e)) }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+    }
+  }
+
+  async _handleFetch(req: Request): Promise<Response> {
     const url = new URL(req.url)
     const origin = req.headers.get('Origin')
 
@@ -118,7 +119,7 @@ export class GameRoom {
     if (url.pathname.endsWith('/resign') && req.method === 'POST') {
       const body = await req.json() as any
       const seat = this.players.findIndex(p => p.deviceId === body.deviceId)
-      if (seat >= 0 && this.phase === 'PLAYING') this.finish(seat === 0 ? 2 : 1, '认输')
+      if (seat >= 0 && this.phase === 'PLAYING') await this.finish(seat === 0 ? 2 : 1, '认输')
       return json({ ok: true }, 200, origin)
     }
 
@@ -167,7 +168,7 @@ export class GameRoom {
           const msg = JSON.parse(String(ev.data))
           const seat = this.players.findIndex(p => p.ws === server)
           if (msg.type === 'move' && seat >= 0) await this.handleMove(seat, msg)
-          else if (msg.type === 'resign' && seat >= 0) this.finish(seat === 0 ? 2 : 1, '认输')
+          else if (msg.type === 'resign' && seat >= 0) await this.finish(seat === 0 ? 2 : 1, '认输')
           else if (msg.type === 'chat') this.broadcast({ type: 'chat', player: this.players[seat]?.nick, text: String(msg.text).slice(0, 50) })
         } catch (e) { /* 忽略坏消息 */ }
       })
@@ -240,37 +241,37 @@ export class GameRoom {
     const winner = checkWin(this.board, r, c)
     this.broadcast({ type: 'move_ok', seat, move: { r, c }, board: this.board, nextTurn: winner ? -1 : (this.turn === 0 ? 1 : 0) })
     if (winner) {
-      this.finish(winner, '五连')
+      await this.finish(winner, '五连')
       return
     }
     // 和棋（棋盘满）
-    if (this.moves.length >= BOARD * BOARD) { this.finish(0, '棋盘已满'); return }
+    if (this.moves.length >= BOARD * BOARD) { await this.finish(0, '棋盘已满'); return }
     this.turn = this.turn === 0 ? 1 : 0
   }
 
-  finish(winnerSeat: number, reason: string) {
+  async finish(winnerSeat: number, reason: string) {
     if (this.phase === 'FINISHED') return
     this.phase = 'FINISHED'
     if (this.timerAlarm) clearTimeout(this.timerAlarm)
     // 服务端权威记分：胜 3 / 平 1 / 负 0
-    const score = (w: number) => (winnerSeat === 0 ? 0 : w === winnerSeat ? 3 : 0)
     const scores = this.players.map(p => (winnerSeat === 0 ? 1 : p.seat === winnerSeat - 1 ? 3 : 0))
     this.broadcast({ type: 'gameover', winner: winnerSeat, reason, scores, players: this.players.map(p => ({ nick: p.nick, seat: p.seat })) })
-    // 写排行榜（服务端权威，无签名伪造空间）
-    this.players.forEach((p, i) => {
-      if (!p.deviceId) return
-      this.env.RANK.get(`rank:ezchess:gomoku:all`).then(async (raw) => {
-        const list = raw ? JSON.parse(raw as string) as any[] : []
-        const entry = { player: p.nick, score: scores[i], ts: Date.now() / 1000, deviceId: p.deviceId }
+    // 写排行榜（服务端权威，await 保证完成 —— DO 内 fire-and-forget 会被回收丢弃）
+    try {
+      const raw = await this.env.RANK.get(`rank:ezchess:gomoku:all`)
+      const list = raw ? JSON.parse(raw as string) as any[] : []
+      for (let i = 0; i < this.players.length; i++) {
+        const p = this.players[i]
+        if (!p.deviceId) continue
         const existing = list.findIndex((r: any) => r.deviceId === p.deviceId)
-        if (existing >= 0) list[existing] = { ...list[existing], score: list[existing].score + entry.score }
-        else list.push(entry)
-        list.sort((a: any, b: any) => b.score - a.score)
-        await this.env.RANK.put(`rank:ezchess:gomoku:all`, JSON.stringify(list.slice(0, 100)))
-      })
-    })
+        if (existing >= 0) list[existing].score += scores[i]
+        else list.push({ player: p.nick, score: scores[i], ts: Date.now() / 1000, deviceId: p.deviceId })
+      }
+      list.sort((a: any, b: any) => b.score - a.score)
+      await this.env.RANK.put(`rank:ezchess:gomoku:all`, JSON.stringify(list.slice(0, 100)))
+    } catch (e) { /* 记分失败不阻塞对局结束 */ }
     // 对局存档
-    this.state.storage.put('archive', { moves: this.moves, winner: winnerSeat, reason, players: this.players.map(p => ({ nick: p.nick, seat: p.seat })) })
+    await this.state.storage.put('archive', { moves: this.moves, winner: winnerSeat, reason, players: this.players.map(p => ({ nick: p.nick, seat: p.seat })) })
   }
 
   broadcast(msg: any) {
@@ -286,14 +287,14 @@ export class GameRoom {
 }
 
 // ==================== REST 入口 ====================
-async function handleRequest(request: Request): Promise<Response> {
+async function handleRequest(request: Request, env: any): Promise<Response> {
   const url = new URL(request.url)
   const origin = request.headers.get('Origin')
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(origin) })
 
   // 健康检查
   if (url.pathname === '/' || url.pathname === '/api/health') {
-    return json({ success: true, name: 'ezchess-api', time: Date.now() }, 200, origin)
+    return json({ success: true, name: 'ezchess-api', v: 3, time: Date.now() }, 200, origin)
   }
 
   // 创建房间
@@ -305,13 +306,13 @@ async function handleRequest(request: Request): Promise<Response> {
     if (!GAMES.includes(game) || !deviceId) return json({ error: '参数异常' }, 400, origin)
     const seats = game === 'ccheckers' ? Math.min(Math.max(parseInt(body.players) || 2, 2), 6) : 2
     const roomId = uid()
-    const id = GAME_ROOMS.idFromName(roomId)
-    const stub = GAME_ROOMS.get(id)
+    const id = env.GAME_ROOMS.idFromName(roomId)
+    const stub = env.GAME_ROOMS.get(id)
     await stub.fetch('http://room/init', {
       method: 'POST',
       body: JSON.stringify({ game, seats, roomId }),
     })
-    await RANK.put(`room:${roomId}`, JSON.stringify({ game, seats, mode: body.mode || 'friend', owner: deviceId, createdAt: Date.now() }), { expirationTtl: 7200 })
+    await env.RANK.put(`room:${roomId}`, JSON.stringify({ game, seats, mode: body.mode || 'friend', owner: deviceId, createdAt: Date.now() }), { expirationTtl: 7200 })
     return json({ success: true, roomId, wsUrl: `/game/${roomId}/ws?deviceId=${encodeURIComponent(deviceId)}&nick=${encodeURIComponent(nick)}` }, 200, origin)
   }
 
@@ -324,26 +325,39 @@ async function handleRequest(request: Request): Promise<Response> {
     if (!GAMES.includes(game) || !deviceId) return json({ error: '参数异常' }, 400, origin)
     // 匹配队列：等一个对手
     const matchKey = `match:${game}`
-    const waiting = await RANK.get(matchKey)
+    const waiting = await env.RANK.get(matchKey)
     if (waiting) {
       const opp = JSON.parse(waiting)
-      await RANK.delete(matchKey)
+      await env.RANK.delete(matchKey)
       const roomId = uid()
-      const id = GAME_ROOMS.idFromName(roomId)
-      const stub = GAME_ROOMS.get(id)
+      const id = env.GAME_ROOMS.idFromName(roomId)
+      const stub = env.GAME_ROOMS.get(id)
       await stub.fetch('http://room/init', { method: 'POST', body: JSON.stringify({ game, seats: 2, roomId }) })
       return json({ success: true, roomId, opp: opp.nick, wsUrl: `/game/${roomId}/ws?deviceId=${encodeURIComponent(deviceId)}&nick=${encodeURIComponent(nick)}` }, 200, origin)
     }
-    await RANK.put(matchKey, JSON.stringify({ deviceId, nick }), { expirationTtl: 60 })
+    await env.RANK.put(matchKey, JSON.stringify({ deviceId, nick }), { expirationTtl: 60 })
     return json({ success: true, waiting: true }, 200, origin)
   }
 
   // 房间信息
   if (url.pathname === '/api/room/info' && request.method === 'GET') {
     const roomId = url.searchParams.get('roomId') || ''
-    const meta = await RANK.get(`room:${roomId}`)
+    const meta = await env.RANK.get(`room:${roomId}`)
     if (!meta) return json({ error: '房间不存在或已过期' }, 404, origin)
     return json({ success: true, ...JSON.parse(meta) }, 200, origin)
+  }
+
+  // 对局通道：/game/<roomId>/ws → 路由到 Durable Object（WS 升级）
+  if (url.pathname.startsWith('/game/')) {
+    try {
+      const parts = url.pathname.split('/')
+      const roomId = parts[2]
+      if (!roomId) return json({ error: '房间号无效' }, 400, origin)
+      const stub = env.GAME_ROOMS.get(env.GAME_ROOMS.idFromName(roomId))
+      return stub.fetch(request)
+    } catch (e: any) {
+      return json({ error: '对局通道异常: ' + (e?.message || String(e)) }, 500, origin)
+    }
   }
 
   return json({ error: 'Not Found' }, 404, origin)
@@ -351,7 +365,7 @@ async function handleRequest(request: Request): Promise<Response> {
 
 // ==================== 入口（ES Module 格式） ====================
 export default {
-  async fetch(request: Request): Promise<Response> {
-    return handleRequest(request)
+  async fetch(request: Request, env: any): Promise<Response> {
+    return handleRequest(request, env)
   },
 }

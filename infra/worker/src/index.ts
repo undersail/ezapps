@@ -11,7 +11,7 @@ declare global {
 // 签名密钥：优先读环境变量（Dashboard 配置 Secret），兜底内置（部署时同步轮换）
 const SECRET: string = typeof API_SECRET !== 'undefined' && API_SECRET ? API_SECRET : '3aa76c4446df3a7bfcebd774783815d0'
 
-const CORS_ORIGINS = ['https://ezapps.cc', 'https://ezapps.pages.dev', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5173']
+const CORS_ORIGINS = ['https://ezapps.cc', 'https://ezapps.pages.dev', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:5173']
 const DAILY_WRITE_LIMIT = 800      // 每日写入熔断（免费额度 1000 的 80%）
 const MAX_SCORE = 50000            // 分数上限
 const MAX_TRAIL_SECONDS = 600      // 单局最长秒数
@@ -60,7 +60,7 @@ async function handleRequest(request: Request): Promise<Response> {
       const app = url.searchParams.get('app') || ''
       const mode = url.searchParams.get('mode') || 'endless'
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '10', 10) || 10, 100)
-      if (!['funphy', 'funmath'].includes(app)) {
+      if (!['funphy', 'funmath', 'ezchess'].includes(app)) {
         return new Response(JSON.stringify({ success: false, error: 'app 参数无效' }), { status: 400, headers })
       }
       const key = `rank:${app}:${mode}:all`
@@ -78,7 +78,7 @@ async function handleRequest(request: Request): Promise<Response> {
       if (!player || typeof score !== 'number' || !mode || !level || !ts || !sig || !deviceId || !app) {
         return new Response(JSON.stringify({ success: false, error: '参数不完整' }), { status: 400, headers })
       }
-      if (!['funphy', 'funmath'].includes(app)) {
+      if (!['funphy', 'funmath', 'ezchess'].includes(app)) {
         return new Response(JSON.stringify({ success: false, error: 'app 参数无效' }), { status: 400, headers })
       }
       // 基础校验（P3-4 数据卫生）
@@ -173,7 +173,7 @@ async function handleRequest(request: Request): Promise<Response> {
     // ===== 每日挑战配置（按 app + 日期 → 确定性种子，全服一致） =====
     if (url.pathname === '/api/daily/cfg' && request.method === 'GET') {
       const app = url.searchParams.get('app') || 'funphy'
-      if (!['funphy', 'funmath'].includes(app)) {
+      if (!['funphy', 'funmath', 'ezchess'].includes(app)) {
         return new Response(JSON.stringify({ success: false, error: 'app 参数无效' }), { status: 400, headers })
       }
       const date = today()
@@ -191,14 +191,14 @@ async function handleRequest(request: Request): Promise<Response> {
     if (url.pathname === '/api/save/get' && request.method === 'GET') {
       const dev = url.searchParams.get('deviceId') || ''
       const app = url.searchParams.get('app') || ''
-      if (!dev || dev.length > 64 || !['funphy', 'funmath'].includes(app)) return new Response(JSON.stringify({ success: false, error: '参数异常' }), { status: 400, headers })
+      if (!dev || dev.length > 64 || !['funphy', 'funmath', 'ezchess'].includes(app)) return new Response(JSON.stringify({ success: false, error: '参数异常' }), { status: 400, headers })
       const raw = await SAVE.get(`save:${app}:${dev}`)
       return new Response(JSON.stringify({ success: true, data: raw ? JSON.parse(raw) : null }), { headers })
     }
     if (url.pathname === '/api/save/put' && request.method === 'POST') {
       const body = await request.json() as any
       const { data, ts, sig, deviceId, app } = body
-      if (!deviceId || deviceId.length > 64 || !['funphy', 'funmath'].includes(app)) return new Response(JSON.stringify({ success: false, error: '参数异常' }), { status: 400, headers })
+      if (!deviceId || deviceId.length > 64 || !['funphy', 'funmath', 'ezchess'].includes(app)) return new Response(JSON.stringify({ success: false, error: '参数异常' }), { status: 400, headers })
       // 存档大小限制 ≤ 20KB（P3-4 数据卫生）
       const size = JSON.stringify(data).length
       if (size > 20000) return new Response(JSON.stringify({ success: false, error: '存档过大' }), { status: 400, headers })
