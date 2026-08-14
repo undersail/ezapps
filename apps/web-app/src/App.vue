@@ -7,7 +7,6 @@ import { usePinnedApps } from './composables/usePinnedApps'
 
 const { sortedIds, isPinned, togglePin, MAX } = usePinnedApps()
 const buildTime = new Date().toISOString()
-const apiBase = import.meta.env.VITE_API_BASE ?? 'https://example.com'
 
 /** 按置顶时间倒序的 app（最多 MAX 个） */
 const pinnedApps = computed<AppEntry[]>(() => {
@@ -95,10 +94,6 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
       </p>
 
       <div class="foot__meta" aria-label="build metadata">
-        <span class="foot__meta-item">
-          <span class="foot__meta-label">VITE_API_BASE</span>
-          <code>{{ apiBase }}</code>
-        </span>
         <span class="foot__meta-item">
           <span class="foot__meta-label">构建时间</span>
           <code>{{ buildTime }}</code>
