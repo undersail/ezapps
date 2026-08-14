@@ -277,7 +277,17 @@ function onLevelComplete(result: { score: number; total: number; stars: 0 | 1 | 
 }
 
 function onLevelRetry() {
-  if (!currentLevelId.value) return
+  if (!currentLevelId.value) {
+    // 每日挑战重试：用当日种子重新选题
+    if (dailySeed.value > 0) {
+      const seed = dailySeed.value
+      const count = dailyQuestions.value.length || 10
+      dailyQuestions.value = pickDailyQuestions(seed, count)
+      stage.value = 'level'
+      lastResult.value = null
+    }
+    return
+  }
   const id = currentLevelId.value
   currentLevelId.value = null
   lastResult.value = null
@@ -518,13 +528,13 @@ onErrorCaptured((err) => {
       @complete="onLevelComplete"
     />
 
-    <!-- 关卡结算（特性 3） -->
+    <!-- 关卡结算（特性 3）；每日挑战无关卡配置也显示 -->
     <LevelResult
-      v-else-if="stage === 'levelResult' && lastResult && currentLevelInfo"
+      v-else-if="stage === 'levelResult' && lastResult && (currentLevelInfo || lastResult.levelId === 'daily')"
       :result="lastResult"
-      :level-title="currentLevelInfo.level.title"
-      :level-emoji="currentLevelInfo.level.emoji"
-      :has-next="hasNextLevel && lastResult.stars > 0"
+      :level-title="currentLevelInfo ? currentLevelInfo.level.title : '每日挑战'"
+      :level-emoji="currentLevelInfo ? currentLevelInfo.level.emoji : '📅'"
+      :has-next="(currentLevelInfo ? hasNextLevel : false) && lastResult.stars > 0"
       @retry="onLevelRetry"
       @back="backToMap"
       @next="onLevelNext"

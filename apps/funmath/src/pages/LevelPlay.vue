@@ -104,7 +104,7 @@ function next() {
 }
 
 function finish() {
-  if (!level.value) return
+  if (!level.value && (props.dailyQuestions?.length ?? 0) === 0) return
   // 计算星级：100%=3星，>=80%=2星，>=passScore=1星，否则 0 星（失败）
   const correct = score.value
   const tot = total.value
