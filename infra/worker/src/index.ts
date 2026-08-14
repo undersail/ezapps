@@ -4,8 +4,10 @@
 declare global {
   const RANK: KVNamespace
   const SAVE: KVNamespace
-  const API_SECRET: string
 }
+
+// 签名密钥（前端可见，防小白作弊；高防需服务端权威计分）
+const API_SECRET = 'ezapps-funphy-rank-2026'
 
 const CORS_ORIGINS = ['https://ezapps.cc', 'https://ezapps.pages.dev', 'http://localhost:5174', 'http://localhost:5173']
 
