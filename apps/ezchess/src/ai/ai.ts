@@ -46,7 +46,7 @@ function search(cfg: GameSearch, board: number[], depth: number, alpha: number, 
 
 function searchBest(cfg: GameSearch, board: number[]): AIMove {
   const moves = cfg.gen(board, 2)
-  if (!moves.length) return { idx: -1 }
+  if (!moves.length) return { idx: -1, from: -1, to: -1 }
   let best = moves[0], bestScore = -Infinity
   for (const m of moves) {
     const v = search(cfg, cfg.apply(board, m, 2), cfg.depth - 1, -Infinity, Infinity, 1)
@@ -150,7 +150,8 @@ function checkersEvaluate(board: number[]): number {
 }
 
 const checkersSearch: GameSearch = {
-  gen: (b, p) => CHECKERS.moves(b, p).map(m => ({ from: m.from, to: m.to })),
+  // CHECKERS.moves seat 语义：0=黑(玩家) 1=白(AI)
+  gen: (b, p) => CHECKERS.moves(b, p === 1 ? 0 : 1).map(m => ({ from: m.from, to: m.to })),
   apply: (b, m, p) => {
     const jump = Math.abs(Math.floor(m.from! / 8) - Math.floor(m.to! / 8)) > 1
     return CHECKERS.apply(b, m.from!, m.to!, jump)
@@ -190,7 +191,8 @@ function chessApply(b: number[], m: SearchMove, p: number): number[] {
 }
 
 const chessSearch: GameSearch = {
-  gen: (b, p) => CHESS.legalMoves(b, p).map(m => ({ from: m.from, to: m.to })),
+  // CHESS.legalMoves owner 语义：0=白(玩家) 1=黑(AI)
+  gen: (b, p) => CHESS.legalMoves(b, p === 1 ? 0 : 1).map(m => ({ from: m.from, to: m.to })),
   apply: chessApply,
   eval: chessEvaluate,
   depth: 2,
@@ -224,7 +226,8 @@ function xiangqiApply(b: number[], m: SearchMove, p: number): number[] {
 }
 
 const xiangqiSearch: GameSearch = {
-  gen: (b, p) => XIANGQI.legalMoves(b, p).map(m => ({ from: m.from, to: m.to })),
+  // XIANGQI.legalMoves owner 语义：0=红(玩家) 1=黑(AI)
+  gen: (b, p) => XIANGQI.legalMoves(b, p === 1 ? 0 : 1).map(m => ({ from: m.from, to: m.to })),
   apply: xiangqiApply,
   eval: xiangqiEvaluate,
   depth: 2,
