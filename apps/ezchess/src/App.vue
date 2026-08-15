@@ -258,7 +258,7 @@ function aiFinish(winner: number, reason: string) {
   // 对局结束：总结浮窗（绿色高亮，8 秒后自动消失，也可手动关闭）
   showTip(aiSummary(curGame.value, aiBoard.value, winner))
   if (aiTipTimer) clearTimeout(aiTipTimer)
-  aiTipTimer = setTimeout(() => { aiTipVisible.value = false }, 8000)
+  aiTipTimer = setTimeout(() => { aiTipVisible.value = false }, 3000)
 }
 
 function aiPlayerMove(idx: number, from?: number, to?: number) {
@@ -607,7 +607,7 @@ function enterRoom(id: string) {
     turn.value = -1
     if (m.players) players.value = m.players
     // 总结浮窗 8 秒后自动消失（显示底部结算卡）
-    setTimeout(() => { gameOverTipDismissed.value = true }, 8000)
+    setTimeout(() => { gameOverTipDismissed.value = true }, 3000)
   })
   gameWs.on('opponent_left', (m) => { lastMsg.value = `对手掉线，等待重连…（${m.graceSeconds || 60}s）` })
   gameWs.on('player_reconnected', () => { lastMsg.value = '对手已重连！' })
