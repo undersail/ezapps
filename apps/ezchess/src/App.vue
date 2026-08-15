@@ -778,6 +778,23 @@ function drawBoard() {
     drawGomoku(ctx, size)
   }
 
+  // 选中棋子高亮（跳棋/国象/中象点选反馈）
+  if (selected.value !== null && phase.value === 'PLAYING' && !gameOver.value) {
+    const g = curGame.value
+    const s = selected.value
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 3
+    ctx.setLineDash([6, 4])
+    if (g === 'xiangqi') {
+      const cell = size / 10, cx = size / 2
+      ctx.beginPath(); ctx.arc(cx + ((s % 9) - 4) * cell, cell * (Math.floor(s / 9) + 0.5), cell * 0.46, 0, Math.PI * 2); ctx.stroke()
+    } else if (g === 'chess' || g === 'checkers') {
+      const cell = size / 8
+      ctx.beginPath(); ctx.arc((s % 8) * cell + cell / 2, Math.floor(s / 8) * cell + cell / 2, cell * 0.46, 0, Math.PI * 2); ctx.stroke()
+    }
+    ctx.setLineDash([])
+  }
+
   // 最后一步标识（所有棋种统一：金黄色高亮圈，与棋子颜色区分）
   if (lastMove.value && !aiOver.value) {
     const g = curGame.value
