@@ -681,7 +681,7 @@ onUnmounted(() => {
       <header class="hero">
         <div class="badge">BETA · EZChess</div>
         <h1>♟️ 棋类对战</h1>
-        <p class="tag">五子棋 · 在线对战 · 服务端权威判棋</p>
+        <p class="tag">经典棋类 · 在线对战 · AI 教学 · 服务端权威判棋</p>
       </header>
 
       <!-- 昵称 -->
@@ -713,7 +713,7 @@ onUnmounted(() => {
           <span class="game-card__emoji">{{ GAME_LIST.find(g => g.id === gameId)?.emoji }}</span>
           <div>
             <h3>{{ GAME_LIST.find(g => g.id === gameId)?.name }}</h3>
-            <p>{{ GAME_LIST.find(g => g.id === gameId)?.desc }} · 15 分钟包干</p>
+            <p>{{ GAME_LIST.find(g => g.id === gameId)?.desc }} · 每方 15 分钟，超时判负</p>
           </div>
         </div>
 
