@@ -517,7 +517,7 @@ onUnmounted(() => {
 
         <!-- 策略一：快速对战 -->
         <div class="mode-box">
-          <h4 class="mode-title">⚡ 快速对战</h4>
+          <h4 class="mode-title">🎮 对战大厅</h4>
           <button class="btn btn-primary btn-block" :disabled="matching" @click="match">
             {{ matching ? '匹配中…' : '⚡ 快速匹配' }}
           </button>
@@ -538,7 +538,7 @@ onUnmounted(() => {
         <!-- 策略二：好友对战 -->
         <div class="mode-box">
           <h4 class="mode-title">🤝 好友对战</h4>
-          <button class="btn btn-block" @click="createRoom">🤝 好友对战</button>
+          <button class="btn btn-block" @click="createRoom">🏠 创建房间</button>
           <p class="mode-note">创建房间并把房间号发给好友，好友输入房间号加入</p>
           <div class="join-row">
             <input v-model="roomCode" placeholder="输入好友房间号" @keyup.enter="joinRoom" />
@@ -634,11 +634,11 @@ input:focus { border-color: #6366f1; }
 .game-card h3 { margin: 0; }
 .game-card p { margin: 2px 0 0; color: #64748b; font-size: 0.82rem; min-height: 1.4em; }
 .game-card__actions { display: flex; gap: 8px; }
-.mode-box { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 10px; background: #fff; }
-.mode-title { margin: 0 0 10px; font-size: 0.9rem; color: #475569; }
+.mode-box { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 14px; background: #fff; }
+.mode-title { margin: 0 0 14px; font-size: 0.9rem; color: #475569; }
 .btn-block { display: block; width: 100%; padding: 11px; font-size: 0.95rem; }
-.mode-note { margin: 8px 0 0; font-size: 0.76rem; color: #94a3b8; line-height: 1.5; }
-.mode-box .join-row { margin: 10px 0 0; }
+.mode-note { margin: 12px 0 0; font-size: 0.76rem; color: #94a3b8; line-height: 1.6; }
+.mode-box .join-row { margin: 12px 0 0; }
 .mode-box .join-row input { max-width: none; }
 .game-card__note { margin-top: 12px; padding: 10px 12px; background: #f1f5f9; border-radius: 10px; font-size: 0.78rem; color: #64748b; line-height: 1.6; }
 .game-card__note p { margin: 0; }
@@ -665,9 +665,9 @@ input:focus { border-color: #6366f1; }
 .lobby-foot { text-align: center; margin-top: 18px; }
 .lobby-foot a { color: #64748b; text-decoration: none; font-size: 0.85rem; padding: 6px 14px; border-radius: 10px; }
 .lobby-foot a:hover { background: #eef2ff; color: #4338ca; }
-.rooms-box { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0; }
-.rooms-box h4 { margin: 0 0 8px; font-size: 0.82rem; color: #64748b; }
-.rooms-list { display: flex; flex-direction: column; gap: 6px; }
+.rooms-box { margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e2e8f0; }
+.rooms-box h4 { margin: 0 0 10px; font-size: 0.82rem; color: #64748b; }
+.rooms-list { display: flex; flex-direction: column; gap: 8px; }
 .room-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; cursor: pointer; font-size: 0.88rem; text-align: left; }
 .room-row:hover { border-color: #6366f1; background: #eef2ff; }
 .room-row__owner { font-weight: bold; }
