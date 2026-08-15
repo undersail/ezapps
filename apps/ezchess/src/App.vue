@@ -255,9 +255,10 @@ function aiFinish(winner: number, reason: string) {
   aiOver.value = { winner, reason }
   aiLegal.value = []
   aiCkMoves.value = []
-  // 对局结束：总结浮窗（绿色高亮，不自动消失）
+  // 对局结束：总结浮窗（绿色高亮，8 秒后自动消失，也可手动关闭）
   showTip(aiSummary(curGame.value, aiBoard.value, winner))
-  if (aiTipTimer) clearTimeout(aiTipTimer)   // 总结提示不自动消失
+  if (aiTipTimer) clearTimeout(aiTipTimer)
+  aiTipTimer = setTimeout(() => { aiTipVisible.value = false }, 8000)
 }
 
 function aiPlayerMove(idx: number, from?: number, to?: number) {
@@ -605,6 +606,8 @@ function enterRoom(id: string) {
     phase.value = 'FINISHED'
     turn.value = -1
     if (m.players) players.value = m.players
+    // 总结浮窗 8 秒后自动消失（显示底部结算卡）
+    setTimeout(() => { gameOverTipDismissed.value = true }, 8000)
   })
   gameWs.on('opponent_left', (m) => { lastMsg.value = `对手掉线，等待重连…（${m.graceSeconds || 60}s）` })
   gameWs.on('player_reconnected', () => { lastMsg.value = '对手已重连！' })
@@ -1464,8 +1467,10 @@ input:focus { border-color: #6366f1; }
 .ai-tip { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(360px, 82%); background: rgba(30, 41, 59, 0.92); color: #f1f5f9; padding: 14px 40px 14px 16px; border-radius: 14px; font-size: 0.85rem; line-height: 1.65; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4); z-index: 99; pointer-events: auto; }
 .ai-tip--over { background: rgba(16, 185, 129, 0.95); font-weight: bold; }
 .ai-tip__text { white-space: pre-line; }
-.ai-tip__close { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #94a3b8; font-size: 0.8rem; cursor: pointer; padding: 2px 6px; }
-.ai-tip__close:hover { color: #fff; }
+.ai-tip__close { position: absolute; top: 8px; right: 8px; background: rgba(0, 0, 0, 0.22); border: none; color: #fff; font-size: 0.8rem; cursor: pointer; padding: 4px 8px; border-radius: 50%; line-height: 1; }
+.ai-tip__close:hover { background: rgba(0, 0, 0, 0.4); color: #fff; }
+.ai-tip--over .ai-tip__close { background: rgba(255, 255, 255, 0.28); color: #fff; }
+.ai-tip--over .ai-tip__close:hover { background: rgba(255, 255, 255, 0.45); }
 .ai-tip__agree { display: block; margin-top: 10px; background: #10b981; border: none; color: #fff; font-weight: bold; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
 .ai-tip__agree:hover { background: #059669; }
 .tip-enter-active, .tip-leave-active { transition: opacity 0.3s; }
