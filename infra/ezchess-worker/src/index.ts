@@ -4,7 +4,7 @@
 
 const SECRET: string = typeof API_SECRET !== 'undefined' && API_SECRET ? API_SECRET : 'ezchess-secret-2026'
 const CORS_ORIGINS = ['https://ezapps.cc', 'https://ezapps.pages.dev', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:5173']
-const GAMES = ['gomoku', 'reversi', 'checkers', 'ccheckers', 'xiangqi']
+const GAMES = ['gomoku', 'reversi', 'checkers', 'chess', 'ccheckers', 'xiangqi']
 const BOARD = 15          // 五子棋棋盘 15×15
 const RECONNECT_MS = 60000
 const WAIT_TIMEOUT_MS = 120000
@@ -82,6 +82,163 @@ function rvHasMove(board: number[], seat: number): boolean {
     if (board[r * RV + c] === 0 && rvFlips(board, r, c, seat).length > 0) return true
   }
   return false
+}
+
+// ==================== 国际象棋（8×8） ====================
+// 棋子编码：1白兵 2白车 3白马 4白象 5白后 6白王 | 11黑兵 12黑车 13黑马 14黑象 15黑后 16黑王
+// MVP 简化：含兵升变/将军/将死/逼和；王车易位与吃过路兵暂不做
+const CH = 8
+function chInit(): number[] {
+  const b = new Array(64).fill(0)
+  const back = [2, 3, 4, 5, 6, 4, 3, 2]   // 车马象后王象马车（白方编码）
+  for (let c = 0; c < 8; c++) {
+    b[0 * 8 + c] = back[c]      // 白方底线（r0）
+    b[1 * 8 + c] = 1            // 白兵
+    b[6 * 8 + c] = 11           // 黑兵
+    b[7 * 8 + c] = back[c] + 10 // 黑方底线
+  }
+  return b
+}
+function chOwner(v: number) { return v === 0 ? -1 : (v < 10 ? 0 : 1) }
+const CH_DIRS = { rook: [[-1, 0], [1, 0], [0, -1], [0, 1]], bishop: [[-1, -1], [-1, 1], [1, -1], [1, 1]], king: [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]] }
+const KNIGHT_DELTAS = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]]
+
+// 某格是否被 owner 方攻击
+function chAttacked(board: number[], r: number, c: number, byOwner: number): boolean {
+  // 车/后：横竖
+  for (const [dr, dc] of CH_DIRS.rook) {
+    let rr = r + dr, cc = c + dc
+    while (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
+      const v = board[rr * 8 + cc]
+      if (v !== 0) {
+        if (chOwner(v) === byOwner && (v % 10 === 2 || v % 10 === 5)) return true
+        break
+      }
+      rr += dr; cc += dc
+    }
+  }
+  // 象/后：斜
+  for (const [dr, dc] of CH_DIRS.bishop) {
+    let rr = r + dr, cc = c + dc
+    while (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
+      const v = board[rr * 8 + cc]
+      if (v !== 0) {
+        if (chOwner(v) === byOwner && (v % 10 === 4 || v % 10 === 5)) return true
+        break
+      }
+      rr += dr; cc += dc
+    }
+  }
+  // 马
+  for (const [dr, dc] of KNIGHT_DELTAS) {
+    const rr = r + dr, cc = c + dc
+    if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
+      const v = board[rr * 8 + cc]
+      if (v !== 0 && chOwner(v) === byOwner && v % 10 === 3) return true
+    }
+  }
+  // 王
+  for (const [dr, dc] of CH_DIRS.king) {
+    const rr = r + dr, cc = c + dc
+    if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
+      const v = board[rr * 8 + cc]
+      if (v !== 0 && chOwner(v) === byOwner && v % 10 === 6) return true
+    }
+  }
+  // 兵（白兵向下攻击，黑兵向上）
+  const pr = byOwner === 0 ? r - 1 : r + 1
+  for (const pc of [c - 1, c + 1]) {
+    if (pr >= 0 && pr < 8 && pc >= 0 && pc < 8) {
+      const v = board[pr * 8 + pc]
+      if (v !== 0 && chOwner(v) === byOwner && v % 10 === 1) return true
+    }
+  }
+  return false
+}
+
+// 生成 owner 方的伪合法走法（不含将军过滤）
+function chPseudoMoves(board: number[], owner: number): { from: number; to: number; promote?: boolean }[] {
+  const moves: { from: number; to: number; promote?: boolean }[] = []
+  const dir = owner === 0 ? 1 : -1          // 白方在顶部（r0-1）向下推进，黑方向上
+  const startRow = owner === 0 ? 1 : 6
+  const promoteRow = owner === 0 ? 7 : 0
+  for (let i = 0; i < 64; i++) {
+    const v = board[i]
+    if (v === 0 || chOwner(v) !== owner) continue
+    const r = Math.floor(i / 8), c = i % 8
+    const type = v % 10
+    const add = (rr: number, cc: number, promote = false) => {
+      if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) moves.push({ from: i, to: rr * 8 + cc, promote })
+    }
+    if (type === 1) {   // 兵
+      const fr = r + dir
+      if (fr >= 0 && fr < 8 && board[fr * 8 + c] === 0) {
+        add(fr, c, fr === promoteRow)
+        if (r === startRow && board[(r + 2 * dir) * 8 + c] === 0) add(r + 2 * dir, c)
+      }
+      for (const pc of [c - 1, c + 1]) {
+        if (pc >= 0 && pc < 8 && fr >= 0 && fr < 8) {
+          const t = board[fr * 8 + pc]
+          if (t !== 0 && chOwner(t) !== owner) add(fr, pc, fr === promoteRow)
+        }
+      }
+    } else if (type === 2 || type === 4 || type === 5) {   // 车/象/后
+      const dirs = type === 2 ? CH_DIRS.rook : type === 4 ? CH_DIRS.bishop : [...CH_DIRS.rook, ...CH_DIRS.bishop]
+      for (const [dr, dc] of dirs) {
+        let rr = r + dr, cc = c + dc
+        while (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
+          const t = board[rr * 8 + cc]
+          if (t === 0) { moves.push({ from: i, to: rr * 8 + cc }); rr += dr; cc += dc }
+          else {
+            if (chOwner(t) !== owner) moves.push({ from: i, to: rr * 8 + cc })
+            break
+          }
+        }
+      }
+    } else if (type === 3) {   // 马
+      for (const [dr, dc] of KNIGHT_DELTAS) {
+        const rr = r + dr, cc = c + dc
+        if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8 && chOwner(board[rr * 8 + cc]) !== owner) add(rr, cc)
+      }
+    } else if (type === 6) {   // 王
+      for (const [dr, dc] of CH_DIRS.king) {
+        const rr = r + dr, cc = c + dc
+        if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8 && chOwner(board[rr * 8 + cc]) !== owner) add(rr, cc)
+      }
+    }
+  }
+  return moves
+}
+
+// 合法走法（走完后己方王不能被攻击）
+function chLegalMoves(board: number[], owner: number): { from: number; to: number; promote?: boolean }[] {
+  const out: { from: number; to: number; promote?: boolean }[] = []
+  for (const m of chPseudoMoves(board, owner)) {
+    const nb = [...board]
+    nb[m.to] = nb[m.from]; nb[m.from] = 0
+    if (m.promote) nb[m.to] = owner === 0 ? 5 : 15
+    // 找己方王
+    const kType = owner === 0 ? 6 : 16
+    const ki = nb.indexOf(kType)
+    if (ki < 0) continue
+    if (!chAttacked(nb, Math.floor(ki / 8), ki % 8, owner === 0 ? 1 : 0)) out.push(m)
+  }
+  return out
+}
+
+// 判断状态：返回 { over, winner(1白/2黑/0和棋), reason }
+function chStatus(board: number[], owner: number): { over: boolean; winner: number; reason: string } {
+  const moves = chLegalMoves(board, owner)
+  const opp = owner === 0 ? 1 : 0
+  // 找 owner 的王是否被攻击
+  const kType = owner === 0 ? 6 : 16
+  const ki = board.indexOf(kType)
+  const inCheck = ki >= 0 && chAttacked(board, Math.floor(ki / 8), ki % 8, opp)
+  if (moves.length === 0) {
+    if (inCheck) return { over: true, winner: opp + 1, reason: '将死（Checkmate）' }
+    return { over: true, winner: 0, reason: '逼和（Stalemate）' }
+  }
+  return { over: false, winner: 0, reason: '' }
 }
 
 // ==================== 国际跳棋（8×8 黑白格） ====================
@@ -422,9 +579,10 @@ export class GameRoom {
       // 按棋种初始化棋盘
       if (this.game === 'reversi') this.board = rvInit()
       else if (this.game === 'checkers') this.board = ckInit()
+      else if (this.game === 'chess') this.board = chInit()
       else if (this.game === 'ccheckers') this.board = ccInit(this.seats)
       else this.board = emptyBoard()
-      this.turn = Math.floor(Math.random() * this.players.length)
+      this.turn = this.game === 'chess' ? 0 : Math.floor(Math.random() * this.players.length)   // 国际象棋白先
       this.timers = Array(this.seats).fill(TURN_MS)
       this.moves = []
       this.broadcast({ type: 'state', board: this.board, turn: this.turn, timers: this.timers, phase: this.phase, players: this.players.map(p => ({ nick: p.nick, seat: p.seat })) })
@@ -451,9 +609,10 @@ export class GameRoom {
     this.phase = 'PLAYING'
     if (this.game === 'reversi') this.board = rvInit()
     else if (this.game === 'checkers') this.board = ckInit()
+    else if (this.game === 'chess') this.board = chInit()
     else if (this.game === 'ccheckers') this.board = ccInit(this.seats)
     else this.board = emptyBoard()
-    this.turn = Math.floor(Math.random() * this.players.length)
+    this.turn = this.game === 'chess' ? 0 : Math.floor(Math.random() * this.players.length)   // 国际象棋白先
     this.timers = Array(this.seats).fill(TURN_MS)
     this.moves = []
     this.broadcast({ type: 'state', board: this.board, turn: this.turn, timers: this.timers, phase: this.phase, players: this.players.map(p => ({ nick: p.nick, seat: p.seat })) })
@@ -508,7 +667,6 @@ export class GameRoom {
     }
 
     if (this.game === 'checkers') {
-      // 国际跳棋：{from, to} 移动
       const { from, to } = msg
       if (from === undefined || to === undefined) { this.sendTo(seat, { type: 'illegal', reason: '参数错误' }); return }
       const moves = ckMoves(this.board, seat)
@@ -552,6 +710,36 @@ export class GameRoom {
         }
         this.broadcast({ type: 'state', board: this.board, turn: this.turn })
       }
+      this.timerAlarm = setTimeout(() => this.timeoutMove(this.turn), MOVE_TIME) as unknown as number
+      return
+    }
+
+    if (this.game === 'chess') {
+      // 国际象棋：{from, to} 移动（服务端权威校验，含将军过滤）
+      const { from, to } = msg
+      if (!Number.isInteger(from) || !Number.isInteger(to)) {
+        this.sendTo(seat, { type: 'illegal', reason: '走法非法' }); return
+      }
+      if (chOwner(this.board[from]) !== seat) { this.sendTo(seat, { type: 'illegal', reason: '移动的不是你的棋子' }); return }
+      const legal = chLegalMoves(this.board, seat).find(m => m.from === from && m.to === to)
+      if (!legal) { this.sendTo(seat, { type: 'illegal', reason: '非法走法' }); return }
+      // 应用走法（含兵升变）
+      this.board[to] = this.board[from]
+      this.board[from] = 0
+      if (legal.promote) this.board[to] = seat === 0 ? 5 : 15
+      // 切换回合 + 判断对方状态（被将军提示 / 将死 / 逼和）
+      this.turn = (this.turn + 1) % this.players.length
+      const opp = this.turn
+      const st = chStatus(this.board, opp)
+      if (st.over) {
+        this.broadcast({ type: 'move_ok', seat, move: { from, to }, board: this.board, nextTurn: -1 })
+        await this.finish(st.winner, st.reason)
+        return
+      }
+      // 将军提示（对方王被攻击但可解）
+      const oppKing = this.board.indexOf(opp === 0 ? 6 : 16)
+      const inCheck = oppKing >= 0 && chAttacked(this.board, Math.floor(oppKing / 8), oppKing % 8, seat)
+      this.broadcast({ type: 'move_ok', seat, move: { from, to }, board: this.board, nextTurn: this.turn, check: inCheck ? true : undefined })
       this.timerAlarm = setTimeout(() => this.timeoutMove(this.turn), MOVE_TIME) as unknown as number
       return
     }

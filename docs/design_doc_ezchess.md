@@ -1,13 +1,14 @@
 # EZChess · 经典棋类对战平台设计文档
-> Cloudflare Workers + Durable Objects + WebSocket 多人在线方案 · 2026-08-14
+> Cloudflare Workers + Durable Objects + WebSocket 多人在线方案 · 2026-08-14（v2：08-15 更新）
 
 ## 一、目标
 
 在 ezapps 平台上新增**经典棋类对战**游戏（EZChess）：
-- 🎯 五子棋（先上线，MVP）
-- ⚫ 黑白棋 / 奥赛罗
-- 🏁 国际跳棋（8×8 黑白格，斜走跳吃，**2 人**）
-- 🐘 中国象棋
+- ✅ 🎯 五子棋（已上线）
+- ✅ ⚫ 黑白棋 / 奥赛罗（已上线）
+- ✅ 🏁 国际跳棋（8×8 黑白格，斜走跳吃，**2 人**，已上线）
+- ♞ 国际象棋（8×8，车马象后王，将军/将死，**2 人**，开发中）
+- 🐘 中国象棋（9×10，马脚/象眼/将帅，**2 人**，规划中）
 
 支持：**在线匹配对战 / 好友开房 / 观战 / 断线重连 / 战绩榜**，完全复用现有 `api.ezapps.cc` 的身份与排行榜体系。
 
@@ -44,7 +45,8 @@
 | 五子棋 | 15×15 | 2 | 极简（落子判胜）| ✅ 轻松 |
 | 黑白棋 | 8×8 | 2 | 简单（翻转逻辑）| ✅ 轻松 |
 | 国际跳棋 | 8×8 黑白格 | 2 | 中等（斜走/跳吃/连吃/王棋）| ✅ 可以（纯逻辑无搜索）|
-| 中国象棋 | 9×10 | 2 | 较复杂（马脚/象眼/将帅）| ✅ 可以（纯逻辑无搜索）|
+| 国际象棋 | 8×8 | 2 | 较复杂（车马象后王/将军/将死/王车易位/吃过路兵）| ✅ 可以（纯逻辑无搜索）|
+| 中国象棋 | 9×10 | 2 | 较复杂（马脚/象眼/将帅/九宫）| ✅ 可以（纯逻辑无搜索）|
 
 > 国际跳棋说明：8×8 黑白格，棋子斜走一步一格；**跳吃**（越过相邻敌子落其后方空格，可连跳）；到达对方底线升级**王棋**（可斜走任意格）；吃光对方或对方无子可动获胜。
 
@@ -64,9 +66,11 @@ interface RulesEngine {
 ## 四、房间系统
 
 ```
-创建房间   POST /api/room/create { app:'ezchess', game:'gomoku'|'reversi'|'checkers'|'xiangqi', mode:'friend'|'match', players?: 2|3|4|6, player:{deviceId,nick} }
-匹配对局   POST /api/room/match   { game:'gomoku' }  → 进入匹配队列（KV 队列，60 秒超时）
-加入房间   POST /api/room/join    { roomId, player }
+创建房间   POST /api/room/create { app:'ezchess', game:'gomoku'|'reversi'|'checkers'|'chess'|'xiangqi', mode:'friend'|'match', player:{deviceId,nick} }
+           → 好友房 6 位短房间号（去易混淆字符，碰撞重试），建房后进房弹窗提示房间号
+匹配对局   POST /api/room/match   { game:'gomoku' }  → 匹配即建房（队列存房间号，120s 超时）
+房间校验   POST /api/room/check   { roomId }         → 加入前校验存在性（不存在提示，不建房）
+房间列表   GET  /api/room/list?game=                 → 等待中的房间（实时校验状态）
 观战      POST /api/room/spectate { roomId }
 离开/认输  WS 消息 { type:'resign' | 'leave' }
 ```
@@ -77,14 +81,25 @@ interface RulesEngine {
 
 **房间状态机**：
 ```
-WAITING(等人，可 2-6) → READY(满员/房主开赛) → PLAYING → FINISHED(胜负/和棋/超时) → 删除 DO
-              └── 60 秒超时（未满员）→ 关闭(通知现有玩家)
+WAITING(等人) → PLAYING(满员自动开赛) → FINISHED(胜负/和棋/超时/认输)
+              └── 120 秒超时（未满员）→ 关闭(通知现有玩家)
+FINISHED → PLAYING（双方同意再来一局，服务端 restart）
 ```
 
-**匹配机制（轻量）**：
-- 匹配队列 = KV key `match:<game>` 存等待玩家（TTL 60s）
-- 第二人进队列 → 双方各收到 roomId → 各自连接 WS → 建立对局
+**匹配机制（匹配即建房）**：
+- 第 1 人点匹配 → **直接创建匹配房**并进房等待（房主即等待者）
+- 匹配队列 = KV key `match:<game>` 存**房间号**（TTL 120s）
+- 第 2 人点匹配 → 拿到房间号直接加入 → 满员自动开赛
+- 队列只存房间号（不存设备）→ 不存在"匹配到自己"
+- 加入前实时校验房间状态（已开赛/已满则重新建房）
 - 不做 ELO 分级（MVP 简单化，后续 D1 战绩再升级）
+
+**等待房列表**：
+- `waiting:<game>` KV 列表存所有等待中房间（建房/匹配房）
+- 大厅展示「等待中的房间」可点击直接加入（30s 自动刷新）
+- 列表实时校验：未结束 + 有在线玩家 + 未满员才展示（过滤僵尸房）
+- 对局中一方掉线 → 房间回到列表（owner 转移给在线方）→ 掉线方/新玩家可进入
+- **好友房独立**：createRoom 不进快速对战列表（靠短房间号加入）
 
 ## 五、WebSocket 协议
 
@@ -98,7 +113,7 @@ wss://ezchess-api.ezapps.cc/game/<roomId>?deviceId=xxx&token=<HMAC>
 // 客户端 → 服务端
 { type: 'move',    move: { from?: [r,c], to: [r,c] } }
 { type: 'resign' }
-{ type: 'ready' }                               // N 人桌：准备就绪（房主开赛）
+{ type: 'rematch' }                             // 再来一局（对局结束后，双方同意重开）
 { type: 'chat',    text: string }           // 快捷短语
 { type: 'ping' }
 
@@ -110,13 +125,23 @@ wss://ezchess-api.ezapps.cc/game/<roomId>?deviceId=xxx&token=<HMAC>
 { type: 'timer',   seat, remaining }                    // 倒计时同步（每座位独立）
 { type: 'player_joined', player, seats }                // N 人桌有人加入
 { type: 'opponent_left', graceSeconds }                 // 有人掉线（60s 重连窗口）
+{ type: 'rematch_offer', seat, count }                 // 再来一局邀请（重连时补发）
+{ type: 'room_closed', reason }                        // 房间关闭（等待超时等）
 { type: 'chat',    player, text }
 ```
 
 ### 对局规则
-- 默认 **15 分钟包干**（每方 15 分钟，超时判负）；可自定义（开房选项）
+- 默认 **每方 15 分钟**（总用时，超时判负，落子不重置）
 - 每步广播 `move_ok` 到双方 + 观战者（增量同步，观战者本地渲染）
-- 断线：60 秒重连窗口，超时判负
+- 断线：60 秒重连窗口，超时判负；**对局中掉线房间回到大厅列表**（15s 后新玩家可顶替座位）
+- **再来一局**：对局结束后任一方发起 → 对方同意 → 服务端 reset 重开（棋盘重置/先手随机/计时恢复）
+
+**AI 教学**（客户端，与在线对局同规则引擎）：
+- 大厅「🤖 AI 教学」按钮 → 本地对局（你执黑先手 vs 简单 AI）
+- 紫色圆点高亮合法落点（五子棋/黑白棋）；跳棋两步提示（先可走子 → 后目标位）
+- 局面感知技巧浮窗（棋盘中央）：冲四/活三/占角/跳吃等专业提示，开局提示仅弹一次
+- 对局结束绿色总结浮窗（胜负复盘要点）
+- 三种棋 AI：五子棋攻防评分 / 黑白棋角边权重+模拟 / 跳棋吃子优先+前进（均 1 步贪心）
 
 ## 六、Durable Objects 设计
 
@@ -203,16 +228,19 @@ CREATE TABLE players (
 
 ```
 apps/ezchess/
-├── src/pages/Lobby.vue        # 大厅：游戏选择/匹配/建房/排行榜
-├── src/pages/GameRoom.vue     # 对局页：棋盘 Canvas + 计时器 + 聊天
-├── src/engine/
-│   ├── gomoku.ts              # 五子棋规则（MVP）
-│   ├── reversi.ts             # 黑白棋规则
-│   ├── checkers.ts            # 国际跳棋规则（8×8 黑白格）
-│   └── xiangqi.ts             # 中国象棋规则
+├── src/App.vue               # 单页应用：大厅 + AI 教学页 + 对局页（三棋统一布局）
+├── src/ai/
+│   ├── engine.ts             # 前端本地规则引擎（五子棋/黑白棋/跳棋，AI 教学用）
+│   └── ai.ts                 # 简单 AI（攻防评分/角边权重/吃子优先）
 ├── src/network/ws.ts          # WebSocket 封装（重连/心跳）
-├── src/network/api.ts         # REST 封装（复用 ezapps-api 模式）
-└── src/render/BoardCanvas.ts  # 程序化棋盘渲染（Canvas，无图片）
+├── src/network/api.ts         # REST 封装（建房/匹配/校验/列表/排行榜）
+└── 棋盘渲染：Canvas 程序化绘制（无图片），AI 教学与对局共用 drawBoard
+
+UI 规范（三棋 + 后续象棋统一）：
+- 对战页与 AI 教学页同布局：标题/描述/规则卡片 + 玩家栏 + 棋盘 + 状态栏
+- 顶部按钮与棋盘左右边缘对齐（等宽 flex）
+- 对战页右侧按钮按阶段切换：对局中=认输 / 结束后=再来一局（双方同意）
+- 对局结束棋盘中央绿色总结浮窗（✕ 关闭后显示结算卡）
 ```
 
 - Canvas 程序化绘制棋盘/棋子（沿用 ezapps 无图片原则，皮肤可换）
@@ -223,9 +251,9 @@ apps/ezchess/
 
 | 阶段 | 内容 | 工作量 |
 |---|---|---|
-| **M1** | 五子棋 MVP：DO 房间 + WS 协议 + 匹配 + Canvas 棋盘 + 积分榜 | ~2 天 |
-| **M2** | 黑白棋 + **国际跳棋（斜走/跳吃/连吃/王棋）** | ~2 天 |
-| **M3** | 中国象棋（复杂规则）+ 计时器 + 聊天 | ~2 天 |
+| **M1** ✅ | 五子棋 MVP：DO 房间 + WS 协议 + 匹配 + Canvas 棋盘 + 积分榜 | 完成 |
+| **M2** ✅ | 黑白棋 + 国际跳棋 + AI 教学 + 再来一局 + 好友短码 + 房间列表 | 完成 |
+| **M3** | **国际象棋 + 中国象棋**（复杂规则：车马象后王 / 马脚象眼将帅）+ AI 教学 + 计时器 | ~3 天 |
 | **M4** | 战绩 D1 + 复盘 + 排行榜细化 + 皮肤 | ~1 天 |
 
 ## 十三、风险与限制
