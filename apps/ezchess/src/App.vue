@@ -18,6 +18,13 @@ const aiLegal = ref<number[]>([])     // 玩家可落点（gomoku/reversi 高亮
 const aiCkMoves = ref<{ from: number; to: number }[]>([])
 const aiSelected = ref<number | null>(null)
 
+const aiRules = computed(() => {
+  const g = curGame.value
+  if (g === 'gomoku') return '规则：黑白轮流在交叉点落子，横/竖/斜率先连成 5 子者胜；棋盘下满无五连为和棋'
+  if (g === 'reversi') return '规则：落子必须夹住对方棋子（横竖斜），被夹棋子翻转；无子可落自动跳过；双方都无法落子时子多者胜'
+  return '规则：棋子斜走一格；跳吃相邻对方棋子（可连跳，有吃必吃）；到达对方底线升王（可斜走任意格）；吃光对方或对方无子可动者胜'
+})
+
 function startAI() {
   stage.value = 'ai'
   curGame.value = gameId.value
@@ -772,6 +779,7 @@ onUnmounted(() => {
         <div class="ai-title-row">
           <span class="room-title ai-title">🤖 AI 教学 · {{ GAME_LIST.find(g => g.id === curGame)?.name }}</span>
           <span class="room-id ai-desc">你执黑（先手）vs AI · {{ aiThinking ? 'AI 思考中…' : '对局中' }}</span>
+          <p class="ai-rules">{{ aiRules }}</p>
         </div>
         <div class="ai-btns">
           <button class="btn back" @click="stage = 'lobby'">← 返回大厅</button>
@@ -884,7 +892,8 @@ input:focus { border-color: #6366f1; }
 .ai-title-row { text-align: center; display: flex; flex-direction: column; gap: 4px; }
 .ai-title { font-size: 1.15rem; }
 .ai-desc { margin: 0; font-size: 0.82rem; color: #94a3b8; }
-.ai-btns { display: flex; justify-content: space-between; align-items: center; }
+.ai-rules { margin: 6px 0 0; font-size: 0.76rem; color: #64748b; line-height: 1.7; background: #f8fafc; border-radius: 8px; padding: 8px 12px; text-align: left; }
+.ai-btns { display: flex; justify-content: space-between; align-items: center; width: 100%; }
 .ai-btns .btn { flex-shrink: 0; }
 .over-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
 .btn-block { display: block; width: 100%; padding: 11px; font-size: 0.95rem; }
