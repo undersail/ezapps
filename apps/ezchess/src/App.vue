@@ -505,7 +505,7 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <!-- 对战入口 -->
+      <!-- 对战入口（两组策略：快速对战 / 好友对战） -->
       <div class="game-card">
         <div class="game-card__head">
           <span class="game-card__emoji">{{ GAME_LIST.find(g => g.id === gameId)?.emoji }}</span>
@@ -514,36 +514,40 @@ onUnmounted(() => {
             <p>{{ GAME_LIST.find(g => g.id === gameId)?.desc }} · 15 分钟包干</p>
           </div>
         </div>
-        <div class="game-card__actions">
-          <button class="btn btn-primary" :disabled="matching" @click="match">
+
+        <!-- 策略一：快速对战 -->
+        <div class="mode-box">
+          <h4 class="mode-title">⚡ 快速对战</h4>
+          <button class="btn btn-primary btn-block" :disabled="matching" @click="match">
             {{ matching ? '匹配中…' : '⚡ 快速匹配' }}
           </button>
-          <button class="btn" @click="createRoom">🏠 创建房间</button>
+          <p class="mode-note">自动配对同样点了「快速匹配」的玩家，约 120 秒内开赛</p>
+          <!-- 等待中的房间（同组：直接选房加入） -->
+          <div class="rooms-box" v-if="waitingRooms.length">
+            <h4>等待中的房间（{{ waitingRooms.length }}）</h4>
+            <div class="rooms-list">
+              <button v-for="r in waitingRooms" :key="r.roomId" class="room-row" @click="enterRoom(r.roomId)">
+                <span class="room-row__owner">{{ r.owner }}</span>
+                <span class="room-row__id">房间 {{ r.roomId.slice(0, 8) }}</span>
+                <span class="room-row__go">加入 →</span>
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="game-card__note">
-          <p><b>⚡ 快速匹配</b>：自动配对同样点了「快速匹配」的玩家，约 120 秒内开赛</p>
-          <p><b>🏠 创建房间</b>：好友房，把房间号发给朋友，对方输入房间号加入</p>
-        </div>
-      </div>
 
-      <!-- 等待中的房间（可点击加入） -->
-      <div class="rooms-box" v-if="waitingRooms.length">
-        <h3>🏠 等待中的房间（{{ waitingRooms.length }}）</h3>
-        <div class="rooms-list">
-          <button v-for="r in waitingRooms" :key="r.roomId" class="room-row" @click="enterRoom(r.roomId)">
-            <span class="room-row__owner">{{ r.owner }}</span>
-            <span class="room-row__id">房间 {{ r.roomId.slice(0, 8) }}</span>
-            <span class="room-row__go">加入 →</span>
-          </button>
+        <!-- 策略二：好友对战 -->
+        <div class="mode-box">
+          <h4 class="mode-title">🤝 好友对战</h4>
+          <button class="btn btn-block" @click="createRoom">🤝 好友对战</button>
+          <p class="mode-note">创建房间并把房间号发给好友，好友输入房间号加入</p>
+          <div class="join-row">
+            <input v-model="roomCode" placeholder="输入好友房间号" @keyup.enter="joinRoom" />
+            <button class="btn" @click="joinRoom">加入</button>
+          </div>
         </div>
-      </div>
 
-      <!-- 加入好友房 -->
-      <div class="join-row">
-        <input v-model="roomCode" placeholder="输入房间号加入" @keyup.enter="joinRoom" />
-        <button class="btn" @click="joinRoom">加入</button>
+        <p v-if="roomErr" class="hint">{{ roomErr }}</p>
       </div>
-      <p v-if="roomErr" class="hint">{{ roomErr }}</p>
 
       <!-- 排行榜 -->
       <div class="rank-box">
@@ -630,6 +634,12 @@ input:focus { border-color: #6366f1; }
 .game-card h3 { margin: 0; }
 .game-card p { margin: 2px 0 0; color: #64748b; font-size: 0.82rem; min-height: 1.4em; }
 .game-card__actions { display: flex; gap: 8px; }
+.mode-box { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 10px; background: #fff; }
+.mode-title { margin: 0 0 10px; font-size: 0.9rem; color: #475569; }
+.btn-block { display: block; width: 100%; padding: 11px; font-size: 0.95rem; }
+.mode-note { margin: 8px 0 0; font-size: 0.76rem; color: #94a3b8; line-height: 1.5; }
+.mode-box .join-row { margin: 10px 0 0; }
+.mode-box .join-row input { max-width: none; }
 .game-card__note { margin-top: 12px; padding: 10px 12px; background: #f1f5f9; border-radius: 10px; font-size: 0.78rem; color: #64748b; line-height: 1.6; }
 .game-card__note p { margin: 0; }
 .game-card__note b { color: #475569; }
@@ -655,8 +665,8 @@ input:focus { border-color: #6366f1; }
 .lobby-foot { text-align: center; margin-top: 18px; }
 .lobby-foot a { color: #64748b; text-decoration: none; font-size: 0.85rem; padding: 6px 14px; border-radius: 10px; }
 .lobby-foot a:hover { background: #eef2ff; color: #4338ca; }
-.rooms-box { border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 14px; background: #fafafa; }
-.rooms-box h3 { margin: 0 0 10px; font-size: 1rem; }
+.rooms-box { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0; }
+.rooms-box h4 { margin: 0 0 8px; font-size: 0.82rem; color: #64748b; }
 .rooms-list { display: flex; flex-direction: column; gap: 6px; }
 .room-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; cursor: pointer; font-size: 0.88rem; text-align: left; }
 .room-row:hover { border-color: #6366f1; background: #eef2ff; }
