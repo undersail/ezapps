@@ -1,6 +1,6 @@
 // ============ AI 教学：简单 AI 引擎（客户端） ============
 // 五子棋：攻防评分；黑白棋：翻转+角权重；国际跳棋：吃子优先+前进
-import { GOMOKU, REVERSI, CHECKERS, CHESS, type AIGame } from './engine'
+import { GOMOKU, REVERSI, CHECKERS, CHESS, XIANGQI, type AIGame } from './engine'
 
 export interface AIMove {
   idx?: number          // gomoku / reversi
@@ -116,9 +116,31 @@ export function chessAI(board: number[]): AIMove {
   return { from: best.from, to: best.to }
 }
 
+// ===== 中国象棋 AI（子力价值 + 吃子 + 推进 + 将军） =====
+const XQ_VALUE = [0, 100, 2, 2, 4, 9, 4.5, 1]   // 帅仕相马车炮兵
+
+export function xiangqiAI(board: number[]): AIMove {
+  const moves = XIANGQI.legalMoves(board, 1)
+  if (!moves.length) return { from: -1, to: -1 }
+  let best = moves[0], bestScore = -Infinity
+  for (const m of moves) {
+    let s = 0
+    const target = board[m.to]
+    if (target !== 0) s += XQ_VALUE[target % 10] * 10   // 吃子价值
+    const tr = Math.floor(m.to / 9)
+    if (target % 10 === 7) s += 2   // 兵卒推进
+    const nb = [...board]; nb[m.to] = nb[m.from]; nb[m.from] = 0
+    const oppKing = nb.indexOf(11)
+    if (oppKing >= 0 && XIANGQI.attacked(nb, Math.floor(oppKing / 9), oppKing % 9, 1)) s += 50   // 将军
+    if (s > bestScore) { bestScore = s; best = m }
+  }
+  return { from: best.from, to: best.to }
+}
+
 export function aiMove(game: AIGame, board: number[]): AIMove {
   if (game === 'gomoku') return gomokuAI(board)
   if (game === 'reversi') return reversiAI(board)
   if (game === 'chess') return chessAI(board)
+  if (game === 'xiangqi') return xiangqiAI(board)
   return checkersAI(board)
 }

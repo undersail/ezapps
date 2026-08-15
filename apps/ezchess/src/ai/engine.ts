@@ -1,7 +1,7 @@
 // ============ AI 教学：前端本地规则引擎 ============
 // 三种棋的本地规则（初始化 / 合法落子 / 判胜），与服务端规则一致
 
-export type AIGame = 'gomoku' | 'reversi' | 'checkers' | 'chess'
+export type AIGame = 'gomoku' | 'reversi' | 'checkers' | 'chess' | 'xiangqi'
 
 // ===== 五子棋 =====
 export const GOMOKU = {
@@ -181,6 +181,154 @@ export const CHESS = {
       if (m.promote) nb[m.to] = owner === 0 ? 5 : 15
       const ki = nb.indexOf(kType)
       if (ki >= 0 && !this.attacked(nb, Math.floor(ki / 8), ki % 8, opp)) out.push(m)
+    }
+    return out
+  },
+}
+
+
+// ===== 中国象棋（9×10，红 1-7 / 黑 11-17） =====
+export const XIANGQI = {
+  init(): number[] {
+    const b = new Array(90).fill(0)
+    const row9 = [5, 4, 3, 2, 1, 2, 3, 4, 5]
+    for (let c = 0; c < 9; c++) {
+      b[9 * 9 + c] = row9[c]
+      b[0 * 9 + c] = row9[c] + 10
+      if (c % 2 === 0) { b[6 * 9 + c] = 7; b[3 * 9 + c] = 17 }
+    }
+    b[7 * 9 + 1] = 6; b[7 * 9 + 7] = 6
+    b[2 * 9 + 1] = 16; b[2 * 9 + 7] = 16
+    return b
+  },
+  owner(v: number) { return v === 0 ? -1 : (v < 10 ? 0 : 1) },
+  inPalace(r: number, c: number, owner: number) {
+    if (c < 3 || c > 5) return false
+    return owner === 0 ? (r >= 7 && r <= 9) : (r >= 0 && r <= 2)
+  },
+  attacked(board: number[], r: number, c: number, byOwner: number): boolean {
+    for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      let rr = r + dr, cc = c + dc, jumped = false
+      while (rr >= 0 && rr < 10 && cc >= 0 && cc < 9) {
+        const v = board[rr * 9 + cc]
+        if (v === 0) { rr += dr; cc += dc; continue }
+        const t = v % 10
+        if (!jumped) { if (this.owner(v) === byOwner && (t === 5 || t === 1)) return true }
+        else { if (this.owner(v) === byOwner && t === 6) return true; break }
+        jumped = true
+        rr += dr; cc += dc
+      }
+    }
+    const horse = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]]
+    const leg = [[-1, 0], [-1, 0], [0, -1], [0, 1], [0, -1], [0, 1], [1, 0], [1, 0]]
+    for (let k = 0; k < 8; k++) {
+      const rr = r + horse[k][0], cc = c + horse[k][1]
+      if (rr < 0 || rr >= 10 || cc < 0 || cc >= 9) continue
+      const v = board[rr * 9 + cc]
+      if (v !== 0 && this.owner(v) === byOwner && v % 10 === 4) {
+        if (board[(r + leg[k][0]) * 9 + (c + leg[k][1])] === 0) return true
+      }
+    }
+    const pr = byOwner === 0 ? r + 1 : r - 1
+    if (pr >= 0 && pr < 10) {
+      const v = board[pr * 9 + c]
+      if (v !== 0 && this.owner(v) === byOwner && v % 10 === 7) return true
+    }
+    for (const pc of [c - 1, c + 1]) {
+      if (pc >= 0 && pc < 9) {
+        const v = board[r * 9 + pc]
+        if (v !== 0 && this.owner(v) === byOwner && v % 10 === 7) {
+          const crossed = byOwner === 0 ? r <= 4 : r >= 5
+          if (crossed) return true
+        }
+      }
+    }
+    return false
+  },
+  legalMoves(board: number[], owner: number): { from: number; to: number }[] {
+    const moves: { from: number; to: number }[] = []
+    const dir = owner === 0 ? -1 : 1
+    for (let i = 0; i < 90; i++) {
+      const v = board[i]
+      if (v === 0 || this.owner(v) !== owner) continue
+      const r = Math.floor(i / 9), c = i % 9
+      const t = v % 10
+      const tryMove = (rr: number, cc: number) => {
+        if (rr < 0 || rr >= 10 || cc < 0 || cc >= 9) return
+        const tv = board[rr * 9 + cc]
+        if (tv !== 0 && this.owner(tv) === owner) return
+        moves.push({ from: i, to: rr * 9 + cc })
+      }
+      if (t === 1) {
+        if (this.inPalace(r + 1, c, owner)) tryMove(r + 1, c)
+        if (this.inPalace(r - 1, c, owner)) tryMove(r - 1, c)
+        if (this.inPalace(r, c + 1, owner)) tryMove(r, c + 1)
+        if (this.inPalace(r, c - 1, owner)) tryMove(r, c - 1)
+        let rr = r + dir, cc = c
+        while (rr >= 0 && rr < 10) {
+          const tv = board[rr * 9 + cc]
+          if (tv !== 0) {
+            if (this.owner(tv) !== owner && tv % 10 === 1) moves.push({ from: i, to: rr * 9 + cc })
+            break
+          }
+          rr += dir
+        }
+      } else if (t === 2) {
+        for (const [dr, dc] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+          if (this.inPalace(r + dr, c + dc, owner)) tryMove(r + dr, c + dc)
+        }
+      } else if (t === 3) {
+        const limit = owner === 0 ? 4 : 5
+        for (const [dr, dc] of [[-2, -2], [-2, 2], [2, -2], [2, 2]]) {
+          const rr = r + dr, cc = c + dc
+          if (rr < 0 || rr >= 10 || cc < 0 || cc >= 9) continue
+          if (owner === 0 ? rr > limit : rr < limit) continue
+          if (board[(r + dr / 2) * 9 + (c + dc / 2)] !== 0) continue
+          tryMove(rr, cc)
+        }
+      } else if (t === 4) {
+        const horse = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]]
+        const leg = [[-1, 0], [-1, 0], [0, -1], [0, 1], [0, -1], [0, 1], [1, 0], [1, 0]]
+        for (let k = 0; k < 8; k++) {
+          const rr = r + horse[k][0], cc = c + horse[k][1]
+          if (rr < 0 || rr >= 10 || cc < 0 || cc >= 9) continue
+          if (board[(r + leg[k][0]) * 9 + (c + leg[k][1])] !== 0) continue
+          tryMove(rr, cc)
+        }
+      } else if (t === 5) {
+        for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+          let rr = r + dr, cc = c + dc
+          while (rr >= 0 && rr < 10 && cc >= 0 && cc < 9) {
+            const tv = board[rr * 9 + cc]
+            if (tv === 0) { moves.push({ from: i, to: rr * 9 + cc }); rr += dr; cc += dc }
+            else { if (this.owner(tv) !== owner) moves.push({ from: i, to: rr * 9 + cc }); break }
+          }
+        }
+      } else if (t === 6) {
+        for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+          let rr = r + dr, cc = c + dc, jumped = false
+          while (rr >= 0 && rr < 10 && cc >= 0 && cc < 9) {
+            const tv = board[rr * 9 + cc]
+            if (tv === 0) { if (!jumped) moves.push({ from: i, to: rr * 9 + cc }); rr += dr; cc += dc; continue }
+            if (!jumped) { jumped = true; rr += dr; cc += dc; continue }
+            if (this.owner(tv) !== owner) moves.push({ from: i, to: rr * 9 + cc })
+            break
+          }
+        }
+      } else if (t === 7) {
+        tryMove(r + dir, c)
+        const crossed = owner === 0 ? r <= 4 : r >= 5
+        if (crossed) { tryMove(r, c - 1); tryMove(r, c + 1) }
+      }
+    }
+    const kType = owner === 0 ? 1 : 11
+    const opp = owner === 0 ? 1 : 0
+    const out: { from: number; to: number }[] = []
+    for (const m of moves) {
+      const nb = [...board]
+      nb[m.to] = nb[m.from]; nb[m.from] = 0
+      const ki = nb.indexOf(kType)
+      if (ki >= 0 && !this.attacked(nb, Math.floor(ki / 9), ki % 9, opp)) out.push(m)
     }
     return out
   },
