@@ -758,10 +758,12 @@ onUnmounted(() => {
     <!-- ===== AI 教学页 ===== -->
     <section v-else-if="stage === 'ai'" class="room">
       <header class="room-head ai-head">
-        <span class="room-title ai-title">🤖 AI 教学 · {{ GAME_LIST.find(g => g.id === curGame)?.name }}</span>
+        <div class="ai-title-row">
+          <span class="room-title ai-title">🤖 AI 教学 · {{ GAME_LIST.find(g => g.id === curGame)?.name }}</span>
+          <span class="room-id ai-desc">你执黑（先手）vs AI</span>
+        </div>
         <div class="ai-sub">
           <button class="btn back" @click="stage = 'lobby'">← 大厅</button>
-          <span class="room-id">你执黑（先手）vs AI</span>
           <span class="room-phase">{{ aiThinking ? 'AI 思考中…' : '对局中' }}</span>
           <button class="btn" @click="startAI">🔄 重开</button>
         </div>
@@ -869,7 +871,9 @@ input:focus { border-color: #6366f1; }
 .btn-ai:hover { background: #d1fae5; }
 .btn-ai-top { margin-bottom: 14px; font-size: 0.92rem; }
 .ai-head { flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.ai-title-row { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .ai-title { font-size: 1.2rem; }
+.ai-desc { margin: 0; font-size: 0.85rem; color: #94a3b8; }
 .ai-sub { display: flex; align-items: center; gap: 10px; width: 100%; justify-content: center; }
 .btn-block { display: block; width: 100%; padding: 11px; font-size: 0.95rem; }
 .mode-note { margin: 12px 0 0; font-size: 0.76rem; color: #94a3b8; line-height: 1.6; }
