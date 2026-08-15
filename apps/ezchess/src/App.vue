@@ -769,12 +769,14 @@ onUnmounted(() => {
     <!-- ===== AI 教学页 ===== -->
     <section v-else-if="stage === 'ai'" class="room">
       <header class="room-head ai-head">
-        <button class="btn back" @click="stage = 'lobby'">← 返回大厅</button>
         <div class="ai-title-row">
           <span class="room-title ai-title">🤖 AI 教学 · {{ GAME_LIST.find(g => g.id === curGame)?.name }}</span>
           <span class="room-id ai-desc">你执黑（先手）vs AI · {{ aiThinking ? 'AI 思考中…' : '对局中' }}</span>
         </div>
-        <button class="btn" @click="startAI">🔄 重开</button>
+        <div class="ai-btns">
+          <button class="btn back" @click="stage = 'lobby'">← 返回大厅</button>
+          <button class="btn" @click="startAI">🔄 重开</button>
+        </div>
       </header>
 
       <div class="players">
@@ -878,11 +880,12 @@ input:focus { border-color: #6366f1; }
 .btn-ai { padding: 11px; border-color: #10b981; color: #059669; background: #ecfdf5; }
 .btn-ai:hover { background: #d1fae5; }
 .btn-ai-top { margin-bottom: 14px; font-size: 0.92rem; }
-.ai-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; max-width: min(92vw, 480px); margin: 0 auto 14px; position: relative; }
-.ai-title-row { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; display: flex; flex-direction: column; gap: 4px; max-width: 60%; pointer-events: none; }
-.ai-title { font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ai-desc { margin: 0; font-size: 0.8rem; color: #94a3b8; white-space: nowrap; }
-.ai-head .btn { flex-shrink: 0; }
+.ai-head { display: flex; flex-direction: column; gap: 10px; max-width: min(92vw, 480px); margin: 0 auto 14px; }
+.ai-title-row { text-align: center; display: flex; flex-direction: column; gap: 4px; }
+.ai-title { font-size: 1.15rem; }
+.ai-desc { margin: 0; font-size: 0.82rem; color: #94a3b8; }
+.ai-btns { display: flex; justify-content: space-between; align-items: center; }
+.ai-btns .btn { flex-shrink: 0; }
 .over-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
 .btn-block { display: block; width: 100%; padding: 11px; font-size: 0.95rem; }
 .mode-note { margin: 12px 0 0; font-size: 0.76rem; color: #94a3b8; line-height: 1.6; }
