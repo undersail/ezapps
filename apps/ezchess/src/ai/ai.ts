@@ -1,143 +1,236 @@
-// ============ AI 教学：简单 AI 引擎（客户端） ============
-// 五子棋：攻防评分；黑白棋：翻转+角权重；国际跳棋：吃子优先+前进
+// ============ AI 教学：Minimax + Alpha-Beta 搜索引擎（客户端） ============
+// 五子棋/黑白棋/跳棋/国象/中象：Alpha-Beta 剪枝搜索 + 评估函数
+// 围棋：分支因子过大（169），保持启发式贪心
 import { GOMOKU, REVERSI, CHECKERS, CHESS, XIANGQI, GO, type AIGame } from './engine'
 
 export interface AIMove {
-  idx?: number          // gomoku / reversi
-  from?: number         // checkers
+  idx?: number          // gomoku / reversi / go
+  from?: number         // checkers / chess / xiangqi
   to?: number
 }
 
-// ===== 五子棋 AI（评分：自身连子 + 堵对手） =====
-function gomokuScore(board: number[], idx: number, player: number): number {
-  const r = Math.floor(idx / 15), c = idx % 15
-  const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]]
-  let score = 0
-  const opp = player === 1 ? 2 : 1
-  for (const [dr, dc] of dirs) {
-    for (const p of [player, opp]) {
-      let n = 1, open = 0
-      for (const s of [1, -1]) {
-        let rr = r + dr * s, cc = c + dc * s
-        while (rr >= 0 && rr < 15 && cc >= 0 && cc < 15 && board[rr * 15 + cc] === p) { n++; rr += dr * s; cc += dc * s }
-        if (rr >= 0 && rr < 15 && cc >= 0 && cc < 15 && board[rr * 15 + cc] === 0) open++
+interface SearchMove { idx?: number; from?: number; to?: number }
+
+// ===== 通用搜索框架 =====
+interface GameSearch {
+  gen: (b: number[], p: number) => SearchMove[]     // 走法生成（p: 1=玩家 2=AI）
+  apply: (b: number[], m: SearchMove, p: number) => number[]
+  eval: (b: number[]) => number                      // 评估（正 = AI 有利）
+  depth: number                                      // 搜索深度
+}
+
+function search(cfg: GameSearch, board: number[], depth: number, alpha: number, beta: number, player: number): number {
+  if (depth <= 0) return cfg.eval(board)
+  const moves = cfg.gen(board, player)
+  if (!moves.length) return cfg.eval(board)
+  if (player === 2) {
+    let best = -Infinity
+    for (const m of moves) {
+      const v = search(cfg, cfg.apply(board, m, 2), depth - 1, alpha, beta, 1)
+      if (v > best) best = v
+      if (best > alpha) alpha = best
+      if (beta <= alpha) break
+    }
+    return best
+  } else {
+    let best = Infinity
+    for (const m of moves) {
+      const v = search(cfg, cfg.apply(board, m, 1), depth - 1, alpha, beta, 2)
+      if (v < best) best = v
+      if (best < beta) beta = best
+      if (beta <= alpha) break
+    }
+    return best
+  }
+}
+
+function searchBest(cfg: GameSearch, board: number[]): AIMove {
+  const moves = cfg.gen(board, 2)
+  if (!moves.length) return { idx: -1 }
+  let best = moves[0], bestScore = -Infinity
+  for (const m of moves) {
+    const v = search(cfg, cfg.apply(board, m, 2), cfg.depth - 1, -Infinity, Infinity, 1)
+    if (v > bestScore) { bestScore = v; best = m }
+  }
+  return best
+}
+
+// ===== 五子棋：候选点（邻近空位）+ 全盘攻防评估 =====
+function gomokuCandidates(board: number[]): number[] {
+  const set = new Set<number>()
+  for (let i = 0; i < 225; i++) {
+    if (!board[i]) continue
+    const r = Math.floor(i / 15), c = i % 15
+    for (let dr = -2; dr <= 2; dr++)
+      for (let dc = -2; dc <= 2; dc++) {
+        const rr = r + dr, cc = c + dc
+        if (rr >= 0 && rr < 15 && cc >= 0 && cc < 15 && board[rr * 15 + cc] === 0) set.add(rr * 15 + cc)
       }
-      const w = p === player ? 1 : 1.2   // 堵对手略优先
-      if (n >= 5) score += 100000 * w
-      else if (n === 4) score += (open > 0 ? 10000 : 0) * w
-      else if (n === 3) score += (open > 1 ? 1000 : open > 0 ? 200 : 0) * w
-      else if (n === 2) score += open > 1 ? 100 * w : 0
-      else score += open > 2 ? 10 * w : 0
+  }
+  return set.size ? [...set] : [112]
+}
+
+function gomokuEvaluate(board: number[]): number {
+  let score = 0
+  const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]]
+  for (let i = 0; i < 225; i++) {
+    const v = board[i]
+    if (!v) continue
+    const r = Math.floor(i / 15), c = i % 15
+    for (const [dr, dc] of dirs) {
+      // 只统计线段起点
+      const pr = r - dr, pc = c - dc
+      if (pr >= 0 && pr < 15 && pc >= 0 && pc < 15 && board[pr * 15 + pc] === v) continue
+      let n = 1, open = 0
+      let rr = r + dr, cc = c + dc
+      while (rr >= 0 && rr < 15 && cc >= 0 && cc < 15 && board[rr * 15 + cc] === v) { n++; rr += dr; cc += dc }
+      if (rr >= 0 && rr < 15 && cc >= 0 && cc < 15 && board[rr * 15 + cc] === 0) open++
+      if (pr >= 0 && pr < 15 && pc >= 0 && pc < 15 && board[pr * 15 + pc] === 0) open++
+      const sign = v === 2 ? 1 : -1
+      if (n >= 5) score += sign * 100000
+      else if (n === 4) score += sign * (open > 0 ? 10000 : 0)
+      else if (n === 3) score += sign * (open > 1 ? 1500 : open > 0 ? 200 : 0)
+      else if (n === 2) score += sign * (open > 1 ? 100 : 0)
+      else if (n === 1) score += sign * (open > 1 ? 10 : 0)
     }
   }
   return score
 }
 
-export function gomokuAI(board: number[]): AIMove {
-  let best = -1, bestScore = -1
-  for (const i of GOMOKU.legalMoves(board)) {
-    const s = gomokuScore(board, i, 2)
-    if (s > bestScore) { bestScore = s; best = i }
-  }
-  return { idx: best }
+const gomokuSearch: GameSearch = {
+  gen: (b) => gomokuCandidates(b).map(idx => ({ idx })),
+  apply: (b, m, p) => { const nb = [...b]; nb[m.idx!] = p; return nb },
+  eval: gomokuEvaluate,
+  depth: 2,
 }
 
-// ===== 黑白棋 AI（翻转数 + 角/边权重） =====
+// ===== 黑白棋：位置权重 + 行动力评估 =====
 const RV_CORNER = [0, 7, 56, 63]
 const RV_EDGE = [1, 2, 3, 4, 5, 6, 8, 15, 16, 23, 24, 31, 32, 39, 40, 47, 48, 55, 57, 58, 59, 60, 61, 62]
 const RV_BAD = [9, 14, 18, 21, 42, 45, 49, 54]   // 角旁陷阱格
 
-export function reversiAI(board: number[]): AIMove {
-  const moves = REVERSI.legalMoves(board, 2)
-  if (!moves.length) return { idx: -1 }
-  let best = moves[0], bestScore = -Infinity
-  for (const i of moves) {
-    const flips = REVERSI.flips(board, i, 2).length
-    let s = flips * 5
-    if (RV_CORNER.includes(i)) s += 100
-    else if (RV_EDGE.includes(i)) s += 20
-    else if (RV_BAD.includes(i)) s -= 30
-    // 模拟落子后对方可翻转数（越小越好）
-    const nb = [...board]; nb[i] = 2
-    for (const f of REVERSI.flips(board, i, 2)) nb[f] = 2
-    const oppMoves = REVERSI.legalMoves(nb, 1).length
-    s -= oppMoves * 3
-    if (s > bestScore) { bestScore = s; best = i }
+function reversiEvaluate(board: number[]): number {
+  let s = 0
+  for (let i = 0; i < 64; i++) {
+    const v = board[i]
+    if (!v) continue
+    const sign = v === 2 ? 1 : -1
+    if (RV_CORNER.includes(i)) s += sign * 100
+    else if (RV_EDGE.includes(i)) s += sign * 15
+    else if (RV_BAD.includes(i)) s += sign * -25
+    else s += sign * 1
   }
-  return { idx: best }
+  s += (REVERSI.legalMoves(board, 2).length - REVERSI.legalMoves(board, 1).length) * 8
+  return s
 }
 
-// ===== 国际跳棋 AI（吃子优先 + 前进 + 王棋） =====
-export function checkersAI(board: number[]): AIMove {
-  const moves = CHECKERS.moves(board, 1)
-  if (!moves.length) return { from: -1, to: -1 }
-  const jumps = moves.filter(m => m.jump)
-  const pool = jumps.length > 0 ? jumps : moves
-  let best = pool[0], bestScore = -Infinity
-  for (const m of pool) {
-    const fromR = Math.floor(m.from / 8), toR = Math.floor(m.to / 8)
-    let s = 0
-    if (m.jump) s += 50                                  // 吃子优先
-    s += (toR - fromR) * 2                               // 前进奖励（白向下，r 增大）
-    if (board[m.from] === 2 && toR === 7) s += 30        // 升王奖励
-    if (board[m.from] === 4) s += 10                     // 王棋主动
-    const nb = CHECKERS.apply(board, m.from, m.to, m.jump)
-    if (CHECKERS.moves(nb, 1).length === 0) s += 200     // 逼死对手
-    if (s > bestScore) { bestScore = s; best = m }
-  }
-  return { from: best.from, to: best.to }
+const reversiSearch: GameSearch = {
+  gen: (b, p) => REVERSI.legalMoves(b, p).map(idx => ({ idx })),
+  apply: (b, m, p) => {
+    const nb = [...b]
+    nb[m.idx!] = p
+    for (const f of REVERSI.flips(b, m.idx!, p)) nb[f] = p
+    return nb
+  },
+  eval: reversiEvaluate,
+  depth: 3,
 }
 
-// ===== 国际象棋 AI（子力价值 + 吃子 + 中心控制 + 王安全） =====
-const CH_VALUE = [0, 1, 5, 3, 3, 9, 100]   // 兵车马象后王
-
-export function chessAI(board: number[]): AIMove {
-  const moves = CHESS.legalMoves(board, 1)
-  if (!moves.length) return { from: -1, to: -1 }
-  let best = moves[0], bestScore = -Infinity
-  for (const m of moves) {
-    let s = 0
-    const target = board[m.to]
-    if (target !== 0) s += CH_VALUE[target % 10] * 10   // 吃子价值
-    const fr = Math.floor(m.from / 8), fc = m.from % 8, tr = Math.floor(m.to / 8), tc = m.to % 8
-    // 中心控制（d4/e4/d5/e5 附近加分）
-    const centerDist = Math.abs(3.5 - tc) + Math.abs(3.5 - tr)
-    s += Math.max(0, 4 - centerDist) * 1.5
-    // 兵推进奖励
-    if (m.to % 10 === 1 && m.to >= 10 && m.to < 20) s += 1
-    // 王安全：避免走到被攻击格（attack 检查在 legalMoves 已做，这里避开中心）
-    if (target % 10 === 6) s += 200
-    // 将军（对手王被攻击）加分
-    const nb = [...board]; nb[m.to] = nb[m.from]; nb[m.from] = 0
-    const oppKing = nb.indexOf(16)
-    if (oppKing >= 0 && CHESS.attacked(nb, Math.floor(oppKing / 8), oppKing % 8, 1)) s += 50
-    if (s > bestScore) { bestScore = s; best = m }
+// ===== 国际跳棋：子力 + 王棋 + 位置 =====
+function checkersEvaluate(board: number[]): number {
+  let s = 0
+  for (let i = 0; i < 64; i++) {
+    const v = board[i]
+    if (!v) continue
+    const r = Math.floor(i / 8)
+    if (v === 2 || v === 4) { s += v === 4 ? 30 : 10; s += (7 - r) * 0.5 }   // AI 白（向下推进）
+    else { s -= v === 3 ? 30 : 10; s -= r * 0.5 }                            // 玩家黑
   }
-  return { from: best.from, to: best.to }
+  return s
 }
 
-// ===== 中国象棋 AI（子力价值 + 吃子 + 推进 + 将军） =====
-const XQ_VALUE = [0, 100, 2, 2, 4, 9, 4.5, 1]   // 帅仕相马车炮兵
-
-export function xiangqiAI(board: number[]): AIMove {
-  const moves = XIANGQI.legalMoves(board, 1)
-  if (!moves.length) return { from: -1, to: -1 }
-  let best = moves[0], bestScore = -Infinity
-  for (const m of moves) {
-    let s = 0
-    const target = board[m.to]
-    if (target !== 0) s += XQ_VALUE[target % 10] * 10   // 吃子价值
-    const tr = Math.floor(m.to / 9)
-    if (target % 10 === 7) s += 2   // 兵卒推进
-    const nb = [...board]; nb[m.to] = nb[m.from]; nb[m.from] = 0
-    const oppKing = nb.indexOf(11)
-    if (oppKing >= 0 && XIANGQI.attacked(nb, Math.floor(oppKing / 9), oppKing % 9, 1)) s += 50   // 将军
-    if (s > bestScore) { bestScore = s; best = m }
-  }
-  return { from: best.from, to: best.to }
+const checkersSearch: GameSearch = {
+  gen: (b, p) => CHECKERS.moves(b, p).map(m => ({ from: m.from, to: m.to })),
+  apply: (b, m, p) => {
+    const jump = Math.abs(Math.floor(m.from! / 8) - Math.floor(m.to! / 8)) > 1
+    return CHECKERS.apply(b, m.from!, m.to!, jump)
+  },
+  eval: checkersEvaluate,
+  depth: 3,
 }
 
-// ===== 围棋 AI（围地 + 吃子 + 自保） =====
+// ===== 国际象棋：子力 + 中心 + 王安全 =====
+const CH_VALUE = [0, 100, 500, 330, 320, 900, 20000]   // 兵车马象后王
+
+function chessEvaluate(board: number[]): number {
+  let s = 0
+  for (let i = 0; i < 64; i++) {
+    const v = board[i]
+    if (!v) continue
+    const t = v % 10
+    const sign = v >= 11 ? 1 : -1   // AI 黑正，玩家白负
+    s += sign * CH_VALUE[t]
+    const r = Math.floor(i / 8), c = i % 8
+    const center = Math.max(0, 4 - (Math.abs(3.5 - r) + Math.abs(3.5 - c)))
+    if (t === 3 || t === 4) s += sign * center * 10   // 马象占中心
+  }
+  return s
+}
+
+function chessApply(b: number[], m: SearchMove, p: number): number[] {
+  const nb = [...b]
+  nb[m.to!] = nb[m.from!]
+  nb[m.from!] = 0
+  // 升变：玩家白兵 → 白后(5)，AI 黑兵 → 黑后(15)
+  const tr = Math.floor(m.to! / 8)
+  if ((p === 1 && tr === 0 && nb[m.to!] === 1) || (p === 2 && tr === 7 && nb[m.to!] === 11)) {
+    nb[m.to!] = p === 1 ? 5 : 15
+  }
+  return nb
+}
+
+const chessSearch: GameSearch = {
+  gen: (b, p) => CHESS.legalMoves(b, p).map(m => ({ from: m.from, to: m.to })),
+  apply: chessApply,
+  eval: chessEvaluate,
+  depth: 2,
+}
+
+// ===== 中国象棋：子力 + 过河兵 =====
+const XQ_VALUE = [0, 1000, 200, 200, 400, 900, 450, 100]   // 帅仕相马车炮兵
+
+function xiangqiEvaluate(board: number[]): number {
+  let s = 0
+  for (let i = 0; i < 90; i++) {
+    const v = board[i]
+    if (!v) continue
+    const t = v % 10
+    const sign = v >= 11 ? 1 : -1
+    s += sign * XQ_VALUE[t]
+    const r = Math.floor(i / 9)
+    if (t === 7) {   // 兵/卒过河奖励
+      const crossed = v >= 11 ? r >= 5 : r <= 4
+      s += sign * (crossed ? 60 : 0)
+    }
+  }
+  return s
+}
+
+function xiangqiApply(b: number[], m: SearchMove, p: number): number[] {
+  const nb = [...b]
+  nb[m.to!] = nb[m.from!]
+  nb[m.from!] = 0
+  return nb
+}
+
+const xiangqiSearch: GameSearch = {
+  gen: (b, p) => XIANGQI.legalMoves(b, p).map(m => ({ from: m.from, to: m.to })),
+  apply: xiangqiApply,
+  eval: xiangqiEvaluate,
+  depth: 2,
+}
+
+// ===== 围棋：启发式贪心（分支过大无法搜索） =====
 export function goAI(board: number[], koPoint = -1): AIMove {
   let bestIdx = -1, bestScore = -Infinity
   for (let i = 0; i < 169; i++) {
@@ -153,16 +246,26 @@ export function goAI(board: number[], koPoint = -1): AIMove {
     // 自保：落子后己方组气多
     const mine = GO.groupInfo(res.board!, i)
     s += mine.liberties.length * 0.5
+    // 连接/分断：落子后相邻敌方组被威胁（气=1）加分
+    for (const [dr, dc] of GO.dirs) {
+      const rr = r + dr, cc = c + dc
+      if (rr < 0 || rr >= 13 || cc < 0 || cc >= 13) continue
+      const j = rr * 13 + cc
+      if (res.board[j] === 1) {
+        const opp = GO.groupInfo(res.board, j)
+        if (opp.liberties.length === 1) s += 15      // 紧气对方
+      }
+    }
     if (s > bestScore) { bestScore = s; bestIdx = i }
   }
   return { idx: bestIdx }
 }
 
 export function aiMove(game: AIGame, board: number[]): AIMove {
-  if (game === 'gomoku') return gomokuAI(board)
-  if (game === 'reversi') return reversiAI(board)
-  if (game === 'chess') return chessAI(board)
-  if (game === 'xiangqi') return xiangqiAI(board)
-  if (game === 'go') return goAI(board)
-  return checkersAI(board)
+  if (game === 'gomoku') return searchBest(gomokuSearch, board)
+  if (game === 'reversi') return searchBest(reversiSearch, board)
+  if (game === 'checkers') return searchBest(checkersSearch, board)
+  if (game === 'chess') return searchBest(chessSearch, board)
+  if (game === 'xiangqi') return searchBest(xiangqiSearch, board)
+  return goAI(board)
 }
