@@ -1,6 +1,6 @@
 // ============ AI 教学：简单 AI 引擎（客户端） ============
 // 五子棋：攻防评分；黑白棋：翻转+角权重；国际跳棋：吃子优先+前进
-import { GOMOKU, REVERSI, CHECKERS, type AIGame } from './engine'
+import { GOMOKU, REVERSI, CHECKERS, CHESS, type AIGame } from './engine'
 
 export interface AIMove {
   idx?: number          // gomoku / reversi
@@ -88,8 +88,37 @@ export function checkersAI(board: number[]): AIMove {
   return { from: best.from, to: best.to }
 }
 
+// ===== 国际象棋 AI（子力价值 + 吃子 + 中心控制 + 王安全） =====
+const CH_VALUE = [0, 1, 5, 3, 3, 9, 100]   // 兵车马象后王
+
+export function chessAI(board: number[]): AIMove {
+  const moves = CHESS.legalMoves(board, 1)
+  if (!moves.length) return { from: -1, to: -1 }
+  let best = moves[0], bestScore = -Infinity
+  for (const m of moves) {
+    let s = 0
+    const target = board[m.to]
+    if (target !== 0) s += CH_VALUE[target % 10] * 10   // 吃子价值
+    const fr = Math.floor(m.from / 8), fc = m.from % 8, tr = Math.floor(m.to / 8), tc = m.to % 8
+    // 中心控制（d4/e4/d5/e5 附近加分）
+    const centerDist = Math.abs(3.5 - tc) + Math.abs(3.5 - tr)
+    s += Math.max(0, 4 - centerDist) * 1.5
+    // 兵推进奖励
+    if (m.to % 10 === 1 && m.to >= 10 && m.to < 20) s += 1
+    // 王安全：避免走到被攻击格（attack 检查在 legalMoves 已做，这里避开中心）
+    if (target % 10 === 6) s += 200
+    // 将军（对手王被攻击）加分
+    const nb = [...board]; nb[m.to] = nb[m.from]; nb[m.from] = 0
+    const oppKing = nb.indexOf(16)
+    if (oppKing >= 0 && CHESS.attacked(nb, Math.floor(oppKing / 8), oppKing % 8, 1)) s += 50
+    if (s > bestScore) { bestScore = s; best = m }
+  }
+  return { from: best.from, to: best.to }
+}
+
 export function aiMove(game: AIGame, board: number[]): AIMove {
   if (game === 'gomoku') return gomokuAI(board)
   if (game === 'reversi') return reversiAI(board)
+  if (game === 'chess') return chessAI(board)
   return checkersAI(board)
 }

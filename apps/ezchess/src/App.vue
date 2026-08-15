@@ -3,7 +3,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import * as Net from './network/api'
 import { GameWS } from './network/ws'
-import { GOMOKU, REVERSI, CHECKERS } from './ai/engine'
+import { GOMOKU, REVERSI, CHECKERS, CHESS } from './ai/engine'
 import { aiMove } from './ai/ai'
 
 const BOARD = 15
@@ -22,6 +22,7 @@ const aiRules = computed(() => {
   const g = curGame.value
   if (g === 'gomoku') return '规则：黑白轮流在交叉点落子，横/竖/斜率先连成 5 子者胜；棋盘下满无五连为和棋'
   if (g === 'reversi') return '规则：落子必须夹住对方棋子（横竖斜），被夹棋子翻转；无子可落自动跳过；双方都无法落子时子多者胜'
+  if (g === 'chess') return '规则：车横竖、马走日、象斜走、后横竖斜、王走一格；兵直进斜吃、到底线升变；将死对方王获胜，无子可动为逼和'
   return '规则：棋子斜走一格；跳吃相邻对方棋子（可连跳，有吃必吃）；到达对方底线升王（可斜走任意格）；吃光对方或对方无子可动者胜'
 })
 
@@ -89,6 +90,20 @@ function genTip(g: string, board: number[], last: string): string {
     if (myC > aiC) return `💡 你暂时领先 ${myC}:${aiC}！但黑白棋关键在终局，继续稳占边角`
     return '💡 提示：尽量少给对方"可翻转选择"，落子后数一下对方还有几个可落点，越少越好'
   }
+  if (g === 'chess') {
+    const myMoves = CHESS.legalMoves(board, 0).length
+    const myKing = board.indexOf(6)
+    const inCheck = myKing >= 0 && CHESS.attacked(board, Math.floor(myKing / 8), myKing % 8, 1)
+    if (inCheck) return '💡 警告：你的王被将军！必须立刻解将（移王/挡/吃将军子）'
+    const oppKing = board.indexOf(16)
+    const oppCheck = oppKing >= 0 && CHESS.attacked(board, Math.floor(oppKing / 8), oppKing % 8, 0)
+    if (oppCheck) return '💡 将军！对方王被攻击，保持压力，寻找将死机会'
+    const whitePieces = board.filter(v => v > 0 && v < 10).length
+    const blackPieces = board.filter(v => v >= 11).length
+    if (whitePieces + blackPieces === 32) return '💡 开局建议：先出动马象（中心兵先行），尽快易位保护王'
+    if (myMoves < 15) return '💡 你子力紧张，优先保护高价值子（后/车），别送子'
+    return '💡 提示：控制中心（d4/e4/d5/e5），先动马象后动后，别让王暴露'
+  }
   // checkers
   const myJumps = CHECKERS.moves(board, 0).filter(m => m.jump)
   if (myJumps.length) return `💡 你有 ${myJumps.length} 处跳吃机会！规则要求有吃必吃，优先跳吃对方棋子`
@@ -146,6 +161,7 @@ function refreshAILegal() {
   if (aiOver.value) { aiLegal.value = []; aiCkMoves.value = []; return }
   if (curGame.value === 'gomoku') aiLegal.value = GOMOKU.legalMoves(aiBoard.value)
   else if (curGame.value === 'reversi') aiLegal.value = REVERSI.legalMoves(aiBoard.value, 1)
+  else if (curGame.value === 'chess') aiCkMoves.value = CHESS.legalMoves(aiBoard.value, 0)
   else aiCkMoves.value = CHECKERS.legalMoves(aiBoard.value, 0)
 }
 
@@ -163,11 +179,30 @@ function aiSummary(g: string, board: number[], winner: number): string {
     if (winner === 2) return `🤖 AI 获胜（${c1}:${c2}）—— 复盘：是不是把中间翻太多、角没抢到？`
     return `🤝 和棋（${c1}:${c2}）—— 势均力敌！`
   }
+  if (g === 'chess') {
+    if (winner === 1) return '🎉 你赢了！将死对方 —— 记住：先出马象、控制中心、保护王，中局再发动攻击'
+    if (winner === 2) return '🤖 AI 获胜 —— 复盘：你的王安全吗？子力是否落后？将军时有没有漏掉解将？'
+    return '🤝 逼和 —— 对方无子可动但未被将军，势均力敌！'
+  }
   const f1 = board.filter(v => v === 1 || v === 3).length
   const f2 = board.filter(v => v === 2 || v === 4).length
   if (winner === 1) return `🎉 你赢了！—— 记住：有吃必吃，跳吃后优先继续连跳，尽快升王`
   if (winner === 2) return '🤖 AI 获胜 —— 复盘：是不是把棋子落单了？抱团推进 + 及时跳吃是取胜关键'
   return '🤝 平局 —— 势均力敌！'
+}
+
+// 本地国际象棋状态判定（AI 教学用）：返回 { over, winner(1白/2黑/0和), reason }
+function chLocalStatus(board: number[], owner: number): { over: boolean; winner: number; reason: string } {
+  const moves = CHESS.legalMoves(board, owner)
+  const opp = owner === 0 ? 1 : 0
+  const kType = owner === 0 ? 6 : 16
+  const ki = board.indexOf(kType)
+  const inCheck = ki >= 0 && CHESS.attacked(board, Math.floor(ki / 8), ki % 8, opp)
+  if (moves.length === 0) {
+    if (inCheck) return { over: true, winner: opp + 1, reason: '将死（Checkmate）' }
+    return { over: true, winner: 0, reason: '逼和（Stalemate）' }
+  }
+  return { over: false, winner: 0, reason: '' }
 }
 
 function aiFinish(winner: number, reason: string) {
@@ -202,6 +237,17 @@ function aiPlayerMove(idx: number, from?: number, to?: number) {
       }
       // 对手无子可走，我方继续
     }
+  } else if (g === 'chess') {
+    // 国际象棋
+    if (from === undefined || to === undefined) return
+    const legal = CHESS.legalMoves(aiBoard.value, 0).find(m => m.from === from && m.to === to)
+    if (!legal) return
+    aiBoard.value[to] = aiBoard.value[from]
+    aiBoard.value[from] = 0
+    if (legal.promote) aiBoard.value[to] = 5
+    // 判断对方（黑）状态
+    const st = chLocalStatus(aiBoard.value, 1)
+    if (st.over) return aiFinish(st.winner, st.reason)
   } else {
     // checkers
     if (from === undefined || to === undefined) return
@@ -240,6 +286,16 @@ function aiMoveTurn() {
       const c2 = aiBoard.value.filter(v => v === 2).length
       return aiFinish(c1 > c2 ? 1 : c1 < c2 ? 2 : 0, `终局 ${c1}:${c2}`)
     }
+  } else if (g === 'chess') {
+    const mv = aiMove(g, aiBoard.value)
+    if (mv.from === -1) return aiFinish(1, 'AI 无子可动')
+    const legal = CHESS.legalMoves(aiBoard.value, 1).find(m => m.from === mv.from && m.to === mv.to)
+    if (!legal) return
+    aiBoard.value[mv.to!] = aiBoard.value[mv.from!]
+    aiBoard.value[mv.from!] = 0
+    if (legal.promote) aiBoard.value[mv.to!] = 15
+    const st = chLocalStatus(aiBoard.value, 0)
+    if (st.over) return aiFinish(st.winner, st.reason)
   } else if (g === 'gomoku') {
     const mv = aiMove(g, aiBoard.value)
     aiBoard.value[mv.idx!] = 2
@@ -265,13 +321,16 @@ function aiCellClick(e: MouseEvent) {
   const px = e.clientX - rect.left
   const py = e.clientY - rect.top
   const g = curGame.value
-  if (g === 'checkers') {
+  if (g === 'checkers' || g === 'chess') {
     const cell = rect.width / 8
     const r = Math.floor(py / cell), c = Math.floor(px / cell)
     if (r < 0 || r > 7 || c < 0 || c > 7) return
     const pt = r * 8 + c
     if (aiSelected.value === null) {
-      if (aiBoard.value[pt] === 1 || aiBoard.value[pt] === 3) aiSelected.value = pt
+      // 选中己方棋子（chess 白方 1-6，跳棋 1/3）
+      const v = aiBoard.value[pt]
+      const mine = g === 'chess' ? (v > 0 && v < 10) : (v === 1 || v === 3)
+      if (mine) aiSelected.value = pt
       else aiSelected.value = null
     } else if (aiSelected.value === pt) {
       aiSelected.value = null
@@ -296,6 +355,7 @@ const GAME_LIST = [
   { id: 'gomoku', emoji: '⚫', name: '五子棋', desc: '15×15 · 先五连者胜', seats: 2 },
   { id: 'reversi', emoji: '◐', name: '黑白棋', desc: '8×8 · 翻转吃子', seats: 2 },
   { id: 'checkers', emoji: '🏁', name: '国际跳棋', desc: '8×8 · 斜走跳吃', seats: 2 },
+  { id: 'chess', emoji: '♞', name: '国际象棋', desc: '8×8 · 车马象后王', seats: 2 },
 ]
 const gameId = ref('gomoku')
 
@@ -425,6 +485,7 @@ function enterRoom(id: string) {
   gameWs.on('move_ok', (m) => {
     if (m.board) board.value = m.board
     if (typeof m.nextTurn === 'number') turn.value = m.nextTurn
+    if (m.check) lastMsg.value = '⚔️ 将军！'
   })
   gameWs.on('illegal', (m) => { lastMsg.value = m.reason || '非法操作' })
   gameWs.on('player_joined', (m) => { lastMsg.value = `${m.player?.nick} 加入房间 (${m.seats}/${m.seats})` })
@@ -469,6 +530,26 @@ function cellClick(e: MouseEvent) {
   const px = e.clientX - rect.left
   const py = e.clientY - rect.top
 
+  if (curGame.value === 'chess') {
+    // 8×8：点己方棋子选中 → 点目标格移动（服务端校验将军）
+    const cell = rect.width / 8
+    const r = Math.floor(py / cell), c = Math.floor(px / cell)
+    if (r < 0 || r > 7 || c < 0 || c > 7) return
+    const pt = r * 8 + c
+    const v = board.value[pt]
+    if (selected.value === null) {
+      if (v > 0 && v < 10 && mySeat.value === 0) selected.value = pt
+      else if (v >= 11 && mySeat.value === 1) selected.value = pt
+      else selected.value = null
+    } else if (selected.value === pt) {
+      selected.value = null
+    } else {
+      if (board.value[pt] !== 0 && (board.value[pt] > 0 && board.value[pt] < 10 ? 0 : 1) === mySeat.value) { selected.value = pt; return }
+      ws.value?.send({ type: 'move', from: selected.value, to: pt })
+      selected.value = null
+    }
+    return
+  }
   if (curGame.value === 'checkers') {
     // 8×8 黑白格：点己方棋子选中 → 点目标格移动
     const cell = rect.width / 8
@@ -555,6 +636,8 @@ function drawBoard() {
 
   if (curGame.value === 'checkers') {
     drawCheckers(ctx, size)
+  } else if (curGame.value === 'chess') {
+    drawChess(ctx, size)
   } else if (curGame.value === 'reversi') {
     drawReversi(ctx, size)
   } else {
@@ -563,7 +646,7 @@ function drawBoard() {
 
   // AI 教学：合法落点提示（玩家回合）
   if (stage.value === 'ai' && aiTurn.value === 0 && !aiOver.value) {
-    if (curGame.value === 'checkers') {
+    if (curGame.value === 'checkers' || curGame.value === 'chess') {
       const cell = size / 8
       if (aiSelected.value === null) {
         // 第一步：高亮所有可移动的棋子（紫色圆圈）
@@ -647,6 +730,42 @@ function drawGomoku(ctx: CanvasRenderingContext2D, size: number) {
     }
   }
 }
+// ===== 国际象棋棋盘（8×8 + Unicode 棋子） =====
+const CHESS_GLYPH: Record<number, string> = {
+  1: '♟', 2: '♜', 3: '♞', 4: '♝', 5: '♛', 6: '♚',
+  11: '♙', 12: '♖', 13: '♘', 14: '♗', 15: '♕', 16: '♔',
+}
+function drawChess(ctx: CanvasRenderingContext2D, size: number) {
+  const cell = size / 8
+  // 棋盘底色（白格/绿格交替）
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      ctx.fillStyle = (r + c) % 2 === 0 ? '#f0d9b5' : '#b58863'
+      ctx.fillRect(c * cell, r * cell, cell, cell)
+    }
+  }
+  // 棋子（Unicode 符号，程序化绘制）
+  for (let i = 0; i < activeBoard.value.length; i++) {
+    const v = activeBoard.value[i]
+    if (!v) continue
+    const r = Math.floor(i / 8), c = i % 8
+    const x = c * cell + cell / 2, y = r * cell + cell / 2
+    ctx.font = `bold ${cell * 0.72}px serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    const isWhite = CHESS.owner(v) === 0
+    ctx.fillStyle = isWhite ? '#f8f4e6' : '#2b2b2b'
+    // 阴影
+    ctx.fillStyle = isWhite ? '#f8f4e6' : '#1a1a1a'
+    ctx.fillText(CHESS_GLYPH[v] || '', x, y + 1)
+    ctx.fillStyle = isWhite ? '#ffffff' : '#3a3a3a'
+    ctx.fillText(CHESS_GLYPH[v] || '', x, y)
+    ctx.strokeStyle = isWhite ? '#555' : '#000'
+    ctx.lineWidth = 0.8
+    ctx.strokeText(CHESS_GLYPH[v] || '', x, y)
+  }
+}
+
 // ===== 国际跳棋棋盘（8×8 黑白格） =====
 function drawCheckers(ctx: CanvasRenderingContext2D, size: number) {
   const cell = size / 8
@@ -993,7 +1112,7 @@ onUnmounted(() => {
 
       <p class="status" v-if="!aiOver">
         <template v-if="aiThinking">AI 思考中…</template>
-        <template v-else-if="curGame === 'checkers'">
+        <template v-else-if="curGame === 'checkers' || curGame === 'chess'">
           {{ aiSelected === null ? '第 1 步：点击紫色圆圈的可走棋子' : '第 2 步：点击紫色圆点选择目标位置' }}
         </template>
         <template v-else>轮到你落子（紫色圆点为可落位置）</template>
