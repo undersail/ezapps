@@ -3,9 +3,155 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import * as Net from './network/api'
 import { GameWS } from './network/ws'
+import { GOMOKU, REVERSI, CHECKERS } from './ai/engine'
+import { aiMove } from './ai/ai'
 
 const BOARD = 15
-const stage = ref<'lobby' | 'room'>('lobby')
+const stage = ref<'lobby' | 'room' | 'ai'>('lobby')
+
+// ===== AI 教学状态 =====
+const aiBoard = ref<number[]>([])
+const aiTurn = ref(0)                 // 0 玩家（黑/先手），1 AI（白/后手）
+const aiThinking = ref(false)
+const aiOver = ref<{ winner: number; reason: string } | null>(null)
+const aiLegal = ref<number[]>([])     // 玩家可落点（gomoku/reversi 高亮）
+const aiCkMoves = ref<{ from: number; to: number }[]>([])
+const aiSelected = ref<number | null>(null)
+
+function startAI() {
+  stage.value = 'ai'
+  curGame.value = gameId.value
+  if (curGame.value === 'reversi') aiBoard.value = REVERSI.init()
+  else if (curGame.value === 'checkers') aiBoard.value = CHECKERS.init()
+  else aiBoard.value = GOMOKU.init()
+  aiTurn.value = 0
+  aiOver.value = null
+  aiThinking.value = false
+  aiLegal.value = []
+  aiCkMoves.value = []
+  aiSelected.value = null
+  refreshAILegal()
+}
+
+function refreshAILegal() {
+  if (aiOver.value) { aiLegal.value = []; aiCkMoves.value = []; return }
+  if (curGame.value === 'gomoku') aiLegal.value = GOMOKU.legalMoves(aiBoard.value)
+  else if (curGame.value === 'reversi') aiLegal.value = REVERSI.legalMoves(aiBoard.value, 1)
+  else aiCkMoves.value = CHECKERS.legalMoves(aiBoard.value, 0)
+}
+
+function aiFinish(winner: number, reason: string) {
+  aiOver.value = { winner, reason }
+  aiLegal.value = []
+  aiCkMoves.value = []
+}
+
+function aiPlayerMove(idx: number, from?: number, to?: number) {
+  if (aiOver.value || aiTurn.value !== 0 || aiThinking.value) return
+  const g = curGame.value
+  if (g === 'gomoku') {
+    aiBoard.value[idx] = 1
+    if (GOMOKU.checkWin(aiBoard.value, idx, 1)) return aiFinish(1, '五连获胜')
+    if (!GOMOKU.legalMoves(aiBoard.value).length) return aiFinish(0, '和棋')
+  } else if (g === 'reversi') {
+    const flips = REVERSI.flips(aiBoard.value, idx, 1)
+    if (!flips.length) return
+    aiBoard.value[idx] = 1
+    for (const f of flips) aiBoard.value[f] = 1
+    const opp = REVERSI.legalMoves(aiBoard.value, 2)
+    if (!opp.length) {
+      const mine = REVERSI.legalMoves(aiBoard.value, 1)
+      if (!mine.length) {
+        const c1 = aiBoard.value.filter(v => v === 1).length
+        const c2 = aiBoard.value.filter(v => v === 2).length
+        return aiFinish(c1 > c2 ? 1 : c1 < c2 ? 2 : 0, `终局 ${c1}:${c2}`)
+      }
+      // 对手无子可走，我方继续
+    }
+  } else {
+    // checkers
+    if (from === undefined || to === undefined) return
+    const mv = aiCkMoves.value.find(m => m.from === from && m.to === to)
+    if (!mv) return
+    aiBoard.value = CHECKERS.apply(aiBoard.value, from, to, Math.abs(Math.floor(from / 8) - Math.floor(to / 8)) > 1 || Math.abs((from % 8) - (to % 8)) > 1)
+    if (!CHECKERS.moves(aiBoard.value, 1).length) return aiFinish(1, '对方无子可动')
+  }
+  // 轮到 AI
+  aiTurn.value = 1
+  aiThinking.value = true
+  setTimeout(aiMoveTurn, 400)
+}
+
+function aiMoveTurn() {
+  if (aiOver.value) return
+  const g = curGame.value
+  if (g === 'reversi') {
+    const mv = aiMove(g, aiBoard.value)
+    if (mv.idx === -1) {
+      // AI 无子可落 → 玩家继续
+      if (!REVERSI.legalMoves(aiBoard.value, 1).length) {
+        const c1 = aiBoard.value.filter(v => v === 1).length
+        const c2 = aiBoard.value.filter(v => v === 2).length
+        return aiFinish(c1 > c2 ? 1 : c1 < c2 ? 2 : 0, `终局 ${c1}:${c2}`)
+      }
+      aiTurn.value = 0
+      aiThinking.value = false
+      refreshAILegal()
+      return
+    }
+    aiBoard.value[mv.idx!] = 2
+    for (const f of REVERSI.flips(aiBoard.value, mv.idx!, 2)) aiBoard.value[f] = 2
+    if (!REVERSI.legalMoves(aiBoard.value, 1).length) {
+      const c1 = aiBoard.value.filter(v => v === 1).length
+      const c2 = aiBoard.value.filter(v => v === 2).length
+      return aiFinish(c1 > c2 ? 1 : c1 < c2 ? 2 : 0, `终局 ${c1}:${c2}`)
+    }
+  } else if (g === 'gomoku') {
+    const mv = aiMove(g, aiBoard.value)
+    aiBoard.value[mv.idx!] = 2
+    if (GOMOKU.checkWin(aiBoard.value, mv.idx!, 2)) return aiFinish(2, 'AI 五连获胜')
+    if (!GOMOKU.legalMoves(aiBoard.value).length) return aiFinish(0, '和棋')
+  } else {
+    const mv = aiMove(g, aiBoard.value)
+    if (mv.from === -1) return aiFinish(1, 'AI 无子可动')
+    const jump = Math.abs(Math.floor(mv.from! / 8) - Math.floor(mv.to! / 8)) > 1
+    aiBoard.value = CHECKERS.apply(aiBoard.value, mv.from!, mv.to!, jump)
+    if (!CHECKERS.moves(aiBoard.value, 0).length) return aiFinish(2, '你无子可动')
+  }
+  aiTurn.value = 0
+  aiThinking.value = false
+  refreshAILegal()
+}
+
+function aiCellClick(e: MouseEvent) {
+  const canvas = canvasRef.value
+  if (!canvas) return
+  const rect = canvas.getBoundingClientRect()
+  const px = e.clientX - rect.left
+  const py = e.clientY - rect.top
+  const g = curGame.value
+  if (g === 'checkers') {
+    const cell = rect.width / 8
+    const r = Math.floor(py / cell), c = Math.floor(px / cell)
+    if (r < 0 || r > 7 || c < 0 || c > 7) return
+    const pt = r * 8 + c
+    if (aiSelected.value === null) {
+      if (aiBoard.value[pt] === 1 || aiBoard.value[pt] === 3) aiSelected.value = pt
+      else aiSelected.value = null
+    } else if (aiSelected.value === pt) {
+      aiSelected.value = null
+    } else {
+      aiPlayerMove(-1, aiSelected.value, pt)
+      aiSelected.value = null
+    }
+    return
+  }
+  const size = g === 'reversi' ? 8 : 15
+  const cell = rect.width / size
+  const r = Math.floor(py / cell), c = Math.floor(px / cell)
+  if (r < 0 || r >= size || c < 0 || c >= size) return
+  aiPlayerMove(r * size + c)
+}
 const nickInput = ref(Net.getNickname())
 const myNick = ref(Net.getNickname() || '玩家')
 const deviceId = Net.getDeviceId()
@@ -205,6 +351,9 @@ function fmtTime(ms: number): string {
 
 // ===== Canvas 棋盘渲染 =====
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+// 活跃棋盘（AI 教学用本地棋盘，联网对局用 WS 棋盘）
+const activeBoard = computed(() => (stage.value === 'ai' ? aiBoard.value : board.value))
+
 function drawBoard() {
   const canvas = canvasRef.value
   if (!canvas) return
@@ -216,13 +365,48 @@ function drawBoard() {
   canvas.height = size * dpr
   ctx.scale(dpr, dpr)
 
-  if (curGame.value === 'checkers') return drawCheckers(ctx, size)
-  if (curGame.value === 'reversi') return drawReversi(ctx, size)
+  if (curGame.value === 'checkers') {
+    drawCheckers(ctx, size)
+  } else if (curGame.value === 'reversi') {
+    drawReversi(ctx, size)
+  } else {
+    drawGomoku(ctx, size)
+  }
 
-  // ===== 五子棋 =====
+  // AI 教学：合法落点提示（玩家回合）
+  if (stage.value === 'ai' && aiTurn.value === 0 && !aiOver.value) {
+    if (curGame.value === 'checkers') {
+      const cell = size / 8
+      if (aiSelected.value !== null) {
+        const sr = Math.floor(aiSelected.value / 8), sc = aiSelected.value % 8
+        ctx.strokeStyle = '#fff'
+        ctx.lineWidth = 3
+        ctx.beginPath(); ctx.arc(sc * cell + cell / 2, sr * cell + cell / 2, cell * 0.36, 0, Math.PI * 2); ctx.stroke()
+      }
+      ctx.fillStyle = 'rgba(99, 102, 241, 0.5)'
+      for (const m of aiCkMoves.value) {
+        if (aiSelected.value === null || m.from === aiSelected.value) {
+          const r = Math.floor(m.to / 8), c = m.to % 8
+          ctx.beginPath(); ctx.arc(c * cell + cell / 2, r * cell + cell / 2, cell * 0.18, 0, Math.PI * 2); ctx.fill()
+        }
+      }
+    } else {
+      const n = curGame.value === 'reversi' ? 8 : 15
+      const cell = size / (n + (curGame.value === 'reversi' ? 0 : 1))
+      const pad = curGame.value === 'reversi' ? 0 : cell
+      ctx.fillStyle = 'rgba(99, 102, 241, 0.45)'
+      for (const i of aiLegal.value) {
+        const r = Math.floor(i / n), c = i % n
+        ctx.beginPath(); ctx.arc(pad + c * cell, pad + r * cell, 4.5, 0, Math.PI * 2); ctx.fill()
+      }
+    }
+  }
+}
+
+// ===== 五子棋棋盘 =====
+function drawGomoku(ctx: CanvasRenderingContext2D, size: number) {
   const cell = size / (BOARD + 1)
   const pad = cell
-
   // 木纹底色
   ctx.fillStyle = '#d9a05b'
   ctx.fillRect(0, 0, size, size)
@@ -242,7 +426,7 @@ function drawBoard() {
   // 棋子
   for (let r = 0; r < BOARD; r++) {
     for (let c = 0; c < BOARD; c++) {
-      const v = board.value[r * BOARD + c]
+      const v = activeBoard.value[r * BOARD + c]
       if (!v) continue
       const x = pad + c * cell, y = pad + r * cell
       const grad = ctx.createRadialGradient(x - cell * 0.25, y - cell * 0.25, cell * 0.1, x, y, cell * 0.42)
@@ -287,8 +471,8 @@ function drawCheckers(ctx: CanvasRenderingContext2D, size: number) {
   }
   ctx.stroke()
   // 棋子（1/3 黑方，2/4 白方；3/4 为王）
-  for (let i = 0; i < board.value.length; i++) {
-    const v = board.value[i]
+  for (let i = 0; i < activeBoard.value.length; i++) {
+    const v = activeBoard.value[i]
     if (!v || v === -1) continue
     const r = Math.floor(i / 8), c = i % 8
     const x = c * cell + cell / 2, y = r * cell + cell / 2
@@ -335,7 +519,7 @@ function drawReversi(ctx: CanvasRenderingContext2D, size: number) {
   }
   // 棋子
   for (let r = 0; r < RV2; r++) for (let c = 0; c < RV2; c++) {
-    const v = board.value[r * RV2 + c]
+    const v = activeBoard.value[r * RV2 + c]
     if (!v) continue
     const x = c * cell + cell / 2, y = r * cell + cell / 2
     const grad = ctx.createRadialGradient(x - cell * 0.15, y - cell * 0.15, cell * 0.08, x, y, cell * 0.42)
@@ -439,8 +623,8 @@ function drawCC(ctx: CanvasRenderingContext2D, size: number) {
     ctx.beginPath(); ctx.arc(X(c), Y(r), 2.8, 0, Math.PI * 2); ctx.stroke()
   }
   // 棋子 + 选中高亮
-  for (let pt = 0; pt < board.value.length; pt++) {
-    const v = board.value[pt]
+  for (let pt = 0; pt < activeBoard.value.length; pt++) {
+    const v = activeBoard.value[pt]
     if (!v || v === -1) continue
     const r = Math.floor(pt / 17), c = pt % 17
     ctx.fillStyle = COLORS[(v - 1) % 6]
@@ -517,7 +701,10 @@ onUnmounted(() => {
 
         <!-- 策略一：快速对战 -->
         <div class="mode-box">
-          <h4 class="mode-title">🎮 对战大厅</h4>
+          <div class="mode-head">
+            <h4 class="mode-title">🎮 对战大厅</h4>
+            <button class="btn btn-ai" @click="startAI">🤖 AI 教学</button>
+          </div>
           <button class="btn btn-primary btn-block" :disabled="matching" @click="match">
             {{ matching ? '匹配中…' : '⚡ 快速匹配' }}
           </button>
@@ -566,6 +753,48 @@ onUnmounted(() => {
       <footer class="lobby-foot">
         <a href="/">← 返回 ezapps 主页</a>
       </footer>
+    </section>
+
+    <!-- ===== AI 教学页 ===== -->
+    <section v-else-if="stage === 'ai'" class="room">
+      <header class="room-head">
+        <button class="btn back" @click="stage = 'lobby'">← 大厅</button>
+        <div class="room-info">
+          <span class="room-title">🤖 AI 教学 · {{ GAME_LIST.find(g => g.id === curGame)?.name }}</span>
+          <span class="room-id">你执黑（先手）vs AI</span>
+          <span class="room-phase">{{ aiThinking ? 'AI 思考中…' : '对局中' }}</span>
+        </div>
+        <button class="btn" @click="startAI">🔄 重开</button>
+      </header>
+
+      <div class="players">
+        <div class="player-chip" :class="{ active: aiTurn === 0 && !aiOver }">
+          <span class="dot" style="background:#111"></span>
+          <span>你<small>（黑）</small></span>
+        </div>
+        <div class="player-chip" :class="{ active: aiTurn === 1 && !aiOver }">
+          <span class="dot" style="background:#eee"></span>
+          <span>🤖 AI<small>（白）</small></span>
+        </div>
+      </div>
+
+      <div class="board-wrap">
+        <canvas ref="canvasRef" class="board" @click="aiCellClick"></canvas>
+      </div>
+
+      <p class="status" v-if="!aiOver">
+        {{ aiThinking ? 'AI 思考中…' : aiTurn === 0 ? '轮到你落子（紫色圆点为可落位置）' : '轮到你落子' }}
+      </p>
+      <p class="status warn">{{ aiOver ? '' : '提示：点击可落点下棋，AI 会教你规则' }}</p>
+
+      <div v-if="aiOver" class="over-box">
+        <h2>{{ aiOver.winner === 0 ? '🤝 和棋' : aiOver.winner === 1 ? '🎉 你赢了！' : '🤖 AI 获胜' }}</h2>
+        <p>{{ aiOver.reason }}</p>
+        <div class="over-actions">
+          <button class="btn btn-primary" @click="startAI">🔄 再来一局</button>
+          <button class="btn" @click="stage = 'lobby'">返回大厅</button>
+        </div>
+      </div>
     </section>
 
     <!-- ===== 对局页 ===== -->
@@ -635,11 +864,15 @@ input:focus { border-color: #6366f1; }
 .game-card p { margin: 2px 0 0; color: #64748b; font-size: 0.82rem; min-height: 1.4em; }
 .game-card__actions { display: flex; gap: 8px; }
 .mode-box { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 14px; background: #fff; }
-.mode-title { margin: 0 0 14px; font-size: 0.9rem; color: #475569; }
+.mode-title { margin: 0; font-size: 0.9rem; color: #475569; }
+.mode-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.btn-ai { padding: 6px 14px; font-size: 0.82rem; border-color: #10b981; color: #059669; background: #ecfdf5; }
+.btn-ai:hover { background: #d1fae5; }
 .btn-block { display: block; width: 100%; padding: 11px; font-size: 0.95rem; }
 .mode-note { margin: 12px 0 0; font-size: 0.76rem; color: #94a3b8; line-height: 1.6; }
 .mode-box .join-row { margin: 12px 0 0; }
 .mode-box .join-row input { max-width: none; }
+.join-row button { white-space: nowrap; min-width: 64px; }
 .game-card__note { margin-top: 12px; padding: 10px 12px; background: #f1f5f9; border-radius: 10px; font-size: 0.78rem; color: #64748b; line-height: 1.6; }
 .game-card__note p { margin: 0; }
 .game-card__note b { color: #475569; }
