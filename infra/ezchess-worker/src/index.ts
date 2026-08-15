@@ -318,6 +318,10 @@ export class GameRoom {
           players: this.players.map(p => ({ nick: p.nick, seat: p.seat })),
           mySeat: player.seat,
         }))
+        // 对局结束且有人请求再来一局 → 补发 offer（重连方能看到）
+        if (this.phase === 'FINISHED' && this.rematchSeats.length > 0) {
+          server.send(JSON.stringify({ type: 'rematch_offer', seat: this.rematchSeats[0], count: this.rematchSeats.length }))
+        }
       } else if (this.phase === 'WAITING' && this.players.length < this.seats) {
         const seat = this.players.length
         player = { deviceId, nick: nick.slice(0, 12), seat, ws: server }

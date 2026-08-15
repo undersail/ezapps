@@ -431,6 +431,10 @@ function enterRoom(id: string) {
   gameWs.on('rematch_offer', (m) => {
     if (m.seat !== mySeat.value) {
       lastMsg.value = rematchRequested.value ? '' : '对方想再来一局，点击「🤝 再来一局」同意！'
+      // 浮窗显眼提示（对局结束页棋盘中央）
+      if (!rematchRequested.value) {
+        showTip('🤝 对方想再来一局，点击「🤝 再来一局」按钮同意！')
+      }
     }
     // 双方同意后服务端会广播新 state（PLAYING）→ 自动重开
   })
@@ -1022,9 +1026,9 @@ onUnmounted(() => {
       <div class="board-wrap">
         <canvas ref="canvasRef" class="board" @click="cellClick"></canvas>
         <transition name="tip">
-          <div v-if="gameOver && !gameOverTipDismissed" class="ai-tip ai-tip--over">
-            <span class="ai-tip__text">{{ rematchSummary }}</span>
-            <button class="ai-tip__close" @click="gameOverTipDismissed = true">✕</button>
+          <div v-if="(gameOver && !gameOverTipDismissed) || aiTipVisible" class="ai-tip" :class="{ 'ai-tip--over': gameOver && !gameOverTipDismissed }">
+            <span class="ai-tip__text">{{ aiTipVisible && aiTipText ? aiTipText : rematchSummary }}</span>
+            <button class="ai-tip__close" @click="gameOverTipDismissed = true; aiTipVisible = false">✕</button>
           </div>
         </transition>
       </div>
