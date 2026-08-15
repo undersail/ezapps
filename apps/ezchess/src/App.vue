@@ -183,6 +183,7 @@ function aiPlayerMove(idx: number, from?: number, to?: number) {
   if (aiOver.value || aiTurn.value !== 0 || aiThinking.value) return
   const g = curGame.value
   if (g === 'gomoku') {
+    if (aiBoard.value[idx] !== 0) return   // 已有棋子位置不可落
     aiBoard.value[idx] = 1
     if (GOMOKU.checkWin(aiBoard.value, idx, 1)) return aiFinish(1, '五连获胜')
     if (!GOMOKU.legalMoves(aiBoard.value).length) return aiFinish(0, '和棋')
