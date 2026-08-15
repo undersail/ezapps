@@ -386,18 +386,22 @@ export class GameRoom {
   async start() {
     if (this.phase !== 'WAITING' || this.players.length < 2) return
     this.phase = 'PLAYING'
-    // 从等待房列表移除
-    await waitingRemove(this.env, this.game, this.roomId)
-    // 按棋种初始化棋盘
-    if (this.game === 'reversi') this.board = rvInit()
-    else if (this.game === 'checkers') this.board = ckInit()
-    else if (this.game === 'ccheckers') this.board = ccInit(this.seats)
-    else this.board = emptyBoard()
-    this.turn = Math.floor(Math.random() * this.players.length)
-    this.timers = Array(this.seats).fill(TURN_MS)
-    this.moves = []
-    this.broadcast({ type: 'state', board: this.board, turn: this.turn, timers: this.timers, phase: this.phase, players: this.players.map(p => ({ nick: p.nick, seat: p.seat })) })
-    this.armTimer()
+    try {
+      // 从等待房列表移除（失败不影响对局）
+      try { await waitingRemove(this.env, this.game, this.roomId) } catch (e) { /* 忽略 */ }
+      // 按棋种初始化棋盘
+      if (this.game === 'reversi') this.board = rvInit()
+      else if (this.game === 'checkers') this.board = ckInit()
+      else if (this.game === 'ccheckers') this.board = ccInit(this.seats)
+      else this.board = emptyBoard()
+      this.turn = Math.floor(Math.random() * this.players.length)
+      this.timers = Array(this.seats).fill(TURN_MS)
+      this.moves = []
+      this.broadcast({ type: 'state', board: this.board, turn: this.turn, timers: this.timers, phase: this.phase, players: this.players.map(p => ({ nick: p.nick, seat: p.seat })) })
+      this.armTimer()
+    } catch (e: any) {
+      this.broadcast({ type: 'illegal', reason: '开赛错误: ' + (e?.message || String(e)) })
+    }
   }
 
   armTimer() {
@@ -415,8 +419,8 @@ export class GameRoom {
   armWaitTimer() {
     setTimeout(() => {
       if (this.phase === 'WAITING' && this.players.length < this.seats) {
-        // 从等待房列表移除
-        void waitingRemove(this.env, this.game, this.roomId)
+        // 从等待房列表移除（失败不影响）
+        try { void waitingRemove(this.env, this.game, this.roomId) } catch (e) { /* 忽略 */ }
         this.broadcast({ type: 'room_closed', reason: '等待超时' })
         this.phase = 'FINISHED'
       }
