@@ -699,12 +699,12 @@ onUnmounted(() => {
           </div>
         </div>
 
+        <!-- AI 教学入口（对战大厅上方） -->
+        <button class="btn btn-ai btn-block btn-ai-top" @click="startAI">🤖 AI 教学 · 和 AI 下棋，边下边学规则</button>
+
         <!-- 策略一：快速对战 -->
         <div class="mode-box">
-          <div class="mode-head">
-            <h4 class="mode-title">🎮 对战大厅</h4>
-            <button class="btn btn-ai" @click="startAI">🤖 AI 教学</button>
-          </div>
+          <h4 class="mode-title">🎮 对战大厅</h4>
           <button class="btn btn-primary btn-block" :disabled="matching" @click="match">
             {{ matching ? '匹配中…' : '⚡ 快速匹配' }}
           </button>
@@ -757,14 +757,14 @@ onUnmounted(() => {
 
     <!-- ===== AI 教学页 ===== -->
     <section v-else-if="stage === 'ai'" class="room">
-      <header class="room-head">
-        <button class="btn back" @click="stage = 'lobby'">← 大厅</button>
-        <div class="room-info">
-          <span class="room-title">🤖 AI 教学 · {{ GAME_LIST.find(g => g.id === curGame)?.name }}</span>
+      <header class="room-head ai-head">
+        <span class="room-title ai-title">🤖 AI 教学 · {{ GAME_LIST.find(g => g.id === curGame)?.name }}</span>
+        <div class="ai-sub">
+          <button class="btn back" @click="stage = 'lobby'">← 大厅</button>
           <span class="room-id">你执黑（先手）vs AI</span>
           <span class="room-phase">{{ aiThinking ? 'AI 思考中…' : '对局中' }}</span>
+          <button class="btn" @click="startAI">🔄 重开</button>
         </div>
-        <button class="btn" @click="startAI">🔄 重开</button>
       </header>
 
       <div class="players">
@@ -864,10 +864,13 @@ input:focus { border-color: #6366f1; }
 .game-card p { margin: 2px 0 0; color: #64748b; font-size: 0.82rem; min-height: 1.4em; }
 .game-card__actions { display: flex; gap: 8px; }
 .mode-box { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 14px; background: #fff; }
-.mode-title { margin: 0; font-size: 0.9rem; color: #475569; }
-.mode-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.btn-ai { padding: 6px 14px; font-size: 0.82rem; border-color: #10b981; color: #059669; background: #ecfdf5; }
+.mode-title { margin: 0 0 14px; font-size: 0.9rem; color: #475569; }
+.btn-ai { padding: 11px; border-color: #10b981; color: #059669; background: #ecfdf5; }
 .btn-ai:hover { background: #d1fae5; }
+.btn-ai-top { margin-bottom: 14px; font-size: 0.92rem; }
+.ai-head { flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.ai-title { font-size: 1.2rem; }
+.ai-sub { display: flex; align-items: center; gap: 10px; width: 100%; justify-content: center; }
 .btn-block { display: block; width: 100%; padding: 11px; font-size: 0.95rem; }
 .mode-note { margin: 12px 0 0; font-size: 0.76rem; color: #94a3b8; line-height: 1.6; }
 .mode-box .join-row { margin: 12px 0 0; }
