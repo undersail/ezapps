@@ -27,6 +27,14 @@ const aiRules = computed(() => {
   return '规则：棋子斜走一格；跳吃相邻对方棋子（可连跳，有吃必吃）；到达对方底线升王（可斜走任意格）；吃光对方或对方无子可动者胜'
 })
 
+// AI 教学执子颜色（按棋种：国象白先、中象红先、其余黑先）
+const aiSide = computed(() => {
+  const g = curGame.value
+  if (g === 'chess') return { me: '白', ai: '黑', meColor: '#f8f4e6', meBorder: '#999', aiColor: '#111' }
+  if (g === 'xiangqi') return { me: '红', ai: '黑', meColor: '#b91c1c', meBorder: '#b91c1c', aiColor: '#1f2937' }
+  return { me: '黑', ai: '白', meColor: '#111', meBorder: '#111', aiColor: '#eee' }
+})
+
 // ===== 局面感知技巧提示 =====
 const aiTipText = ref('')
 const aiTipVisible = ref(false)
@@ -1248,7 +1256,7 @@ onUnmounted(() => {
       <header class="room-head ai-head">
         <div class="ai-title-row">
           <span class="room-title ai-title">🤖 AI 教学 · {{ GAME_LIST.find(g => g.id === curGame)?.name }}</span>
-          <span class="room-id ai-desc">你执黑（先手）vs AI · {{ aiThinking ? 'AI 思考中…' : '对局中' }}</span>
+          <span class="room-id ai-desc">你执{{ aiSide.me }}（先手）vs AI · {{ aiThinking ? 'AI 思考中…' : '对局中' }}</span>
           <p class="ai-rules">{{ aiRules }}</p>
         </div>
         <div class="ai-btns">
@@ -1260,12 +1268,12 @@ onUnmounted(() => {
 
       <div class="players">
         <div class="player-chip" :class="{ active: aiTurn === 0 && !aiOver }">
-          <span class="dot" style="background:#111"></span>
-          <span>你<small>（黑）</small></span>
+          <span class="dot" :style="{ background: aiSide.meColor, borderColor: aiSide.meBorder }"></span>
+          <span>你<small>（{{ aiSide.me }}）</small></span>
         </div>
         <div class="player-chip" :class="{ active: aiTurn === 1 && !aiOver }">
-          <span class="dot" style="background:#eee"></span>
-          <span>🤖 AI<small>（白）</small></span>
+          <span class="dot" :style="{ background: aiSide.aiColor, borderColor: '#94a3b8' }"></span>
+          <span>🤖 AI<small>（{{ aiSide.ai }}）</small></span>
         </div>
       </div>
 
