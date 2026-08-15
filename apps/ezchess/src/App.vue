@@ -769,15 +769,12 @@ onUnmounted(() => {
     <!-- ===== AI 教学页 ===== -->
     <section v-else-if="stage === 'ai'" class="room">
       <header class="room-head ai-head">
+        <button class="btn back" @click="stage = 'lobby'">← 返回大厅</button>
         <div class="ai-title-row">
           <span class="room-title ai-title">🤖 AI 教学 · {{ GAME_LIST.find(g => g.id === curGame)?.name }}</span>
-          <span class="room-id ai-desc">你执黑（先手）vs AI</span>
+          <span class="room-id ai-desc">你执黑（先手）vs AI · {{ aiThinking ? 'AI 思考中…' : '对局中' }}</span>
         </div>
-        <div class="ai-sub">
-          <button class="btn back" @click="stage = 'lobby'">← 大厅</button>
-          <span class="room-phase">{{ aiThinking ? 'AI 思考中…' : '对局中' }}</span>
-          <button class="btn" @click="startAI">🔄 重开</button>
-        </div>
+        <span class="ai-spacer"></span>
       </header>
 
       <div class="players">
@@ -885,11 +882,12 @@ input:focus { border-color: #6366f1; }
 .btn-ai { padding: 11px; border-color: #10b981; color: #059669; background: #ecfdf5; }
 .btn-ai:hover { background: #d1fae5; }
 .btn-ai-top { margin-bottom: 14px; font-size: 0.92rem; }
-.ai-head { flex-direction: column; gap: 8px; margin-bottom: 14px; }
-.ai-title-row { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.ai-title { font-size: 1.2rem; }
-.ai-desc { margin: 0; font-size: 0.85rem; color: #94a3b8; }
-.ai-sub { display: flex; align-items: center; gap: 10px; width: 100%; justify-content: center; }
+.ai-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.ai-title-row { flex: 1; text-align: center; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ai-title { font-size: 1.15rem; }
+.ai-desc { margin: 0; font-size: 0.82rem; color: #94a3b8; }
+.ai-spacer { width: 84px; flex-shrink: 0; }
+.over-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
 .btn-block { display: block; width: 100%; padding: 11px; font-size: 0.95rem; }
 .mode-note { margin: 12px 0 0; font-size: 0.76rem; color: #94a3b8; line-height: 1.6; }
 .mode-box .join-row { margin: 12px 0 0; }
