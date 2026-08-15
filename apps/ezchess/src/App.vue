@@ -778,12 +778,12 @@ function drawBoard() {
     drawGomoku(ctx, size)
   }
 
-  // 最后一步标识（所有棋种统一：目标格高亮圈）
+  // 最后一步标识（所有棋种统一：金黄色高亮圈，与棋子颜色区分）
   if (lastMove.value && !aiOver.value) {
     const g = curGame.value
     const lm = lastMove.value
-    ctx.strokeStyle = 'rgba(239, 68, 68, 0.95)'
-    ctx.lineWidth = 3
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.98)'   // 琥珀金
+    ctx.lineWidth = 3.5
     if (g === 'gomoku') {
       const cell = size / (BOARD + 1)
       const pad = cell
