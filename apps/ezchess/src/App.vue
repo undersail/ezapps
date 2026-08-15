@@ -527,7 +527,9 @@ function enterRoom(id: string) {
   stage.value = 'room'
   // 立即按大厅选择设置棋种，避免先渲染五子棋再切换（闪烁）
   curGame.value = GAME_LIST.find(g => g.id === gameId.value) ? gameId.value : 'gomoku'
-  board.value = []
+  // 预渲染初始棋盘（等待/开赛前就能看到棋子布局，开赛后由服务端 state 覆盖）
+  const g = curGame.value
+  board.value = g === 'chess' ? CHESS.init() : g === 'xiangqi' ? XIANGQI.init() : g === 'reversi' ? REVERSI.init() : g === 'checkers' ? CHECKERS.init() : []
   gameOver.value = null
   players.value = []
   timers.value = []
@@ -838,27 +840,36 @@ function drawXiangqi(ctx: CanvasRenderingContext2D, size: number) {
   // 底色（木纹）
   ctx.fillStyle = '#e8c98a'
   ctx.fillRect(0, 0, size, size)
-  // 棋盘线（9 竖 10 横）
+  // 竖线（楚河汉界处断开：上 5 行 / 下 5 行）
   ctx.strokeStyle = '#8b5a2b'
   ctx.lineWidth = 1.2
   for (let c = 0; c < 9; c++) {
     ctx.beginPath()
     ctx.moveTo(cx + (c - 4) * cell, cell * 0.5)
+    ctx.lineTo(cx + (c - 4) * cell, cell * 4.5)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(cx + (c - 4) * cell, cell * 5.5)
     ctx.lineTo(cx + (c - 4) * cell, size - cell * 0.5)
     ctx.stroke()
   }
-  for (let r = 0; r < 10; r++) {
+  // 横线：上 5 行 + 下 5 行（楚河汉界带空白）
+  for (let r = 0; r < 5; r++) {
     ctx.beginPath()
     ctx.moveTo(size * 0.5 - 4 * cell, cell * (r + 0.5))
     ctx.lineTo(size * 0.5 + 4 * cell, cell * (r + 0.5))
     ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(size * 0.5 - 4 * cell, cell * (r + 5.5))
+    ctx.lineTo(size * 0.5 + 4 * cell, cell * (r + 5.5))
+    ctx.stroke()
   }
-  // 九宫斜线（红 r7-9 / 黑 r0-2）
+  // 九宫斜线（红 r7-9 / 黑 r0-2，连 c3.5-c5.5）
   ctx.beginPath()
-  ctx.moveTo(cx - 2 * cell, cell * 0.5); ctx.lineTo(cx + 2 * cell, cell * 2.5)
-  ctx.moveTo(cx + 2 * cell, cell * 0.5); ctx.lineTo(cx - 2 * cell, cell * 2.5)
-  ctx.moveTo(cx - 2 * cell, cell * 7.5); ctx.lineTo(cx + 2 * cell, cell * 9.5)
-  ctx.moveTo(cx + 2 * cell, cell * 7.5); ctx.lineTo(cx - 2 * cell, cell * 9.5)
+  ctx.moveTo(cx - 0.5 * cell, cell * 7.5); ctx.lineTo(cx + 0.5 * cell, cell * 9.5)
+  ctx.moveTo(cx + 0.5 * cell, cell * 7.5); ctx.lineTo(cx - 0.5 * cell, cell * 9.5)
+  ctx.moveTo(cx - 0.5 * cell, cell * 0.5); ctx.lineTo(cx + 0.5 * cell, cell * 2.5)
+  ctx.moveTo(cx + 0.5 * cell, cell * 0.5); ctx.lineTo(cx - 0.5 * cell, cell * 2.5)
   ctx.stroke()
   // 楚河汉界
   ctx.fillStyle = '#8b5a2b'
@@ -1392,8 +1403,9 @@ input:focus { border-color: #6366f1; }
 .game-card__note { margin-top: 12px; padding: 10px 12px; background: #f1f5f9; border-radius: 10px; font-size: 0.78rem; color: #64748b; line-height: 1.6; }
 .game-card__note p { margin: 0; }
 .game-card__note b { color: #475569; }
-.game-picker { display: flex; gap: 10px; margin-bottom: 12px; }
-.game-pick { flex: 1; display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 14px; background: #fff; cursor: pointer; text-align: left; }
+.game-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.game-pick { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 14px; background: #fff; cursor: pointer; text-align: left; }
+@media (max-width: 420px) { .game-picker { grid-template-columns: repeat(2, 1fr); } }
 .game-pick.on { border-color: #6366f1; background: #eef2ff; }
 .game-pick__emoji { font-size: 1.6rem; }
 .game-pick h3 { margin: 0; font-size: 0.95rem; }
