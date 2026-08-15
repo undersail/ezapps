@@ -386,6 +386,8 @@ export class GameRoom {
   async start() {
     if (this.phase !== 'WAITING' || this.players.length < 2) return
     this.phase = 'PLAYING'
+    // 从等待房列表移除
+    await waitingRemove(this.env, this.game, this.roomId)
     // 按棋种初始化棋盘
     if (this.game === 'reversi') this.board = rvInit()
     else if (this.game === 'checkers') this.board = ckInit()
@@ -413,6 +415,8 @@ export class GameRoom {
   armWaitTimer() {
     setTimeout(() => {
       if (this.phase === 'WAITING' && this.players.length < this.seats) {
+        // 从等待房列表移除
+        void waitingRemove(this.env, this.game, this.roomId)
         this.broadcast({ type: 'room_closed', reason: '等待超时' })
         this.phase = 'FINISHED'
       }
@@ -602,7 +606,23 @@ async function handleRequest(request: Request, env: any): Promise<Response> {
     return json({ success: true, name: 'ezchess-api', v: 3, time: Date.now() }, 200, origin)
   }
 
-  // 创建房间
+// ==================== 等待房列表（KV 维护） ====================
+async function waitingAdd(env: any, game: string, roomId: string, owner: string) {
+  const key = `waiting:${game}`
+  const raw = await env.RANK.get(key)
+  const list = raw ? JSON.parse(raw) : []
+  list.push({ roomId, owner, createdAt: Date.now() })
+  await env.RANK.put(key, JSON.stringify(list.slice(-20)), { expirationTtl: 7200 })
+}
+async function waitingRemove(env: any, game: string, roomId: string) {
+  const key = `waiting:${game}`
+  const raw = await env.RANK.get(key)
+  if (!raw) return
+  const list = JSON.parse(raw).filter((r: any) => r.roomId !== roomId)
+  await env.RANK.put(key, JSON.stringify(list), { expirationTtl: 7200 })
+}
+
+// 创建房间
   if (url.pathname === '/api/room/create' && request.method === 'POST') {
     const body = await request.json() as any
     const game = body.game || 'gomoku'
@@ -618,6 +638,7 @@ async function handleRequest(request: Request, env: any): Promise<Response> {
       body: JSON.stringify({ game, seats, roomId }),
     })
     await env.RANK.put(`room:${roomId}`, JSON.stringify({ game, seats, mode: body.mode || 'friend', owner: deviceId, createdAt: Date.now() }), { expirationTtl: 7200 })
+    await waitingAdd(env, game, roomId, nick)
     return json({ success: true, roomId, wsUrl: `/game/${roomId}/ws?deviceId=${encodeURIComponent(deviceId)}&nick=${encodeURIComponent(nick)}` }, 200, origin)
   }
 
@@ -631,19 +652,49 @@ async function handleRequest(request: Request, env: any): Promise<Response> {
     const matchKey = `match:${game}`
     const waiting = await env.RANK.get(matchKey)
     if (waiting) {
-      // 有等待中的匹配房 → 加入（满员自动开赛）
+      // 有等待中的匹配房 → 校验仍可加入（未满/未关）→ 加入
       await env.RANK.delete(matchKey)
       const { roomId } = JSON.parse(waiting)
-      return json({ success: true, roomId, opp: '对手', wsUrl: `/game/${roomId}/ws?deviceId=${encodeURIComponent(deviceId)}&nick=${encodeURIComponent(nick)}` }, 200, origin)
+      try {
+        const stub = env.GAME_ROOMS.get(env.GAME_ROOMS.idFromName(roomId))
+        const st = await stub.fetch('http://room/state')
+        const info: any = await st.json()
+        if (info.phase === 'WAITING' && (info.players || []).length < (info.seats || 2)) {
+          return json({ success: true, roomId, opp: '对手', wsUrl: `/game/${roomId}/ws?deviceId=${encodeURIComponent(deviceId)}&nick=${encodeURIComponent(nick)}` }, 200, origin)
+        }
+      } catch (e) { /* 房间无效 → 落空重新建房 */ }
     }
-    // 无等待者 → 创建匹配房并入队
+    // 无等待者 / 等待房已失效 → 创建匹配房并入队
     const roomId = uid()
     const id = env.GAME_ROOMS.idFromName(roomId)
     const stub = env.GAME_ROOMS.get(id)
     await stub.fetch('http://room/init', { method: 'POST', body: JSON.stringify({ game, seats: 2, roomId }) })
     await env.RANK.put(`room:${roomId}`, JSON.stringify({ game, seats: 2, mode: 'match', owner: deviceId, createdAt: Date.now() }), { expirationTtl: 7200 })
     await env.RANK.put(matchKey, JSON.stringify({ roomId }), { expirationTtl: 120 })
+    await waitingAdd(env, game, roomId, nick)
     return json({ success: true, roomId, waiting: true, wsUrl: `/game/${roomId}/ws?deviceId=${encodeURIComponent(deviceId)}&nick=${encodeURIComponent(nick)}` }, 200, origin)
+  }
+
+  // 等待中的房间列表（实时校验房间状态，过滤已开赛/关闭的）
+  if (url.pathname === '/api/room/list' && request.method === 'GET') {
+    const game = url.searchParams.get('game') || 'gomoku'
+    const raw = await env.RANK.get(`waiting:${game}`)
+    const list: any[] = raw ? JSON.parse(raw) : []
+    const valid: any[] = []
+    for (const r of list) {
+      if (Date.now() - (r.createdAt || 0) > 120000) continue   // 超时房过滤
+      try {
+        const stub = env.GAME_ROOMS.get(env.GAME_ROOMS.idFromName(r.roomId))
+        const st = await stub.fetch('http://room/state')
+        const info: any = await st.json()
+        // 有在线玩家且未满员的等待房才展示（过滤僵尸房）
+        const online = (info.players || []).filter((p: any) => p.online).length
+        if (info.phase === 'WAITING' && online > 0 && online < (info.seats || 2)) {
+          valid.push(r)
+        }
+      } catch (e) { /* 房间无效 → 过滤 */ }
+    }
+    return json({ success: true, rooms: valid }, 200, origin)
   }
 
   // 房间信息

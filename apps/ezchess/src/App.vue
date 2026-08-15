@@ -21,8 +21,20 @@ const gameId = ref('gomoku')
 // ===== 大厅状态 =====
 const matching = ref(false)
 const rankList = ref<{ player: string; score: number; dev?: string }[]>([])
+const waitingRooms = ref<{ roomId: string; owner: string }[]>([])
 const roomCode = ref('')
 const roomErr = ref('')
+
+async function refreshRooms() {
+  waitingRooms.value = await Net.fetchRooms(gameId.value)
+}
+let roomTimer: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  refreshRank()
+  refreshRooms()
+  roomTimer = setInterval(() => { refreshRooms() }, 30000)
+})
+onUnmounted(() => { if (roomTimer) clearInterval(roomTimer) })
 
 // ===== 对局状态 =====
 const ws = ref<GameWS | null>(null)
@@ -125,6 +137,11 @@ function enterRoom(id: string) {
   })
   gameWs.on('opponent_left', (m) => { lastMsg.value = `对手掉线，等待重连…（${m.graceSeconds || 60}s）` })
   gameWs.on('player_reconnected', () => { lastMsg.value = '对手已重连！' })
+  gameWs.on('room_closed', (m) => {
+    lastMsg.value = m.reason || '房间已关闭'
+    phase.value = 'FINISHED'
+    setTimeout(() => { backToLobby() }, 1500)
+  })
   gameWs.connect()
   ws.value = gameWs
 }
@@ -178,6 +195,7 @@ function backToLobby() {
   ws.value?.close()
   stage.value = 'lobby'
   refreshRank()
+  refreshRooms()
 }
 
 function fmtTime(ms: number): string {
@@ -477,7 +495,7 @@ onUnmounted(() => {
           :key="g.id"
           class="game-pick"
           :class="{ on: gameId === g.id }"
-          @click="gameId = g.id"
+          @click="gameId = g.id; refreshRooms()"
         >
           <span class="game-pick__emoji">{{ g.emoji }}</span>
           <div>
@@ -505,6 +523,18 @@ onUnmounted(() => {
         <div class="game-card__note">
           <p><b>⚡ 快速匹配</b>：自动配对同样点了「快速匹配」的玩家，约 120 秒内开赛</p>
           <p><b>🏠 创建房间</b>：好友房，把房间号发给朋友，对方输入房间号加入</p>
+        </div>
+      </div>
+
+      <!-- 等待中的房间（可点击加入） -->
+      <div class="rooms-box" v-if="waitingRooms.length">
+        <h3>🏠 等待中的房间（{{ waitingRooms.length }}）</h3>
+        <div class="rooms-list">
+          <button v-for="r in waitingRooms" :key="r.roomId" class="room-row" @click="enterRoom(r.roomId)">
+            <span class="room-row__owner">{{ r.owner }}</span>
+            <span class="room-row__id">房间 {{ r.roomId.slice(0, 8) }}</span>
+            <span class="room-row__go">加入 →</span>
+          </button>
         </div>
       </div>
 
@@ -625,6 +655,14 @@ input:focus { border-color: #6366f1; }
 .lobby-foot { text-align: center; margin-top: 18px; }
 .lobby-foot a { color: #64748b; text-decoration: none; font-size: 0.85rem; padding: 6px 14px; border-radius: 10px; }
 .lobby-foot a:hover { background: #eef2ff; color: #4338ca; }
+.rooms-box { border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 14px; background: #fafafa; }
+.rooms-box h3 { margin: 0 0 10px; font-size: 1rem; }
+.rooms-list { display: flex; flex-direction: column; gap: 6px; }
+.room-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; cursor: pointer; font-size: 0.88rem; text-align: left; }
+.room-row:hover { border-color: #6366f1; background: #eef2ff; }
+.room-row__owner { font-weight: bold; }
+.room-row__id { color: #94a3b8; font-size: 0.78rem; flex: 1; }
+.room-row__go { color: #6366f1; font-weight: bold; font-size: 0.82rem; }
 
 .room-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .room-info { flex: 1; text-align: center; }

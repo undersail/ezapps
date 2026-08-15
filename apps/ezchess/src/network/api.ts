@@ -62,6 +62,18 @@ export async function roomInfo(roomId: string): Promise<any | null> {
   return res?.success ? res : null
 }
 
+/** 等待中的房间列表 */
+export async function fetchRooms(game: string): Promise<{ roomId: string; owner: string }[]> {
+  try {
+    const res = await fetch(`${API_BASE}/room/list?game=${game}`, { signal: AbortSignal.timeout(5000) })
+    if (!res.ok) return []
+    const d = await res.json()
+    return d.rooms || []
+  } catch {
+    return []
+  }
+}
+
 /** 排行榜（ezapps-api 读，app=ezchess, mode=gomoku） */
 export async function fetchTop(limit = 10): Promise<{ player: string; score: number }[] | null> {
   try {
