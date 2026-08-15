@@ -1061,17 +1061,20 @@ let audioCtx: AudioContext | null = null
 function playMoveSound() {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
-    if (audioCtx.state === 'suspended') audioCtx.resume()
+    if (audioCtx.state === 'suspended') void audioCtx.resume()
     const t = audioCtx.currentTime
-    const o = audioCtx.createOscillator()
-    const g = audioCtx.createGain()
-    o.type = 'sine'
-    o.frequency.setValueAtTime(620, t)
-    o.frequency.exponentialRampToValueAtTime(380, t + 0.09)
-    g.gain.setValueAtTime(0.18, t)
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.14)
-    o.connect(g).connect(audioCtx.destination)
-    o.start(t); o.stop(t + 0.15)
+    // 双振荡器叠加（基音 + 泛音），音量更明显
+    for (const [freq, gain] of [[420, 0.25], [840, 0.1]] as [number, number][]) {
+      const o = audioCtx.createOscillator()
+      const g = audioCtx.createGain()
+      o.type = 'triangle'
+      o.frequency.setValueAtTime(freq, t)
+      o.frequency.exponentialRampToValueAtTime(freq * 0.7, t + 0.16)
+      g.gain.setValueAtTime(gain, t)
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.18)
+      o.connect(g).connect(audioCtx.destination)
+      o.start(t); o.stop(t + 0.2)
+    }
   } catch { /* 音频不可用则静默 */ }
 }
 // 记录最后一步 + 落子音效
