@@ -936,10 +936,10 @@ function drawBoard() {
         }
       }
     } else {
-      const n = curGame.value === 'reversi' ? 8 : 15
-      const cell = size / (n + (curGame.value === 'reversi' ? 0 : 1))
+      const n = curGame.value === 'reversi' ? 8 : curGame.value === 'go' ? 13 : 15
+      const cell = size / (n + 1)
       const pad = curGame.value === 'reversi' ? 0 : cell
-      const off = curGame.value === 'reversi' ? cell / 2 : 0   // 黑白棋点在方格中心，五子棋在交叉点
+      const off = curGame.value === 'reversi' ? cell / 2 : 0   // 黑白棋点在方格中心，五子棋/围棋在交叉点
       ctx.fillStyle = 'rgba(99, 102, 241, 0.45)'
       for (const i of aiLegal.value) {
         const r = Math.floor(i / n), c = i % n
