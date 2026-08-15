@@ -159,6 +159,8 @@ function startAI() {
   curGame.value = gameId.value
   if (curGame.value === 'reversi') aiBoard.value = REVERSI.init()
   else if (curGame.value === 'checkers') aiBoard.value = CHECKERS.init()
+  else if (curGame.value === 'chess') aiBoard.value = CHESS.init()
+  else if (curGame.value === 'xiangqi') aiBoard.value = XIANGQI.init()
   else aiBoard.value = GOMOKU.init()
   aiTurn.value = 0
   aiOver.value = null
@@ -864,12 +866,12 @@ function drawXiangqi(ctx: CanvasRenderingContext2D, size: number) {
     ctx.lineTo(size * 0.5 + 4 * cell, cell * (r + 5.5))
     ctx.stroke()
   }
-  // 九宫斜线（红 r7-9 / 黑 r0-2，连 c3.5-c5.5）
+  // 九宫斜线（4 格正方形对角相连：交叉点 c3-c5，红 r7-9 / 黑 r0-2）
   ctx.beginPath()
-  ctx.moveTo(cx - 0.5 * cell, cell * 7.5); ctx.lineTo(cx + 0.5 * cell, cell * 9.5)
-  ctx.moveTo(cx + 0.5 * cell, cell * 7.5); ctx.lineTo(cx - 0.5 * cell, cell * 9.5)
-  ctx.moveTo(cx - 0.5 * cell, cell * 0.5); ctx.lineTo(cx + 0.5 * cell, cell * 2.5)
-  ctx.moveTo(cx + 0.5 * cell, cell * 0.5); ctx.lineTo(cx - 0.5 * cell, cell * 2.5)
+  ctx.moveTo(cx - cell, cell * 7.5); ctx.lineTo(cx + cell, cell * 9.5)
+  ctx.moveTo(cx + cell, cell * 7.5); ctx.lineTo(cx - cell, cell * 9.5)
+  ctx.moveTo(cx - cell, cell * 0.5); ctx.lineTo(cx + cell, cell * 2.5)
+  ctx.moveTo(cx + cell, cell * 0.5); ctx.lineTo(cx - cell, cell * 2.5)
   ctx.stroke()
   // 楚河汉界
   ctx.fillStyle = '#8b5a2b'
@@ -900,8 +902,8 @@ function drawXiangqi(ctx: CanvasRenderingContext2D, size: number) {
 
 // ===== 国际象棋棋盘（8×8 + Unicode 棋子） =====
 const CHESS_GLYPH: Record<number, string> = {
-  1: '♟', 2: '♜', 3: '♞', 4: '♝', 5: '♛', 6: '♚',
-  11: '♙', 12: '♖', 13: '♘', 14: '♗', 15: '♕', 16: '♔',
+  1: '♙', 2: '♖', 3: '♘', 4: '♗', 5: '♕', 6: '♔',      // 白方（空心符号）
+  11: '♟', 12: '♜', 13: '♞', 14: '♝', 15: '♛', 16: '♚',  // 黑方（实心符号）
 }
 function drawChess(ctx: CanvasRenderingContext2D, size: number) {
   const cell = size / 8
