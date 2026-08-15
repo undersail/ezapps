@@ -304,6 +304,9 @@ const rankList = ref<{ player: string; score: number; dev?: string }[]>([])
 const waitingRooms = ref<{ roomId: string; owner: string }[]>([])
 const roomCode = ref('')
 const roomErr = ref('')
+const lastMode = ref<'match' | 'friend'>('friend')   // 记录进入方式（重开时复用）
+const rematchRequested = ref(false)   // 是否已请求再来一局
+const gameOverTipDismissed = ref(false)   // 结束总结浮窗是否已关闭
 
 async function refreshRooms() {
   waitingRooms.value = await Net.fetchRooms(gameId.value)
@@ -341,6 +344,7 @@ async function refreshRank() {
 
 // ===== 匹配 / 建房 =====
 async function match() {
+  lastMode.value = 'match'
   matching.value = true
   roomErr.value = ''
   try {
@@ -399,6 +403,13 @@ function enterRoom(id: string) {
     if (m.players) players.value = m.players
     if (typeof m.mySeat === 'number') mySeat.value = m.mySeat
     if (m.spectator) mySeat.value = -1
+    // 再来一局重开（FINISHED → PLAYING）：清空结算状态
+    if (m.phase === 'PLAYING') {
+      if (gameOver.value) gameOver.value = null
+      rematchRequested.value = false
+      gameOverTipDismissed.value = false
+      lastMsg.value = '新的一局开始！'
+    }
   })
   gameWs.on('move_ok', (m) => {
     if (m.board) board.value = m.board
@@ -417,6 +428,12 @@ function enterRoom(id: string) {
   })
   gameWs.on('opponent_left', (m) => { lastMsg.value = `对手掉线，等待重连…（${m.graceSeconds || 60}s）` })
   gameWs.on('player_reconnected', () => { lastMsg.value = '对手已重连！' })
+  gameWs.on('rematch_offer', (m) => {
+    if (m.seat !== mySeat.value) {
+      lastMsg.value = rematchRequested.value ? '' : '对方想再来一局，点击「🤝 再来一局」同意！'
+    }
+    // 双方同意后服务端会广播新 state（PLAYING）→ 自动重开
+  })
   gameWs.on('room_closed', (m) => {
     lastMsg.value = m.reason || '房间已关闭'
     phase.value = 'FINISHED'
@@ -476,7 +493,26 @@ function backToLobby() {
   stage.value = 'lobby'
   refreshRank()
   refreshRooms()
+  rematchRequested.value = false
+  gameOverTipDismissed.value = false
 }
+
+// 再来一局：发送同意请求，双方同意后服务端重开
+function requestRematch() {
+  if (phase.value !== 'FINISHED' || rematchRequested.value) return
+  rematchRequested.value = true
+  lastMsg.value = '已发送再来一局请求，等待对方同意…'
+  ws.value?.send({ type: 'rematch' })
+}
+
+// 对局结束总结（在线对局：胜负 + 积分）
+const rematchSummary = computed(() => {
+  const g = gameOver.value
+  if (!g) return ''
+  const score = g.scores?.[mySeat.value] ?? g.scores?.[0] ?? 0
+  const base = g.winner === 0 ? '🤝 和棋' : (g.winner - 1 === mySeat.value ? '🎉 你赢了！' : '😢 你输了')
+  return `${base} ${g.reason || ''} · 积分 ${score} 分`
+})
 
 function fmtTime(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000))
@@ -954,15 +990,18 @@ onUnmounted(() => {
 
     <!-- ===== 对局页 ===== -->
     <section v-else class="room">
-      <!-- 房间标题按棋种 -->
-      <header class="room-head">
-        <button class="btn back" @click="backToLobby">← 大厅</button>
-        <div class="room-info">
-          <span class="room-title">{{ GAME_LIST.find(g => g.id === curGame)?.emoji }} {{ GAME_LIST.find(g => g.id === curGame)?.name }}</span>
-          <span class="room-id">房间 {{ roomId.slice(0, 8) }}</span>
-          <span class="room-phase">{{ phase === 'PLAYING' ? '对局中' : phase === 'FINISHED' ? '已结束' : '等待玩家…' }}</span>
+      <header class="room-head ai-head">
+        <div class="ai-title-row">
+          <span class="room-title ai-title">{{ GAME_LIST.find(g => g.id === curGame)?.emoji }} {{ GAME_LIST.find(g => g.id === curGame)?.name }} 对战</span>
+          <span class="room-id ai-desc">房间 {{ roomId.slice(0, 8) }} · {{ phase === 'PLAYING' ? '对局中' : phase === 'FINISHED' ? '已结束' : '等待玩家…' }}</span>
+          <p class="ai-rules">{{ aiRules }}</p>
         </div>
-        <button class="btn danger" v-if="phase === 'PLAYING'" @click="resign">认输</button>
+        <div class="ai-btns">
+          <button class="btn back" @click="backToLobby">← 大厅</button>
+          <button class="btn" :disabled="phase !== 'FINISHED'" @click="requestRematch">
+            {{ rematchRequested ? '等待对方同意…' : '🤝 再来一局' }}
+          </button>
+        </div>
       </header>
 
       <!-- 玩家栏 -->
@@ -974,9 +1013,15 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- 棋盘 -->
+      <!-- 棋盘 + 对局结束总结浮窗 -->
       <div class="board-wrap">
         <canvas ref="canvasRef" class="board" @click="cellClick"></canvas>
+        <transition name="tip">
+          <div v-if="gameOver" class="ai-tip ai-tip--over">
+            <span class="ai-tip__text">{{ rematchSummary }}</span>
+            <button class="ai-tip__close" @click="gameOverTipDismissed = true">✕</button>
+          </div>
+        </transition>
       </div>
 
       <!-- 状态提示（棋子图标按当前落子方颜色） -->
@@ -990,10 +1035,9 @@ onUnmounted(() => {
       <p class="status warn">{{ lastMsg }}</p>
 
       <!-- 结算 -->
-      <div v-if="gameOver" class="over-box">
+      <div v-if="gameOver && gameOverTipDismissed" class="over-box">
         <h2>{{ gameOver.winner === 0 ? '🤝 和棋' : (gameOver.winner - 1 === mySeat ? '🎉 你赢了！' : '😢 你输了') }}</h2>
         <p>{{ gameOver.reason }} · 积分：{{ gameOver.scores[mySeat] ?? gameOver.scores[0] }} 分</p>
-        <button class="btn btn-primary" @click="backToLobby">返回大厅</button>
       </div>
     </section>
   </div>

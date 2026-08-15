@@ -230,6 +230,7 @@ export class GameRoom {
   moves: { seat: number; r: number; c: number }[] = []
   roomId = ''
   timerAlarm = 0
+  rematchSeats: number[] = []   // 同意"再来一局"的座位
 
   constructor(state: DurableObjectState, env: any) {
     this.state = state
@@ -356,6 +357,16 @@ export class GameRoom {
           if (msg.type === 'move' && seat >= 0) await this.handleMove(seat, msg)
           else if (msg.type === 'resign' && seat >= 0) await this.finish(seat === 0 ? 2 : 1, '认输')
           else if (msg.type === 'chat') this.broadcast({ type: 'chat', player: this.players[seat]?.nick, text: String(msg.text).slice(0, 50) })
+          else if (msg.type === 'rematch' && seat >= 0) {
+            // 再来一局：双方同意后重新开局
+            if (this.phase !== 'FINISHED') return
+            if (!this.rematchSeats.includes(seat)) this.rematchSeats.push(seat)
+            this.broadcast({ type: 'rematch_offer', seat, count: this.rematchSeats.length })
+            if (this.rematchSeats.length >= this.players.length && this.players.length >= 2) {
+              this.rematchSeats = []
+              await this.restart()
+            }
+          }
         } catch (e) { /* 忽略坏消息 */ }
       })
 
@@ -414,6 +425,20 @@ export class GameRoom {
       this.broadcast({ type: 'timer', seat: this.turn, remaining: this.timers[this.turn] })
       this.armTimer()
     }, 1000) as unknown as number
+  }
+
+  // 再来一局：双方同意后重新开局（FINISHED → PLAYING）
+  async restart() {
+    this.phase = 'PLAYING'
+    if (this.game === 'reversi') this.board = rvInit()
+    else if (this.game === 'checkers') this.board = ckInit()
+    else if (this.game === 'ccheckers') this.board = ccInit(this.seats)
+    else this.board = emptyBoard()
+    this.turn = Math.floor(Math.random() * this.players.length)
+    this.timers = Array(this.seats).fill(TURN_MS)
+    this.moves = []
+    this.broadcast({ type: 'state', board: this.board, turn: this.turn, timers: this.timers, phase: this.phase, players: this.players.map(p => ({ nick: p.nick, seat: p.seat })) })
+    this.armTimer()
   }
 
   armWaitTimer() {
