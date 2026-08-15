@@ -461,6 +461,20 @@ const waitingRooms = ref<{ roomId: string; owner: string }[]>([])
 const roomCode = ref('')
 const roomErr = ref('')
 const lastMode = ref<'match' | 'friend'>('friend')   // 记录进入方式（重开时复用）
+// 联网对局执子颜色/标签（按棋种：国象白先/中象红先/其余黑先）
+function seatColor(seat: number): string {
+  const g = curGame.value
+  if (g === 'chess') return seat === 0 ? '#f8f4e6' : '#111'
+  if (g === 'xiangqi') return seat === 0 ? '#b91c1c' : '#1f2937'
+  return seat === 0 ? '#111' : '#eee'
+}
+function seatLabel(seat: number): string {
+  const g = curGame.value
+  if (g === 'chess') return seat === 0 ? '白' : '黑'
+  if (g === 'xiangqi') return seat === 0 ? '红' : '黑'
+  return seat === 0 ? '黑' : '白'
+}
+
 const rematchRequested = ref(false)   // 是否已请求再来一局
 const offerReceived = ref(false)      // 是否收到对方邀请（按钮变"同意"）
 const gameOverTipDismissed = ref(false)   // 结束总结浮窗是否已关闭
@@ -1064,7 +1078,7 @@ function playMoveSound() {
     if (audioCtx.state === 'suspended') void audioCtx.resume()
     const t = audioCtx.currentTime
     // 双振荡器叠加（基音 + 泛音），音量更明显
-    for (const [freq, gain] of [[420, 0.25], [840, 0.1]] as [number, number][]) {
+    for (const [freq, gain] of [[400, 0.42], [800, 0.2]] as [number, number][]) {
       const o = audioCtx.createOscillator()
       const g = audioCtx.createGain()
       o.type = 'triangle'
@@ -1416,8 +1430,8 @@ onUnmounted(() => {
       <!-- 玩家栏 -->
       <div class="players">
         <div v-for="p in players" :key="p.seat" class="player-chip" :class="{ me: p.seat === mySeat, active: phase === 'PLAYING' && turn === p.seat }">
-          <span class="dot" :style="{ background: p.seat === 0 ? '#111' : '#eee' }"></span>
-          <span>{{ p.nick }}<small v-if="p.seat === mySeat">（我）</small></span>
+          <span class="dot" :style="{ background: seatColor(p.seat), borderColor: seatLabel(p.seat) === '白' ? '#94a3b8' : '#94a3b8' }"></span>
+          <span>{{ p.nick }}<small v-if="p.seat === mySeat">（我·{{ seatLabel(p.seat) }}）</small><small v-else>（{{ seatLabel(p.seat) }}）</small></span>
           <span v-if="timers[p.seat] !== undefined" class="timer">{{ fmtTime(timers[p.seat]) }}</span>
         </div>
       </div>
