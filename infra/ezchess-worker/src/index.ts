@@ -241,6 +241,185 @@ function chStatus(board: number[], owner: number): { over: boolean; winner: numb
   return { over: false, winner: 0, reason: '' }
 }
 
+// ==================== 中国象棋（9×10） ====================
+// 编码：红 1帅 2仕 3相 4马 5车 6炮 7兵 | 黑 11将 12士 13象 14马 15车 16炮 17卒
+// 棋盘：90 格 i = r*9+c（r0-9 行，c0-8 列）；红方在底部（r7-9）
+const XQ = 9
+function xqInit(): number[] {
+  const b = new Array(90).fill(0)
+  const row9 = [5, 4, 3, 2, 1, 2, 3, 4, 5]   // 车马相仕帅仕相马车
+  for (let c = 0; c < 9; c++) {
+    b[9 * 9 + c] = row9[c]      // 红底线
+    b[0 * 9 + c] = row9[c] + 10 // 黑底线
+    if (c % 2 === 0) { b[6 * 9 + c] = 7; b[3 * 9 + c] = 17 }   // 红兵/黑卒
+  }
+  b[7 * 9 + 1] = 6; b[7 * 9 + 7] = 6   // 红炮
+  b[2 * 9 + 1] = 16; b[2 * 9 + 7] = 16 // 黑炮
+  return b
+}
+function xqOwner(v: number) { return v === 0 ? -1 : (v < 10 ? 0 : 1) }
+// 九宫（红 r7-9 c3-5；黑 r0-2 c3-5）
+function xqInPalace(r: number, c: number, owner: number) {
+  if (c < 3 || c > 5) return false
+  return owner === 0 ? (r >= 7 && r <= 9) : (r >= 0 && r <= 2)
+}
+// 某格是否被 byOwner 方攻击（将军判定用）
+function xqAttacked(board: number[], r: number, c: number, byOwner: number): boolean {
+  // 车/炮/帅（横竖扫描）
+  const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]]
+  for (const [dr, dc] of dirs) {
+    let rr = r + dr, cc = c + dc, jumped = false
+    while (rr >= 0 && rr < 10 && cc >= 0 && cc < 9) {
+      const v = board[rr * 9 + cc]
+      if (v === 0) { rr += dr; cc += dc; continue }
+      const t = v % 10
+      if (!jumped) {
+        // 车/帅将：直线上第一个子
+        if (xqOwner(v) === byOwner && (t === 5 || t === 1)) return true
+      } else {
+        // 炮：隔一个子吃
+        if (xqOwner(v) === byOwner && t === 6) return true
+        break
+      }
+      jumped = true
+      rr += dr; cc += dc
+    }
+  }
+  // 马（日字 + 马脚）
+  const horse = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]]
+  const leg = [[-1, 0], [-1, 0], [0, -1], [0, 1], [0, -1], [0, 1], [1, 0], [1, 0]]
+  for (let k = 0; k < 8; k++) {
+    const rr = r + horse[k][0], cc = c + horse[k][1]
+    if (rr < 0 || rr >= 10 || cc < 0 || cc >= 9) continue
+    const v = board[rr * 9 + cc]
+    if (v !== 0 && xqOwner(v) === byOwner && v % 10 === 4) {
+      const lr = r + leg[k][0], lc = c + leg[k][1]
+      if (board[lr * 9 + lc] === 0) return true
+    }
+  }
+  // 兵/卒（过河后可横吃）
+  const pr = byOwner === 0 ? r + 1 : r - 1   // 红兵在下方向上攻（红兵在目标下方一格）
+  if (pr >= 0 && pr < 10) {
+    const v = board[pr * 9 + c]
+    if (v !== 0 && xqOwner(v) === byOwner && v % 10 === 7) return true
+  }
+  for (const pc of [c - 1, c + 1]) {   // 过河后的横向攻击
+    if (pc >= 0 && pc < 9) {
+      const v = board[r * 9 + pc]
+      if (v !== 0 && xqOwner(v) === byOwner && v % 10 === 7) {
+        const crossed = byOwner === 0 ? r <= 4 : r >= 5
+        if (crossed) return true
+      }
+    }
+  }
+  return false
+}
+
+// 生成 owner 方所有合法走法（含送将过滤）
+function xqLegalMoves(board: number[], owner: number): { from: number; to: number }[] {
+  const moves: { from: number; to: number }[] = []
+  const dir = owner === 0 ? -1 : 1   // 红向上（r 减），黑向下（r 增）
+  for (let i = 0; i < 90; i++) {
+    const v = board[i]
+    if (v === 0 || xqOwner(v) !== owner) continue
+    const r = Math.floor(i / 9), c = i % 9
+    const t = v % 10
+    const tryMove = (rr: number, cc: number) => {
+      if (rr < 0 || rr >= 10 || cc < 0 || cc >= 9) return
+      const tv = board[rr * 9 + cc]
+      if (tv !== 0 && xqOwner(tv) === owner) return
+      moves.push({ from: i, to: rr * 9 + cc })
+    }
+    if (t === 1) {   // 帅/将：九宫一格 + 飞将（对脸）
+      if (xqInPalace(r + 1, c, owner)) tryMove(r + 1, c)
+      if (xqInPalace(r - 1, c, owner)) tryMove(r - 1, c)
+      if (xqInPalace(r, c + 1, owner)) tryMove(r, c + 1)
+      if (xqInPalace(r, c - 1, owner)) tryMove(r, c - 1)
+      // 飞将：同列直线上对方将/帅且无子隔
+      let rr = r + dir, cc = c
+      while (rr >= 0 && rr < 10) {
+        const tv = board[rr * 9 + cc]
+        if (tv !== 0) {
+          if (xqOwner(tv) !== owner && tv % 10 === 1) moves.push({ from: i, to: rr * 9 + cc })
+          break
+        }
+        rr += dir
+      }
+    } else if (t === 2) {   // 仕/士：九宫斜一格
+      for (const [dr, dc] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+        if (xqInPalace(r + dr, c + dc, owner)) tryMove(r + dr, c + dc)
+      }
+    } else if (t === 3) {   // 相/象：田字，象眼，不过河
+      const limit = owner === 0 ? 4 : 5   // 红相 r≤4，黑象 r≥5
+      for (const [dr, dc] of [[-2, -2], [-2, 2], [2, -2], [2, 2]]) {
+        const rr = r + dr, cc = c + dc
+        if (rr < 0 || rr >= 10 || cc < 0 || cc >= 9) continue
+        if (owner === 0 ? rr > limit : rr < limit) continue
+        if (board[(r + dr / 2) * 9 + (c + dc / 2)] !== 0) continue   // 象眼
+        tryMove(rr, cc)
+      }
+    } else if (t === 4) {   // 马：日字 + 马脚
+      const horse = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]]
+      const leg = [[-1, 0], [-1, 0], [0, -1], [0, 1], [0, -1], [0, 1], [1, 0], [1, 0]]
+      for (let k = 0; k < 8; k++) {
+        const rr = r + horse[k][0], cc = c + horse[k][1]
+        if (rr < 0 || rr >= 10 || cc < 0 || cc >= 9) continue
+        if (board[(r + leg[k][0]) * 9 + (c + leg[k][1])] !== 0) continue   // 马脚
+        tryMove(rr, cc)
+      }
+    } else if (t === 5) {   // 车
+      for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        let rr = r + dr, cc = c + dc
+        while (rr >= 0 && rr < 10 && cc >= 0 && cc < 9) {
+          const tv = board[rr * 9 + cc]
+          if (tv === 0) { moves.push({ from: i, to: rr * 9 + cc }); rr += dr; cc += dc }
+          else { if (xqOwner(tv) !== owner) moves.push({ from: i, to: rr * 9 + cc }); break }
+        }
+      }
+    } else if (t === 6) {   // 炮：移动如车（不吃时无隔），吃子需隔一炮架
+      for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        let rr = r + dr, cc = c + dc, jumped = false
+        while (rr >= 0 && rr < 10 && cc >= 0 && cc < 9) {
+          const tv = board[rr * 9 + cc]
+          if (tv === 0) { if (!jumped) moves.push({ from: i, to: rr * 9 + cc }); rr += dr; cc += dc; continue }
+          if (!jumped) { jumped = true; rr += dr; cc += dc; continue }
+          if (xqOwner(tv) !== owner) moves.push({ from: i, to: rr * 9 + cc })
+          break
+        }
+      }
+    } else if (t === 7) {   // 兵/卒：过河前只能前进，过河后可横走
+      tryMove(r + dir, c)
+      const crossed = owner === 0 ? r <= 4 : r >= 5
+      if (crossed) { tryMove(r, c - 1); tryMove(r, c + 1) }
+    }
+  }
+  // 送将过滤：走完后己方帅/将不能被攻击
+  const kType = owner === 0 ? 1 : 11
+  const opp = owner === 0 ? 1 : 0
+  const out: { from: number; to: number }[] = []
+  for (const m of moves) {
+    const nb = [...board]
+    nb[m.to] = nb[m.from]; nb[m.from] = 0
+    const ki = nb.indexOf(kType)
+    if (ki >= 0 && !xqAttacked(nb, Math.floor(ki / 9), ki % 9, opp)) out.push(m)
+  }
+  return out
+}
+
+// 状态判定：{ over, winner(1红/2黑/0和), reason }
+function xqStatus(board: number[], owner: number): { over: boolean; winner: number; reason: string } {
+  const moves = xqLegalMoves(board, owner)
+  const opp = owner === 0 ? 1 : 0
+  const kType = owner === 0 ? 1 : 11
+  const ki = board.indexOf(kType)
+  const inCheck = ki >= 0 && xqAttacked(board, Math.floor(ki / 9), ki % 9, opp)
+  if (moves.length === 0) {
+    if (inCheck) return { over: true, winner: opp + 1, reason: '将死' }
+    return { over: true, winner: 0, reason: '困毙' }
+  }
+  return { over: false, winner: 0, reason: '' }
+}
+
 // ==================== 国际跳棋（8×8 黑白格） ====================
 const CK = 8
 function ckInit(): number[] {
@@ -580,6 +759,7 @@ export class GameRoom {
       if (this.game === 'reversi') this.board = rvInit()
       else if (this.game === 'checkers') this.board = ckInit()
       else if (this.game === 'chess') this.board = chInit()
+      else if (this.game === 'xiangqi') this.board = xqInit()
       else if (this.game === 'ccheckers') this.board = ccInit(this.seats)
       else this.board = emptyBoard()
       this.turn = this.game === 'chess' ? 0 : Math.floor(Math.random() * this.players.length)   // 国际象棋白先
@@ -610,6 +790,7 @@ export class GameRoom {
     if (this.game === 'reversi') this.board = rvInit()
     else if (this.game === 'checkers') this.board = ckInit()
     else if (this.game === 'chess') this.board = chInit()
+    else if (this.game === 'xiangqi') this.board = xqInit()
     else if (this.game === 'ccheckers') this.board = ccInit(this.seats)
     else this.board = emptyBoard()
     this.turn = this.game === 'chess' ? 0 : Math.floor(Math.random() * this.players.length)   // 国际象棋白先
@@ -739,6 +920,34 @@ export class GameRoom {
       // 将军提示（对方王被攻击但可解）
       const oppKing = this.board.indexOf(opp === 0 ? 6 : 16)
       const inCheck = oppKing >= 0 && chAttacked(this.board, Math.floor(oppKing / 8), oppKing % 8, seat)
+      this.broadcast({ type: 'move_ok', seat, move: { from, to }, board: this.board, nextTurn: this.turn, check: inCheck ? true : undefined })
+      this.timerAlarm = setTimeout(() => this.timeoutMove(this.turn), MOVE_TIME) as unknown as number
+      return
+    }
+
+    if (this.game === 'xiangqi') {
+      // 中国象棋：{from, to} 移动（马脚/象眼/炮架/九宫/将军 服务端权威校验）
+      const { from, to } = msg
+      if (!Number.isInteger(from) || !Number.isInteger(to)) {
+        this.sendTo(seat, { type: 'illegal', reason: '走法非法' }); return
+      }
+      if (xqOwner(this.board[from]) !== seat) { this.sendTo(seat, { type: 'illegal', reason: '移动的不是你的棋子' }); return }
+      const legal = xqLegalMoves(this.board, seat).find(m => m.from === from && m.to === to)
+      if (!legal) { this.sendTo(seat, { type: 'illegal', reason: '非法走法' }); return }
+      // 应用走法
+      this.board[to] = this.board[from]
+      this.board[from] = 0
+      this.turn = (this.turn + 1) % this.players.length
+      const opp = this.turn
+      const st = xqStatus(this.board, opp)
+      if (st.over) {
+        this.broadcast({ type: 'move_ok', seat, move: { from, to }, board: this.board, nextTurn: -1 })
+        await this.finish(st.winner, st.reason)
+        return
+      }
+      // 将军提示
+      const oppKing = this.board.indexOf(opp === 0 ? 1 : 11)
+      const inCheck = oppKing >= 0 && xqAttacked(this.board, Math.floor(oppKing / 9), oppKing % 9, seat)
       this.broadcast({ type: 'move_ok', seat, move: { from, to }, board: this.board, nextTurn: this.turn, check: inCheck ? true : undefined })
       this.timerAlarm = setTimeout(() => this.timeoutMove(this.turn), MOVE_TIME) as unknown as number
       return
