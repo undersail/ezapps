@@ -342,7 +342,7 @@ function aiMoveTurn() {
     }
     aiBoard.value[mv.idx!] = 2
     for (const f of REVERSI.flips(aiBoard.value, mv.idx!, 2)) aiBoard.value[f] = 2
-    markMove(Math.floor(mv.idx! / 8), mv.idx! % 8)
+    markMove(Math.floor(mv.idx! / 8), mv.idx! % 8), false
     if (!REVERSI.legalMoves(aiBoard.value, 1).length) {
       const c1 = aiBoard.value.filter(v => v === 1).length
       const c2 = aiBoard.value.filter(v => v === 2).length
@@ -356,7 +356,7 @@ function aiMoveTurn() {
     aiBoard.value[mv.to!] = aiBoard.value[mv.from!]
     aiBoard.value[mv.from!] = 0
     if (legal.promote) aiBoard.value[mv.to!] = 15
-    markMove(Math.floor(mv.to! / 8), mv.to! % 8)
+    markMove(Math.floor(mv.to! / 8), mv.to! % 8), false
     const st = chLocalStatus(aiBoard.value, 0)
     if (st.over) return aiFinish(st.winner, st.reason)
   } else if (g === 'xiangqi') {
@@ -366,13 +366,13 @@ function aiMoveTurn() {
     if (!legal) return
     aiBoard.value[mv.to!] = aiBoard.value[mv.from!]
     aiBoard.value[mv.from!] = 0
-    markMove(Math.floor(mv.to! / 9), mv.to! % 9)
+    markMove(Math.floor(mv.to! / 9), mv.to! % 9), false
     const st = xqLocalStatus(aiBoard.value, 0)
     if (st.over) return aiFinish(st.winner, st.reason)
   } else if (g === 'gomoku') {
     const mv = aiMove(g, aiBoard.value)
     aiBoard.value[mv.idx!] = 2
-    markMove(Math.floor(mv.idx! / 15), mv.idx! % 15)
+    markMove(Math.floor(mv.idx! / 15), mv.idx! % 15), false
     if (GOMOKU.checkWin(aiBoard.value, mv.idx!, 2)) return aiFinish(2, 'AI 五连获胜')
     if (!GOMOKU.legalMoves(aiBoard.value).length) return aiFinish(0, '和棋')
   } else {
@@ -380,7 +380,7 @@ function aiMoveTurn() {
     if (mv.from === -1) return aiFinish(1, 'AI 无子可动')
     const jump = Math.abs(Math.floor(mv.from! / 8) - Math.floor(mv.to! / 8)) > 1
     aiBoard.value = CHECKERS.apply(aiBoard.value, mv.from!, mv.to!, jump)
-    markMove(Math.floor(mv.to! / 8), mv.to! % 8)
+    markMove(Math.floor(mv.to! / 8), mv.to! % 8), false
     if (!CHECKERS.moves(aiBoard.value, 0).length) return aiFinish(2, '你无子可动')
   }
   aiTurn.value = 0
@@ -606,8 +606,8 @@ function enterRoom(id: string) {
         const n = curGame.value === 'xiangqi' ? 9 : 8
         lastMove.value = { r: Math.floor(m.move.to / n), c: m.move.to % n }
       }
-      // 自己落子音效
-      if (m.seat === mySeat.value) playMoveSound()
+      // 落子音效（自己高音/对方低音，双方落子都有声）
+      playMoveSound(m.seat === mySeat.value)
     }
   })
   gameWs.on('illegal', (m) => { lastMsg.value = m.reason || '非法操作' })
@@ -1072,13 +1072,14 @@ const lastMove = ref<{ r: number; c: number } | null>(null)
 
 // ===== 落子音效（Web Audio 程序化生成，无音频文件） =====
 let audioCtx: AudioContext | null = null
-function playMoveSound() {
+function playMoveSound(own = true) {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
     if (audioCtx.state === 'suspended') void audioCtx.resume()
     const t = audioCtx.currentTime
-    // 双振荡器叠加（基音 + 泛音），音量更明显
-    for (const [freq, gain] of [[400, 0.42], [800, 0.2]] as [number, number][]) {
+    // 双振荡器叠加（自己高音 400Hz / 对方低音 300Hz）
+    const base = own ? 400 : 300
+    for (const [freq, gain] of [[base, 0.42], [base * 2, 0.2]] as [number, number][]) {
       const o = audioCtx.createOscillator()
       const g = audioCtx.createGain()
       o.type = 'triangle'
@@ -1092,9 +1093,9 @@ function playMoveSound() {
   } catch { /* 音频不可用则静默 */ }
 }
 // 记录最后一步 + 落子音效
-function markMove(r: number, c: number) {
+function markMove(r: number, c: number, own = true) {
   lastMove.value = { r, c }
-  playMoveSound()
+  playMoveSound(own)
 }
 
 // ===== 黑白棋棋盘（8×8 绿底） =====
@@ -1370,7 +1371,7 @@ onUnmounted(() => {
       </header>
 
       <div class="players">
-        <div class="player-chip" :class="{ active: aiTurn === 0 && !aiOver }">
+        <div class="player-chip me" :class="{ active: aiTurn === 0 && !aiOver }">
           <span class="dot" :style="{ background: aiSide.meColor, borderColor: aiSide.meBorder }"></span>
           <span>你<small>（{{ aiSide.me }}）</small></span>
         </div>
