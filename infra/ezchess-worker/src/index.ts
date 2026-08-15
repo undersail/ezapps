@@ -708,15 +708,20 @@ function friendId(): string {
     const body = await request.json() as any
     const roomId = String(body.roomId || '').trim().toUpperCase()
     if (!roomId) return json({ success: false, error: '房间号为空' }, 400, origin)
+    // 以 room KV 为准（建房/匹配时写入；DO 实例会被懒创建，不能作为存在性依据）
+    const kv = await env.RANK.get(`room:${roomId}`)
+    if (!kv) return json({ success: false, error: '房间不存在' }, 404, origin)
+    let game = 'gomoku', seats = 2, phase = 'WAITING', players = 0
     try {
       const stub = env.GAME_ROOMS.get(env.GAME_ROOMS.idFromName(roomId))
       const st = await stub.fetch('http://room/state')
       const info: any = await st.json()
-      if (info.phase && info.game) {
-        return json({ success: true, roomId, game: info.game, seats: info.seats, phase: info.phase, players: (info.players || []).length }, 200, origin)
-      }
-    } catch (e) { /* 房间无效 → 不存在 */ }
-    return json({ success: false, error: '房间不存在' }, 404, origin)
+      if (info.game) game = info.game
+      if (info.seats) seats = info.seats
+      if (info.phase) phase = info.phase
+      players = (info.players || []).length
+    } catch (e) { /* 房间详情读取失败用默认值 */ }
+    return json({ success: true, roomId, game, seats, phase, players }, 200, origin)
   }
 
   // 快速匹配（匹配即建房：队列存房间号，第 2 人直接加入）

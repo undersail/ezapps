@@ -38,4 +38,3 @@ __pycache__/
 .env.local
 .env.production
 .env.production.local
-*.timestamp-*.mjs
