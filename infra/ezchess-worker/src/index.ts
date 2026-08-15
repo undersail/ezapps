@@ -4,7 +4,7 @@
 
 const SECRET: string = typeof API_SECRET !== 'undefined' && API_SECRET ? API_SECRET : 'ezchess-secret-2026'
 const CORS_ORIGINS = ['https://ezapps.cc', 'https://ezapps.pages.dev', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:5173']
-const GAMES = ['gomoku', 'reversi', 'checkers', 'chess', 'ccheckers', 'xiangqi']
+const GAMES = ['gomoku', 'reversi', 'checkers', 'chess', 'go', 'ccheckers', 'xiangqi']
 const BOARD = 15          // 五子棋棋盘 15×15
 const RECONNECT_MS = 60000
 const WAIT_TIMEOUT_MS = 120000
@@ -82,6 +82,99 @@ function rvHasMove(board: number[], seat: number): boolean {
     if (board[r * RV + c] === 0 && rvFlips(board, r, c, seat).length > 0) return true
   }
   return false
+}
+
+// ==================== 围棋（13 路入门款） ====================
+// 棋盘 169 格：0 空、1 黑、2 白；黑先
+// 含：气/提子/自杀禁/打劫（禁止立即回提）/双方 pass 终局数子（黑贴 7.5）
+const GO = 13
+const GO_DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]]
+function goInit(): number[] { return new Array(169).fill(0) }
+
+// 连通组及其气（返回 { group: number[], liberties: number[] }）
+function goGroupInfo(board: number[], start: number): { group: number[]; liberties: number[] } {
+  const player = board[start]
+  const group: number[] = []
+  const liberties: number[] = []
+  const seen = new Set<number>()
+  const queue = [start]
+  seen.add(start)
+  while (queue.length) {
+    const i = queue.pop()!
+    group.push(i)
+    const r = Math.floor(i / GO), c = i % GO
+    for (const [dr, dc] of GO_DIRS) {
+      const rr = r + dr, cc = c + dc
+      if (rr < 0 || rr >= GO || cc < 0 || cc >= GO) continue
+      const j = rr * GO + cc
+      if (seen.has(j)) continue
+      if (board[j] === 0) { liberties.push(j); seen.add(j) }
+      else if (board[j] === player) { seen.add(j); queue.push(j) }
+    }
+  }
+  return { group, liberties }
+}
+
+// 尝试落子：返回 { ok, board, captured, koPoint, reason }
+function goTryMove(board: number[], r: number, c: number, player: number, koPoint: number): { ok: boolean; board?: number[]; captured?: number[]; koPoint?: number; reason?: string } {
+  const i = r * GO + c
+  if (board[i] !== 0) return { ok: false, reason: '该位置已有棋子' }
+  if (i === koPoint) return { ok: false, reason: '打劫：不能立即回提' }
+  const nb = [...board]
+  nb[i] = player
+  const opp = player === 1 ? 2 : 1
+  // 提对方无气组
+  const captured: number[] = []
+  for (const [dr, dc] of GO_DIRS) {
+    const rr = r + dr, cc = c + dc
+    if (rr < 0 || rr >= GO || cc < 0 || cc >= GO) continue
+    const j = rr * GO + cc
+    if (nb[j] === opp) {
+      const info = goGroupInfo(nb, j)
+      if (info.liberties.length === 0) {
+        for (const g of info.group) { nb[g] = 0; captured.push(g) }
+      }
+    }
+  }
+  // 自杀检查
+  const mine = goGroupInfo(nb, i)
+  if (mine.liberties.length === 0) return { ok: false, reason: '自杀落子禁止' }
+  // 打劫点：本次恰好单提对方一子
+  const ko = captured.length === 1 ? captured[0] : -1
+  return { ok: true, board: nb, captured, koPoint: ko }
+}
+
+// 终局数子（双方 pass 后）：黑得分 = 黑子 + 黑空；白同理；空点判归属（邻接单方则归该方）
+function goScore(board: number[]): { black: number; white: number } {
+  let black = 0, white = 0
+  for (let i = 0; i < 169; i++) {
+    if (board[i] === 1) black++
+    else if (board[i] === 2) white++
+  }
+  // 空点归属：BFS 空点组，看邻接棋子颜色
+  const seen = new Set<number>()
+  for (let i = 0; i < 169; i++) {
+    if (board[i] !== 0 || seen.has(i)) continue
+    const queue = [i]; seen.add(i)
+    const group: number[] = []
+    let touchBlack = false, touchWhite = false
+    while (queue.length) {
+      const j = queue.pop()!
+      group.push(j)
+      const r = Math.floor(j / GO), c = j % GO
+      for (const [dr, dc] of GO_DIRS) {
+        const rr = r + dr, cc = c + dc
+        if (rr < 0 || rr >= GO || cc < 0 || cc >= GO) continue
+        const k = rr * GO + cc
+        if (board[k] === 0) { if (!seen.has(k)) { seen.add(k); queue.push(k) } }
+        else if (board[k] === 1) touchBlack = true
+        else if (board[k] === 2) touchWhite = true
+      }
+    }
+    if (touchBlack && !touchWhite) black += group.length
+    else if (touchWhite && !touchBlack) white += group.length
+  }
+  return { black, white }
 }
 
 // ==================== 国际象棋（8×8） ====================
@@ -567,6 +660,8 @@ export class GameRoom {
   roomId = ''
   timerAlarm = 0
   rematchSeats: number[] = []   // 同意"再来一局"的座位
+  goKo = -1          // 围棋打劫点（禁止立即回提）
+  goPass = 0         // 围棋连续 pass 计数（双方 pass 终局）
 
   constructor(state: DurableObjectState, env: any) {
     this.state = state
@@ -760,8 +855,11 @@ export class GameRoom {
       else if (this.game === 'checkers') this.board = ckInit()
       else if (this.game === 'chess') this.board = chInit()
       else if (this.game === 'xiangqi') this.board = xqInit()
+      else if (this.game === 'go') this.board = goInit()
       else if (this.game === 'ccheckers') this.board = ccInit(this.seats)
       else this.board = emptyBoard()
+      this.goKo = -1
+      this.goPass = 0
       this.turn = this.game === 'chess' ? 0 : Math.floor(Math.random() * this.players.length)   // 国际象棋白先
       this.timers = Array(this.seats).fill(TURN_MS)
       this.moves = []
@@ -791,8 +889,11 @@ export class GameRoom {
     else if (this.game === 'checkers') this.board = ckInit()
     else if (this.game === 'chess') this.board = chInit()
     else if (this.game === 'xiangqi') this.board = xqInit()
+    else if (this.game === 'go') this.board = goInit()
     else if (this.game === 'ccheckers') this.board = ccInit(this.seats)
     else this.board = emptyBoard()
+    this.goKo = -1
+    this.goPass = 0
     this.turn = this.game === 'chess' ? 0 : Math.floor(Math.random() * this.players.length)   // 国际象棋白先
     this.timers = Array(this.seats).fill(TURN_MS)
     this.moves = []
@@ -814,6 +915,39 @@ export class GameRoom {
   async handleMove(seat: number, msg: any) {
     if (this.phase !== 'PLAYING') return
     if (seat !== this.turn) { this.sendTo(seat, { type: 'illegal', reason: '还没轮到你' }); return }
+
+    if (this.game === 'go') {
+      // 围棋：{r,c} 落子 或 {pass:true} 放弃一手
+      const { r, c, pass } = msg
+      if (pass) {
+        this.goPass++
+        if (this.goPass >= 2) {
+          // 双方 pass → 数子终局（黑贴 7.5）
+          const sc = goScore(this.board)
+          const blackScore = sc.black
+          const whiteScore = sc.white + 7.5
+          this.broadcast({ type: 'move_ok', seat, move: { pass: true }, board: this.board, nextTurn: -1, goScore: sc })
+          await this.finish(blackScore > whiteScore ? 1 : whiteScore > blackScore ? 2 : 0, `终局数子：黑 ${sc.black} 目 vs 白 ${sc.white} 目（白贴 7.5）`)
+          return
+        }
+        this.turn = (this.turn + 1) % this.players.length
+        this.broadcast({ type: 'move_ok', seat, move: { pass: true }, board: this.board, nextTurn: this.turn })
+        return
+      }
+      if (!Number.isInteger(r) || !Number.isInteger(c) || r < 0 || r >= GO || c < 0 || c >= GO) {
+        this.sendTo(seat, { type: 'illegal', reason: '落子位置非法' }); return
+      }
+      const player = seat + 1
+      const res = goTryMove(this.board, r, c, player, this.goKo)
+      if (!res.ok || !res.board) { this.sendTo(seat, { type: 'illegal', reason: res.reason || '非法落子' }); return }
+      this.board = res.board
+      this.goKo = res.koPoint ?? -1
+      this.goPass = 0
+      this.turn = (this.turn + 1) % this.players.length
+      const captured = res.captured?.length || 0
+      this.broadcast({ type: 'move_ok', seat, move: { r, c }, board: this.board, nextTurn: this.turn, captured })
+      return
+    }
 
     if (this.game === 'reversi') {
       const { r, c } = msg.move || {}
