@@ -442,12 +442,11 @@ function xqLegalMoves(board: number[], owner: number): { from: number; to: numbe
       for (const [dr, dc] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
         if (xqInPalace(r + dr, c + dc, owner)) tryMove(r + dr, c + dc)
       }
-    } else if (t === 3) {   // 相/象：田字，象眼，不过河
-      const limit = owner === 0 ? 4 : 5   // 红相 r≤4，黑象 r≥5
+    } else if (t === 3) {   // 相/象：田字，象眼，不过河（红相 r≥5，黑象 r≤4）
       for (const [dr, dc] of [[-2, -2], [-2, 2], [2, -2], [2, 2]]) {
         const rr = r + dr, cc = c + dc
         if (rr < 0 || rr >= 10 || cc < 0 || cc >= 9) continue
-        if (owner === 0 ? rr > limit : rr < limit) continue
+        if (owner === 0 ? rr < 5 : rr > 4) continue   // 红相不过河(r≥5)，黑象不过河(r≤4)
         if (board[(r + dr / 2) * 9 + (c + dc / 2)] !== 0) continue   // 象眼
         tryMove(rr, cc)
       }

@@ -278,11 +278,10 @@ export const XIANGQI = {
           if (this.inPalace(r + dr, c + dc, owner)) tryMove(r + dr, c + dc)
         }
       } else if (t === 3) {
-        const limit = owner === 0 ? 4 : 5
         for (const [dr, dc] of [[-2, -2], [-2, 2], [2, -2], [2, 2]]) {
           const rr = r + dr, cc = c + dc
           if (rr < 0 || rr >= 10 || cc < 0 || cc >= 9) continue
-          if (owner === 0 ? rr > limit : rr < limit) continue
+          if (owner === 0 ? rr < 5 : rr > 4) continue   // 红相不过河(r≥5)，黑象不过河(r≤4)
           if (board[(r + dr / 2) * 9 + (c + dc / 2)] !== 0) continue
           tryMove(rr, cc)
         }
