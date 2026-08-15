@@ -103,14 +103,20 @@ function genTip(g: string, board: number[], last: string): string {
   return last === 'start' ? '💡 提示：棋子尽量保持抱团推进，孤子容易被对方跳吃；到达对方底线可升王' : ''
 }
 
+let lastTipShown = ''
 function showTipFor(last: string) {
   const g = curGame.value
-  if (g === 'checkers') {
-    // 跳棋两步操作，选子后提示更准确 —— 落子后统一给
-    showTip(genTip(g, aiBoard.value, last))
-  } else {
-    showTip(genTip(g, aiBoard.value, last))
+  const tip = genTip(g, aiBoard.value, last)
+  if (!tip) {
+    // 当前局面无需提示：不弹窗；手动点按钮时呈现"无提示"文案
+    if (last === 'manual') showTip('当前局面暂无特别提示，正常下就好')
+    else aiTipVisible.value = false
+    return
   }
+  // 局中提示与上一条相同则跳过（避免重复刷屏）；开局/手动/总结强制显示
+  if (last !== 'start' && last !== 'manual' && tip === lastTipShown) return
+  lastTipShown = tip
+  showTip(tip)
 }
 
 function startAI() {
@@ -127,6 +133,7 @@ function startAI() {
   aiSelected.value = null
   refreshAILegal()
   // 开局技巧提示（落子前）
+  lastTipShown = ''
   showTipFor('start')
 }
 
