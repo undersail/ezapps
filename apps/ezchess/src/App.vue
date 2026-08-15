@@ -176,6 +176,7 @@ function startAI() {
   aiLegal.value = []
   aiCkMoves.value = []
   aiSelected.value = null
+  lastMove.value = null
   refreshAILegal()
   // 开局技巧提示（落子前）
   lastTipShown = ''
@@ -265,6 +266,7 @@ function aiPlayerMove(idx: number, from?: number, to?: number) {
   if (g === 'gomoku') {
     if (aiBoard.value[idx] !== 0) return   // 已有棋子位置不可落
     aiBoard.value[idx] = 1
+    markMove(Math.floor(idx / 15), idx % 15)
     if (GOMOKU.checkWin(aiBoard.value, idx, 1)) return aiFinish(1, '五连获胜')
     if (!GOMOKU.legalMoves(aiBoard.value).length) return aiFinish(0, '和棋')
   } else if (g === 'reversi') {
@@ -272,6 +274,7 @@ function aiPlayerMove(idx: number, from?: number, to?: number) {
     if (!flips.length) return
     aiBoard.value[idx] = 1
     for (const f of flips) aiBoard.value[f] = 1
+    markMove(Math.floor(idx / 8), idx % 8)
     const opp = REVERSI.legalMoves(aiBoard.value, 2)
     if (!opp.length) {
       const mine = REVERSI.legalMoves(aiBoard.value, 1)
@@ -290,6 +293,7 @@ function aiPlayerMove(idx: number, from?: number, to?: number) {
     aiBoard.value[to] = aiBoard.value[from]
     aiBoard.value[from] = 0
     if (legal.promote) aiBoard.value[to] = 5
+    markMove(Math.floor(to / 8), to % 8)
     // 判断对方（黑）状态
     const st = chLocalStatus(aiBoard.value, 1)
     if (st.over) return aiFinish(st.winner, st.reason)
@@ -300,6 +304,7 @@ function aiPlayerMove(idx: number, from?: number, to?: number) {
     if (!legal) return
     aiBoard.value[to] = aiBoard.value[from]
     aiBoard.value[from] = 0
+    markMove(Math.floor(to / 9), to % 9)
     const st = xqLocalStatus(aiBoard.value, 1)
     if (st.over) return aiFinish(st.winner, st.reason)
   } else {
@@ -308,6 +313,7 @@ function aiPlayerMove(idx: number, from?: number, to?: number) {
     const mv = aiCkMoves.value.find(m => m.from === from && m.to === to)
     if (!mv) return
     aiBoard.value = CHECKERS.apply(aiBoard.value, from, to, Math.abs(Math.floor(from / 8) - Math.floor(to / 8)) > 1 || Math.abs((from % 8) - (to % 8)) > 1)
+    markMove(Math.floor(to / 8), to % 8)
     if (!CHECKERS.moves(aiBoard.value, 1).length) return aiFinish(1, '对方无子可动')
   }
   // 轮到 AI
@@ -335,6 +341,7 @@ function aiMoveTurn() {
     }
     aiBoard.value[mv.idx!] = 2
     for (const f of REVERSI.flips(aiBoard.value, mv.idx!, 2)) aiBoard.value[f] = 2
+    markMove(Math.floor(mv.idx! / 8), mv.idx! % 8)
     if (!REVERSI.legalMoves(aiBoard.value, 1).length) {
       const c1 = aiBoard.value.filter(v => v === 1).length
       const c2 = aiBoard.value.filter(v => v === 2).length
@@ -348,6 +355,7 @@ function aiMoveTurn() {
     aiBoard.value[mv.to!] = aiBoard.value[mv.from!]
     aiBoard.value[mv.from!] = 0
     if (legal.promote) aiBoard.value[mv.to!] = 15
+    markMove(Math.floor(mv.to! / 8), mv.to! % 8)
     const st = chLocalStatus(aiBoard.value, 0)
     if (st.over) return aiFinish(st.winner, st.reason)
   } else if (g === 'xiangqi') {
@@ -357,11 +365,13 @@ function aiMoveTurn() {
     if (!legal) return
     aiBoard.value[mv.to!] = aiBoard.value[mv.from!]
     aiBoard.value[mv.from!] = 0
+    markMove(Math.floor(mv.to! / 9), mv.to! % 9)
     const st = xqLocalStatus(aiBoard.value, 0)
     if (st.over) return aiFinish(st.winner, st.reason)
   } else if (g === 'gomoku') {
     const mv = aiMove(g, aiBoard.value)
     aiBoard.value[mv.idx!] = 2
+    markMove(Math.floor(mv.idx! / 15), mv.idx! % 15)
     if (GOMOKU.checkWin(aiBoard.value, mv.idx!, 2)) return aiFinish(2, 'AI 五连获胜')
     if (!GOMOKU.legalMoves(aiBoard.value).length) return aiFinish(0, '和棋')
   } else {
@@ -369,6 +379,7 @@ function aiMoveTurn() {
     if (mv.from === -1) return aiFinish(1, 'AI 无子可动')
     const jump = Math.abs(Math.floor(mv.from! / 8) - Math.floor(mv.to! / 8)) > 1
     aiBoard.value = CHECKERS.apply(aiBoard.value, mv.from!, mv.to!, jump)
+    markMove(Math.floor(mv.to! / 8), mv.to! % 8)
     if (!CHECKERS.moves(aiBoard.value, 0).length) return aiFinish(2, '你无子可动')
   }
   aiTurn.value = 0
@@ -546,6 +557,7 @@ function enterRoom(id: string) {
   phase.value = 'WAITING'
   lastMsg.value = ''
   selected.value = null
+  lastMove.value = null
 
   const gameWs = new GameWS(Net.wsUrl(id, { deviceId, nick: myNick.value }))
   gameWs.on('*', () => { /* 所有消息 */ })
@@ -571,6 +583,17 @@ function enterRoom(id: string) {
     if (m.board) board.value = m.board
     if (typeof m.nextTurn === 'number') turn.value = m.nextTurn
     if (m.check) lastMsg.value = '⚔️ 将军！'
+    // 最后一步标识（五子棋 move={r,c}，其他 move={from,to}）
+    if (m.move) {
+      if (typeof m.move.r === 'number') {
+        lastMove.value = { r: m.move.r, c: m.move.c }
+      } else if (typeof m.move.to === 'number') {
+        const n = curGame.value === 'xiangqi' ? 9 : 8
+        lastMove.value = { r: Math.floor(m.move.to / n), c: m.move.to % n }
+      }
+      // 自己落子音效
+      if (m.seat === mySeat.value) playMoveSound()
+    }
   })
   gameWs.on('illegal', (m) => { lastMsg.value = m.reason || '非法操作' })
   gameWs.on('player_joined', (m) => { lastMsg.value = `${m.player?.nick} 加入房间 (${m.seats}/${m.seats})` })
@@ -752,6 +775,29 @@ function drawBoard() {
     drawGomoku(ctx, size)
   }
 
+  // 最后一步标识（所有棋种统一：目标格高亮圈）
+  if (lastMove.value && !aiOver.value) {
+    const g = curGame.value
+    const lm = lastMove.value
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.95)'
+    ctx.lineWidth = 3
+    if (g === 'gomoku') {
+      const cell = size / (BOARD + 1)
+      const pad = cell
+      ctx.beginPath(); ctx.arc(pad + lm.c * cell, pad + lm.r * cell, cell * 0.42, 0, Math.PI * 2); ctx.stroke()
+    } else if (g === 'reversi') {
+      const cell = size / 8
+      ctx.beginPath(); ctx.arc(lm.c * cell + cell / 2, lm.r * cell + cell / 2, cell * 0.44, 0, Math.PI * 2); ctx.stroke()
+    } else if (g === 'xiangqi') {
+      const cell = size / 10
+      const cx = size / 2
+      ctx.beginPath(); ctx.arc(cx + (lm.c - 4) * cell, cell * (lm.r + 0.5), cell * 0.42, 0, Math.PI * 2); ctx.stroke()
+    } else {
+      const cell = size / 8
+      ctx.beginPath(); ctx.arc(lm.c * cell + cell / 2, lm.r * cell + cell / 2, cell * 0.44, 0, Math.PI * 2); ctx.stroke()
+    }
+  }
+
   // AI 教学：合法落点提示（玩家回合）
   if (stage.value === 'ai' && aiTurn.value === 0 && !aiOver.value) {
     if (curGame.value === 'checkers' || curGame.value === 'chess' || curGame.value === 'xiangqi') {
@@ -831,11 +877,7 @@ function drawGomoku(ctx: CanvasRenderingContext2D, size: number) {
       ctx.strokeStyle = v === 1 ? '#000' : '#999'
       ctx.lineWidth = 1
       ctx.stroke()
-      // 最后一手标记
-      if (lastMove && lastMove.r === r && lastMove.c === c) {
-        ctx.fillStyle = v === 1 ? '#ff5252' : '#e53935'
-        ctx.beginPath(); ctx.arc(x, y, cell * 0.14, 0, Math.PI * 2); ctx.fill()
-      }
+
     }
   }
 }
@@ -993,6 +1035,30 @@ function drawCheckers(ctx: CanvasRenderingContext2D, size: number) {
 }
 
 const lastMove = ref<{ r: number; c: number } | null>(null)
+
+// ===== 落子音效（Web Audio 程序化生成，无音频文件） =====
+let audioCtx: AudioContext | null = null
+function playMoveSound() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    if (audioCtx.state === 'suspended') audioCtx.resume()
+    const t = audioCtx.currentTime
+    const o = audioCtx.createOscillator()
+    const g = audioCtx.createGain()
+    o.type = 'sine'
+    o.frequency.setValueAtTime(620, t)
+    o.frequency.exponentialRampToValueAtTime(380, t + 0.09)
+    g.gain.setValueAtTime(0.18, t)
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.14)
+    o.connect(g).connect(audioCtx.destination)
+    o.start(t); o.stop(t + 0.15)
+  } catch { /* 音频不可用则静默 */ }
+}
+// 记录最后一步 + 落子音效
+function markMove(r: number, c: number) {
+  lastMove.value = { r, c }
+  playMoveSound()
+}
 
 // ===== 黑白棋棋盘（8×8 绿底） =====
 const RV2 = 8
