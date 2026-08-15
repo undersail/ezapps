@@ -370,11 +370,26 @@ export class GameRoom {
         } catch (e) { /* 忽略坏消息 */ }
       })
 
-      server.addEventListener('close', () => {
+      server.addEventListener('close', async () => {
         const idx = this.players.findIndex(p => p.ws === server)
         if (idx >= 0) {
           this.players[idx].ws = null
           this.players[idx].disconnectAt = Date.now()   // 记录掉线时间（供顶替判定）
+          // 对局中掉线：房主转移给在线玩家 + 房间回到大厅列表（可重连/顶替）
+          if (this.phase === 'PLAYING') {
+            const newOwner = this.players.find(p => p.ws && p.seat !== idx)
+            if (newOwner) {
+              try {
+                await waitingAdd(this.env, this.game, this.roomId, newOwner.nick || '玩家')
+                const raw = await this.env.RANK.get(`room:${this.roomId}`)
+                if (raw) {
+                  const info = JSON.parse(raw)
+                  info.owner = newOwner.deviceId
+                  await this.env.RANK.put(`room:${this.roomId}`, JSON.stringify(info), { expirationTtl: 7200 })
+                }
+              } catch (e) { /* 忽略 */ }
+            }
+          }
           // 60 秒重连窗口
           this.players[idx].reconnectTimer = setTimeout(() => {
             if (this.phase === 'PLAYING' && !this.players[idx].ws) {
@@ -716,9 +731,9 @@ async function waitingRemove(env: any, game: string, roomId: string) {
         const stub = env.GAME_ROOMS.get(env.GAME_ROOMS.idFromName(r.roomId))
         const st = await stub.fetch('http://room/state')
         const info: any = await st.json()
-        // 有在线玩家且未满员的等待房才展示（过滤僵尸房）
+        // 有在线玩家、未满员、未结束的房间才展示（含对局中掉线的房，供重连/顶替）
         const online = (info.players || []).filter((p: any) => p.online).length
-        if (info.phase === 'WAITING' && online > 0 && online < (info.seats || 2)) {
+        if (info.phase !== 'FINISHED' && online > 0 && online < (info.seats || 2)) {
           valid.push(r)
         }
       } catch (e) { /* 房间无效 → 过滤 */ }

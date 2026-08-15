@@ -1022,7 +1022,7 @@ onUnmounted(() => {
       <div class="board-wrap">
         <canvas ref="canvasRef" class="board" @click="cellClick"></canvas>
         <transition name="tip">
-          <div v-if="gameOver" class="ai-tip ai-tip--over">
+          <div v-if="gameOver && !gameOverTipDismissed" class="ai-tip ai-tip--over">
             <span class="ai-tip__text">{{ rematchSummary }}</span>
             <button class="ai-tip__close" @click="gameOverTipDismissed = true">✕</button>
           </div>
