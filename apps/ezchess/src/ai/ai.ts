@@ -19,9 +19,18 @@ interface GameSearch {
   depth: number                                      // 搜索深度
 }
 
+// 吃子优先排序（MVV 简化版：to 位有子的走法排前 → 剪枝更有效）
+function orderMoves(board: number[], moves: SearchMove[]): SearchMove[] {
+  return moves.slice().sort((a, b) => {
+    const va = a.to !== undefined && a.to >= 0 && board[a.to] !== 0 ? 1 : 0
+    const vb = b.to !== undefined && b.to >= 0 && board[b.to] !== 0 ? 1 : 0
+    return vb - va
+  })
+}
+
 function search(cfg: GameSearch, board: number[], depth: number, alpha: number, beta: number, player: number): number {
   if (depth <= 0) return cfg.eval(board)
-  const moves = cfg.gen(board, player)
+  const moves = orderMoves(board, cfg.gen(board, player))
   if (!moves.length) return cfg.eval(board)
   if (player === 2) {
     let best = -Infinity
@@ -45,7 +54,7 @@ function search(cfg: GameSearch, board: number[], depth: number, alpha: number, 
 }
 
 function searchBest(cfg: GameSearch, board: number[]): AIMove {
-  const moves = cfg.gen(board, 2)
+  const moves = orderMoves(board, cfg.gen(board, 2))
   if (!moves.length) return { idx: -1, from: -1, to: -1 }
   let best = moves[0], bestScore = -Infinity
   for (const m of moves) {
@@ -207,14 +216,27 @@ function xiangqiEvaluate(board: number[]): number {
     const v = board[i]
     if (!v) continue
     const t = v % 10
-    const sign = v >= 11 ? 1 : -1
+    const r = Math.floor(i / 9), c = i % 9
+    const isBlack = v >= 11
+    const sign = isBlack ? 1 : -1
     s += sign * XQ_VALUE[t]
-    const r = Math.floor(i / 9)
-    if (t === 7) {   // 兵/卒过河奖励
-      const crossed = v >= 11 ? r >= 5 : r <= 4
-      s += sign * (crossed ? 60 : 0)
+    const rr = isBlack ? r : 9 - r          // 归一化黑视角（0 底 → 9 底）
+    const center = Math.max(0, 3 - (Math.abs(4 - c) + Math.abs(4.5 - rr)))  // 中路/中心活跃度
+    if (t === 4) s += sign * center * 12    // 马：中心河界最活
+    else if (t === 5) s += sign * center * 8    // 车：占要道
+    else if (t === 6) {                          // 炮：过河有威胁 + 占中
+      s += sign * center * 8
+      const crossed = isBlack ? r >= 5 : r <= 4
+      s += sign * (crossed ? 50 : 0)
+    } else if (t === 7) {                        // 兵：过河越深入越强
+      const depth = isBlack ? r - 4 : 4 - r
+      if (depth > 0) s += sign * (60 + depth * 25)
     }
   }
+  // 将/帅安全：被将军重罚
+  const redKing = board.indexOf(1), blackKing = board.indexOf(11)
+  if (blackKing >= 0 && XIANGQI.attacked(board, Math.floor(blackKing / 9), blackKing % 9, 0)) s -= 3000
+  if (redKing >= 0 && XIANGQI.attacked(board, Math.floor(redKing / 9), redKing % 9, 1)) s += 3000
   return s
 }
 
@@ -230,7 +252,7 @@ const xiangqiSearch: GameSearch = {
   gen: (b, p) => XIANGQI.legalMoves(b, p === 1 ? 0 : 1).map(m => ({ from: m.from, to: m.to })),
   apply: xiangqiApply,
   eval: xiangqiEvaluate,
-  depth: 2,
+  depth: 3,
 }
 
 // ===== 围棋：启发式贪心（分支过大无法搜索） =====
