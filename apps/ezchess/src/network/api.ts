@@ -62,6 +62,21 @@ export async function roomInfo(roomId: string): Promise<any | null> {
   return res?.success ? res : null
 }
 
+/** 房间号校验（加入前检查存在性） */
+export async function checkRoom(roomId: string): Promise<{ success: boolean; error?: string; game?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/room/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId }),
+      signal: AbortSignal.timeout(5000),
+    })
+    return await res.json()
+  } catch {
+    return { success: false, error: '网络异常' }
+  }
+}
+
 /** 等待中的房间列表 */
 export async function fetchRooms(game: string): Promise<{ roomId: string; owner: string }[]> {
   try {

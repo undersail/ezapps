@@ -670,6 +670,14 @@ async function waitingRemove(env: any, game: string, roomId: string) {
   await env.RANK.put(key, JSON.stringify(list), { expirationTtl: 7200 })
 }
 
+// 好友房短房间号（6 位，去易混淆字符）
+const FRIEND_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+function friendId(): string {
+  let id = ''
+  for (let i = 0; i < 6; i++) id += FRIEND_CHARS[Math.floor(Math.random() * FRIEND_CHARS.length)]
+  return id
+}
+
 // 创建房间
   if (url.pathname === '/api/room/create' && request.method === 'POST') {
     const body = await request.json() as any
@@ -678,7 +686,12 @@ async function waitingRemove(env: any, game: string, roomId: string) {
     const nick = body.player?.nick || '玩家'
     if (!GAMES.includes(game) || !deviceId) return json({ error: '参数异常' }, 400, origin)
     const seats = game === 'ccheckers' ? Math.min(Math.max(parseInt(body.players) || 2, 2), 6) : 2
-    const roomId = uid()
+    // 好友房用短房间号（6 位，碰撞重试）
+    let roomId = friendId()
+    for (let i = 0; i < 5; i++) {
+      if (!(await env.RANK.get(`room:${roomId}`))) break
+      roomId = friendId()
+    }
     const id = env.GAME_ROOMS.idFromName(roomId)
     const stub = env.GAME_ROOMS.get(id)
     await stub.fetch('http://room/init', {
@@ -686,8 +699,24 @@ async function waitingRemove(env: any, game: string, roomId: string) {
       body: JSON.stringify({ game, seats, roomId }),
     })
     await env.RANK.put(`room:${roomId}`, JSON.stringify({ game, seats, mode: body.mode || 'friend', owner: deviceId, createdAt: Date.now() }), { expirationTtl: 7200 })
-    await waitingAdd(env, game, roomId, nick)
+    // 好友房不进快速对战列表（靠房间号加入，队列独立）
     return json({ success: true, roomId, wsUrl: `/game/${roomId}/ws?deviceId=${encodeURIComponent(deviceId)}&nick=${encodeURIComponent(nick)}` }, 200, origin)
+  }
+
+  // 房间号校验（加入前检查存在性）
+  if (url.pathname === '/api/room/check' && request.method === 'POST') {
+    const body = await request.json() as any
+    const roomId = String(body.roomId || '').trim().toUpperCase()
+    if (!roomId) return json({ success: false, error: '房间号为空' }, 400, origin)
+    try {
+      const stub = env.GAME_ROOMS.get(env.GAME_ROOMS.idFromName(roomId))
+      const st = await stub.fetch('http://room/state')
+      const info: any = await st.json()
+      if (info.phase && info.game) {
+        return json({ success: true, roomId, game: info.game, seats: info.seats, phase: info.phase, players: (info.players || []).length }, 200, origin)
+      }
+    } catch (e) { /* 房间无效 → 不存在 */ }
+    return json({ success: false, error: '房间不存在' }, 404, origin)
   }
 
   // 快速匹配（匹配即建房：队列存房间号，第 2 人直接加入）

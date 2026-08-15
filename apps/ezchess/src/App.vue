@@ -365,17 +365,25 @@ async function createRoom() {
   const res = await Net.createRoom(gameId.value, { deviceId, nick: myNick.value }, seats)
   if (res?.roomId) {
     roomCode.value = res.roomId
-    roomErr.value = `好友房已创建，房间号：${res.roomId}（${seats} 人桌，${seats > 2 ? '满员自动开赛' : '对方输入此号加入'}）`
     enterRoom(res.roomId)
+    // 弹窗提示房间号（方便发给好友）
+    roomErr.value = ''
+    showTip(`🏠 好友房已创建，房间号：${res.roomId}\n把房间号发给好友，输入即可加入`)
   } else {
     roomErr.value = '建房失败，请稍后再试'
   }
 }
 
 async function joinRoom() {
-  const code = roomCode.value.trim()
+  const code = roomCode.value.trim().toUpperCase()
   if (!code) { roomErr.value = '请输入房间号'; return }
-  // 直接连 WS（房间存在则进入，不存在则被拒）
+  // 先校验房间存在，避免不存在的房间号被当成建房
+  const chk = await Net.checkRoom(code)
+  if (!chk.success) {
+    roomErr.value = `房间不存在（${chk.error || '请检查房间号'}）`
+    return
+  }
+  roomErr.value = ''
   enterRoom(code)
 }
 
@@ -1091,6 +1099,7 @@ input:focus { border-color: #6366f1; }
 .ai-btns .btn { flex: 1; text-align: center; }
 .ai-tip { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(360px, 82%); background: rgba(30, 41, 59, 0.92); color: #f1f5f9; padding: 14px 40px 14px 16px; border-radius: 14px; font-size: 0.85rem; line-height: 1.65; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4); z-index: 99; pointer-events: auto; }
 .ai-tip--over { background: rgba(16, 185, 129, 0.95); font-weight: bold; }
+.ai-tip__text { white-space: pre-line; }
 .ai-tip__close { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #94a3b8; font-size: 0.8rem; cursor: pointer; padding: 2px 6px; }
 .ai-tip__close:hover { color: #fff; }
 .ai-tip__agree { display: block; margin-top: 10px; background: #10b981; border: none; color: #fff; font-weight: bold; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }

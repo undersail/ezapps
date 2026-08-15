@@ -1,0 +1,19 @@
+// vite.config.ts
+import { defineConfig } from "file:///data/workspace/ezapps_dev/node_modules/.pnpm/vite@5.4.21/node_modules/vite/dist/node/index.js";
+import vue from "file:///data/workspace/ezapps_dev/node_modules/.pnpm/@vitejs+plugin-vue@5.2.4_vite@5.4.21_vue@3.5.41_typescript@5.6.3_/node_modules/@vitejs/plugin-vue/dist/index.mjs";
+import { fileURLToPath, URL } from "node:url";
+var __vite_injected_original_import_meta_url = "file:///data/workspace/ezapps_dev/apps/ezchess/vite.config.ts";
+var vite_config_default = defineConfig({
+  plugins: [vue()],
+  base: "/ezchess/",
+  build: {
+    outDir: fileURLToPath(new URL("../web-app/dist/ezchess", __vite_injected_original_import_meta_url)),
+    emptyOutDir: true,
+    sourcemap: false
+  },
+  server: { port: 5177, host: "0.0.0.0" }
+});
+export {
+  vite_config_default as default
+};
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsidml0ZS5jb25maWcudHMiXSwKICAic291cmNlc0NvbnRlbnQiOiBbImNvbnN0IF9fdml0ZV9pbmplY3RlZF9vcmlnaW5hbF9kaXJuYW1lID0gXCIvZGF0YS93b3Jrc3BhY2UvZXphcHBzX2Rldi9hcHBzL2V6Y2hlc3NcIjtjb25zdCBfX3ZpdGVfaW5qZWN0ZWRfb3JpZ2luYWxfZmlsZW5hbWUgPSBcIi9kYXRhL3dvcmtzcGFjZS9lemFwcHNfZGV2L2FwcHMvZXpjaGVzcy92aXRlLmNvbmZpZy50c1wiO2NvbnN0IF9fdml0ZV9pbmplY3RlZF9vcmlnaW5hbF9pbXBvcnRfbWV0YV91cmwgPSBcImZpbGU6Ly8vZGF0YS93b3Jrc3BhY2UvZXphcHBzX2Rldi9hcHBzL2V6Y2hlc3Mvdml0ZS5jb25maWcudHNcIjtpbXBvcnQgeyBkZWZpbmVDb25maWcgfSBmcm9tICd2aXRlJ1xuaW1wb3J0IHZ1ZSBmcm9tICdAdml0ZWpzL3BsdWdpbi12dWUnXG5pbXBvcnQgeyBmaWxlVVJMVG9QYXRoLCBVUkwgfSBmcm9tICdub2RlOnVybCdcblxuZXhwb3J0IGRlZmF1bHQgZGVmaW5lQ29uZmlnKHtcbiAgcGx1Z2luczogW3Z1ZSgpXSxcbiAgYmFzZTogJy9lemNoZXNzLycsXG4gIGJ1aWxkOiB7XG4gICAgb3V0RGlyOiBmaWxlVVJMVG9QYXRoKG5ldyBVUkwoJy4uL3dlYi1hcHAvZGlzdC9lemNoZXNzJywgaW1wb3J0Lm1ldGEudXJsKSksXG4gICAgZW1wdHlPdXREaXI6IHRydWUsXG4gICAgc291cmNlbWFwOiBmYWxzZSxcbiAgfSxcbiAgc2VydmVyOiB7IHBvcnQ6IDUxNzcsIGhvc3Q6ICcwLjAuMC4wJyB9LFxufSlcbiJdLAogICJtYXBwaW5ncyI6ICI7QUFBdVMsU0FBUyxvQkFBb0I7QUFDcFUsT0FBTyxTQUFTO0FBQ2hCLFNBQVMsZUFBZSxXQUFXO0FBRm1KLElBQU0sMkNBQTJDO0FBSXZPLElBQU8sc0JBQVEsYUFBYTtBQUFBLEVBQzFCLFNBQVMsQ0FBQyxJQUFJLENBQUM7QUFBQSxFQUNmLE1BQU07QUFBQSxFQUNOLE9BQU87QUFBQSxJQUNMLFFBQVEsY0FBYyxJQUFJLElBQUksMkJBQTJCLHdDQUFlLENBQUM7QUFBQSxJQUN6RSxhQUFhO0FBQUEsSUFDYixXQUFXO0FBQUEsRUFDYjtBQUFBLEVBQ0EsUUFBUSxFQUFFLE1BQU0sTUFBTSxNQUFNLFVBQVU7QUFDeEMsQ0FBQzsiLAogICJuYW1lcyI6IFtdCn0K
