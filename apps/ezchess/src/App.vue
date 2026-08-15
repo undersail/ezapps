@@ -900,13 +900,16 @@ onUnmounted(() => {
         </div>
       </header>
 
-      <!-- 技巧提示浮窗（棋盘上方居中） -->
-      <transition name="tip">
-        <div v-if="aiTipVisible" class="ai-tip" :class="{ 'ai-tip--over': aiOver }">
-          <span class="ai-tip__text">{{ aiTipText }}</span>
-          <button class="ai-tip__close" @click="aiTipVisible = false">✕</button>
-        </div>
-      </transition>
+      <div class="board-wrap">
+        <canvas ref="canvasRef" class="board" @click="aiCellClick"></canvas>
+        <!-- 技巧提示浮窗（棋盘中央悬浮） -->
+        <transition name="tip">
+          <div v-if="aiTipVisible" class="ai-tip" :class="{ 'ai-tip--over': aiOver }">
+            <span class="ai-tip__text">{{ aiTipText }}</span>
+            <button class="ai-tip__close" @click="aiTipVisible = false">✕</button>
+          </div>
+        </transition>
+      </div>
 
       <div class="players">
         <div class="player-chip" :class="{ active: aiTurn === 0 && !aiOver }">
@@ -917,10 +920,6 @@ onUnmounted(() => {
           <span class="dot" style="background:#eee"></span>
           <span>🤖 AI<small>（白）</small></span>
         </div>
-      </div>
-
-      <div class="board-wrap">
-        <canvas ref="canvasRef" class="board" @click="aiCellClick"></canvas>
       </div>
 
       <p class="status" v-if="!aiOver">
@@ -1014,14 +1013,14 @@ input:focus { border-color: #6366f1; }
 .ai-title { font-size: 1.15rem; }
 .ai-desc { margin: 0; font-size: 0.82rem; color: #94a3b8; }
 .ai-rules { margin: 6px 0 0; font-size: 0.76rem; color: #64748b; line-height: 1.7; background: #f8fafc; border-radius: 8px; padding: 8px 12px; text-align: left; }
-.ai-btns { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-.ai-btns .btn { flex-shrink: 0; }
-.ai-tip { position: relative; max-width: min(420px, 92vw); margin: 0 auto 12px; background: rgba(30, 41, 59, 0.94); color: #f1f5f9; padding: 11px 38px 11px 14px; border-radius: 12px; font-size: 0.84rem; line-height: 1.6; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); z-index: 99; }
+.ai-btns { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px; }
+.ai-btns .btn { flex: 1; text-align: center; }
+.ai-tip { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(360px, 82%); background: rgba(30, 41, 59, 0.92); color: #f1f5f9; padding: 14px 40px 14px 16px; border-radius: 14px; font-size: 0.85rem; line-height: 1.65; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4); z-index: 99; pointer-events: auto; }
 .ai-tip--over { background: rgba(16, 185, 129, 0.95); font-weight: bold; }
 .ai-tip__close { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #94a3b8; font-size: 0.8rem; cursor: pointer; padding: 2px 6px; }
 .ai-tip__close:hover { color: #fff; }
-.tip-enter-active, .tip-leave-active { transition: opacity 0.3s, transform 0.3s; }
-.tip-enter-from, .tip-leave-to { opacity: 0; transform: translateY(-8px); }
+.tip-enter-active, .tip-leave-active { transition: opacity 0.3s; }
+.tip-enter-from, .tip-leave-to { opacity: 0; }
 .over-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
 .btn-block { display: block; width: 100%; padding: 11px; font-size: 0.95rem; }
 .mode-note { margin: 12px 0 0; font-size: 0.76rem; color: #94a3b8; line-height: 1.6; }
@@ -1072,7 +1071,7 @@ input:focus { border-color: #6366f1; }
 .player-chip.active .dot { border-color: #3730a3; }
 .player-chip .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #94a3b8; }
 .timer { color: #dc2626; font-weight: bold; font-size: 0.8rem; }
-.board-wrap { display: flex; justify-content: center; }
+.board-wrap { display: flex; justify-content: center; position: relative; }
 .board { width: min(92vw, 480px); height: min(92vw, 480px); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); cursor: pointer; touch-action: none; }
 .status { text-align: center; color: #475569; font-size: 0.9rem; margin: 12px 0 4px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .turn-dot { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid; vertical-align: middle; }
