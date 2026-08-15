@@ -123,6 +123,8 @@ function startAI() {
   aiCkMoves.value = []
   aiSelected.value = null
   refreshAILegal()
+  // 开局技巧提示（落子前）
+  showTipFor('start')
 }
 
 function refreshAILegal() {
@@ -132,10 +134,34 @@ function refreshAILegal() {
   else aiCkMoves.value = CHECKERS.legalMoves(aiBoard.value, 0)
 }
 
+// 对局结束总结提示
+function aiSummary(g: string, board: number[], winner: number): string {
+  if (g === 'gomoku') {
+    if (winner === 1) return '🎉 你赢了！五连达成 —— 记住：连子要同时留两个活口（双三），对手才堵不住'
+    if (winner === 2) return '🤖 AI 获胜 —— 复盘重点：AI 的冲四你堵住了吗？活三要及时堵两端，别等它连起来'
+    return '🤝 和棋 —— 棋盘下满没有五连，势均力敌！'
+  }
+  if (g === 'reversi') {
+    const c1 = board.filter(v => v === 1).length
+    const c2 = board.filter(v => v === 2).length
+    if (winner === 1) return `🎉 你赢了（${c1}:${c2}）！—— 关键在角与边：角子不可翻，边线是根基`
+    if (winner === 2) return `🤖 AI 获胜（${c1}:${c2}）—— 复盘：是不是把中间翻太多、角没抢到？`
+    return `🤝 和棋（${c1}:${c2}）—— 势均力敌！`
+  }
+  const f1 = board.filter(v => v === 1 || v === 3).length
+  const f2 = board.filter(v => v === 2 || v === 4).length
+  if (winner === 1) return `🎉 你赢了！—— 记住：有吃必吃，跳吃后优先继续连跳，尽快升王`
+  if (winner === 2) return '🤖 AI 获胜 —— 复盘：是不是把棋子落单了？抱团推进 + 及时跳吃是取胜关键'
+  return '🤝 平局 —— 势均力敌！'
+}
+
 function aiFinish(winner: number, reason: string) {
   aiOver.value = { winner, reason }
   aiLegal.value = []
   aiCkMoves.value = []
+  // 对局结束：总结浮窗（绿色高亮，不自动消失）
+  showTip(aiSummary(curGame.value, aiBoard.value, winner))
+  if (aiTipTimer) clearTimeout(aiTipTimer)   // 总结提示不自动消失
 }
 
 function aiPlayerMove(idx: number, from?: number, to?: number) {
@@ -874,9 +900,9 @@ onUnmounted(() => {
         </div>
       </header>
 
-      <!-- 技巧提示浮窗 -->
+      <!-- 技巧提示浮窗（棋盘上方居中） -->
       <transition name="tip">
-        <div v-if="aiTipVisible && !aiOver" class="ai-tip">
+        <div v-if="aiTipVisible" class="ai-tip" :class="{ 'ai-tip--over': aiOver }">
           <span class="ai-tip__text">{{ aiTipText }}</span>
           <button class="ai-tip__close" @click="aiTipVisible = false">✕</button>
         </div>
@@ -990,11 +1016,12 @@ input:focus { border-color: #6366f1; }
 .ai-rules { margin: 6px 0 0; font-size: 0.76rem; color: #64748b; line-height: 1.7; background: #f8fafc; border-radius: 8px; padding: 8px 12px; text-align: left; }
 .ai-btns { display: flex; justify-content: space-between; align-items: center; width: 100%; }
 .ai-btns .btn { flex-shrink: 0; }
-.ai-tip { position: fixed; right: 16px; bottom: 20px; max-width: min(320px, 86vw); background: rgba(30, 41, 59, 0.94); color: #f1f5f9; padding: 12px 38px 12px 14px; border-radius: 12px; font-size: 0.82rem; line-height: 1.6; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); z-index: 99; }
+.ai-tip { position: relative; max-width: min(420px, 92vw); margin: 0 auto 12px; background: rgba(30, 41, 59, 0.94); color: #f1f5f9; padding: 11px 38px 11px 14px; border-radius: 12px; font-size: 0.84rem; line-height: 1.6; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); z-index: 99; }
+.ai-tip--over { background: rgba(16, 185, 129, 0.95); font-weight: bold; }
 .ai-tip__close { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #94a3b8; font-size: 0.8rem; cursor: pointer; padding: 2px 6px; }
 .ai-tip__close:hover { color: #fff; }
 .tip-enter-active, .tip-leave-active { transition: opacity 0.3s, transform 0.3s; }
-.tip-enter-from, .tip-leave-to { opacity: 0; transform: translateY(8px); }
+.tip-enter-from, .tip-leave-to { opacity: 0; transform: translateY(-8px); }
 .over-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
 .btn-block { display: block; width: 100%; padding: 11px; font-size: 0.95rem; }
 .mode-note { margin: 12px 0 0; font-size: 0.76rem; color: #94a3b8; line-height: 1.6; }
