@@ -631,9 +631,8 @@ input:focus { border-color: #6366f1; }
 .room-title { font-weight: bold; font-size: 1.05rem; margin-right: 8px; }
 .room-id, .room-phase { color: #64748b; font-size: 0.78rem; margin-right: 6px; }
 .players { display: flex; justify-content: center; gap: 12px; margin-bottom: 12px; }
-.player-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #f1f5f9; font-size: 0.85rem; border: 2px solid transparent; transition: background .2s, color .2s; }
-.player-chip.me { border-color: #6366f1; }
-.player-chip.active { background: #c7d2fe; color: #3730a3; }
+.player-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #f1f5f9; font-size: 0.85rem; border: 2px solid transparent; transition: background .2s, color .2s, border-color .2s; }
+.player-chip.active { border-color: #6366f1; background: #e0e7ff; color: #3730a3; }
 .player-chip.active .dot { border-color: #3730a3; }
 .player-chip .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #94a3b8; }
 .timer { color: #dc2626; font-weight: bold; font-size: 0.8rem; }
