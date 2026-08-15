@@ -377,27 +377,38 @@ function drawBoard() {
   if (stage.value === 'ai' && aiTurn.value === 0 && !aiOver.value) {
     if (curGame.value === 'checkers') {
       const cell = size / 8
-      if (aiSelected.value !== null) {
+      if (aiSelected.value === null) {
+        // 第一步：高亮所有可移动的棋子（紫色圆圈）
+        const movable = new Set(aiCkMoves.value.map(m => m.from))
+        ctx.strokeStyle = 'rgba(99, 102, 241, 0.95)'
+        ctx.lineWidth = 2.5
+        for (const from of movable) {
+          const r = Math.floor(from / 8), c = from % 8
+          ctx.beginPath(); ctx.arc(c * cell + cell / 2, r * cell + cell / 2, cell * 0.4, 0, Math.PI * 2); ctx.stroke()
+        }
+      } else {
+        // 第二步：高亮该棋子可去的目标位置
         const sr = Math.floor(aiSelected.value / 8), sc = aiSelected.value % 8
         ctx.strokeStyle = '#fff'
         ctx.lineWidth = 3
         ctx.beginPath(); ctx.arc(sc * cell + cell / 2, sr * cell + cell / 2, cell * 0.36, 0, Math.PI * 2); ctx.stroke()
-      }
-      ctx.fillStyle = 'rgba(99, 102, 241, 0.5)'
-      for (const m of aiCkMoves.value) {
-        if (aiSelected.value === null || m.from === aiSelected.value) {
-          const r = Math.floor(m.to / 8), c = m.to % 8
-          ctx.beginPath(); ctx.arc(c * cell + cell / 2, r * cell + cell / 2, cell * 0.18, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = 'rgba(99, 102, 241, 0.5)'
+        for (const m of aiCkMoves.value) {
+          if (m.from === aiSelected.value) {
+            const r = Math.floor(m.to / 8), c = m.to % 8
+            ctx.beginPath(); ctx.arc(c * cell + cell / 2, r * cell + cell / 2, cell * 0.18, 0, Math.PI * 2); ctx.fill()
+          }
         }
       }
     } else {
       const n = curGame.value === 'reversi' ? 8 : 15
       const cell = size / (n + (curGame.value === 'reversi' ? 0 : 1))
       const pad = curGame.value === 'reversi' ? 0 : cell
+      const off = curGame.value === 'reversi' ? cell / 2 : 0   // 黑白棋点在方格中心，五子棋在交叉点
       ctx.fillStyle = 'rgba(99, 102, 241, 0.45)'
       for (const i of aiLegal.value) {
         const r = Math.floor(i / n), c = i % n
-        ctx.beginPath(); ctx.arc(pad + c * cell, pad + r * cell, 4.5, 0, Math.PI * 2); ctx.fill()
+        ctx.beginPath(); ctx.arc(pad + c * cell + off, pad + r * cell + off, 4.5, 0, Math.PI * 2); ctx.fill()
       }
     }
   }
@@ -785,7 +796,11 @@ onUnmounted(() => {
       </div>
 
       <p class="status" v-if="!aiOver">
-        {{ aiThinking ? 'AI 思考中…' : aiTurn === 0 ? '轮到你落子（紫色圆点为可落位置）' : '轮到你落子' }}
+        <template v-if="aiThinking">AI 思考中…</template>
+        <template v-else-if="curGame === 'checkers'">
+          {{ aiSelected === null ? '第 1 步：点击紫色圆圈的可走棋子' : '第 2 步：点击紫色圆点选择目标位置' }}
+        </template>
+        <template v-else>轮到你落子（紫色圆点为可落位置）</template>
       </p>
       <p class="status warn">{{ aiOver ? '' : '提示：点击可落点下棋，AI 会教你规则' }}</p>
 
