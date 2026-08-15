@@ -306,6 +306,7 @@ const roomCode = ref('')
 const roomErr = ref('')
 const lastMode = ref<'match' | 'friend'>('friend')   // 记录进入方式（重开时复用）
 const rematchRequested = ref(false)   // 是否已请求再来一局
+const offerReceived = ref(false)      // 是否收到对方邀请（按钮变"同意"）
 const gameOverTipDismissed = ref(false)   // 结束总结浮窗是否已关闭
 
 async function refreshRooms() {
@@ -407,6 +408,7 @@ function enterRoom(id: string) {
     if (m.phase === 'PLAYING') {
       if (gameOver.value) gameOver.value = null
       rematchRequested.value = false
+      offerReceived.value = false
       gameOverTipDismissed.value = false
       lastMsg.value = '新的一局开始！'
     }
@@ -430,10 +432,11 @@ function enterRoom(id: string) {
   gameWs.on('player_reconnected', () => { lastMsg.value = '对手已重连！' })
   gameWs.on('rematch_offer', (m) => {
     if (m.seat !== mySeat.value) {
-      lastMsg.value = rematchRequested.value ? '' : '对方想再来一局，点击「🤝 再来一局」同意！'
+      offerReceived.value = true
+      lastMsg.value = rematchRequested.value ? '' : '对方想再来一局，点击「🤝 同意再来一局」！'
       // 浮窗显眼提示（对局结束页棋盘中央）
       if (!rematchRequested.value) {
-        showTip('🤝 对方想再来一局，点击「🤝 再来一局」按钮同意！')
+        showTip('🤝 对方想再来一局，点击下方「同意」按钮！')
       }
     }
     // 双方同意后服务端会广播新 state（PLAYING）→ 自动重开
@@ -504,8 +507,10 @@ function backToLobby() {
 // 再来一局：发送同意请求，双方同意后服务端重开
 function requestRematch() {
   if (phase.value !== 'FINISHED' || rematchRequested.value) return
+  const wasOffer = offerReceived.value
   rematchRequested.value = true
-  lastMsg.value = '已发送再来一局请求，等待对方同意…'
+  offerReceived.value = false
+  lastMsg.value = wasOffer ? '已同意再来一局！' : '已发送再来一局请求，等待对方同意…'
   ws.value?.send({ type: 'rematch' })
 }
 
@@ -1004,7 +1009,7 @@ onUnmounted(() => {
           <button class="btn back" @click="backToLobby">← 大厅</button>
           <template v-if="phase === 'FINISHED'">
             <button class="btn" :disabled="rematchRequested" @click="requestRematch">
-              {{ rematchRequested ? '等待对方同意…' : '🤝 再来一局' }}
+              {{ rematchRequested ? '等待对方同意…' : (offerReceived ? '🤝 同意再来一局' : '🤝 再来一局') }}
             </button>
           </template>
           <template v-else>
@@ -1028,6 +1033,7 @@ onUnmounted(() => {
         <transition name="tip">
           <div v-if="(gameOver && !gameOverTipDismissed) || aiTipVisible" class="ai-tip" :class="{ 'ai-tip--over': gameOver && !gameOverTipDismissed }">
             <span class="ai-tip__text">{{ aiTipVisible && aiTipText ? aiTipText : rematchSummary }}</span>
+            <button v-if="offerReceived && !rematchRequested" class="ai-tip__agree" @click="requestRematch">✅ 同意</button>
             <button class="ai-tip__close" @click="gameOverTipDismissed = true; aiTipVisible = false">✕</button>
           </div>
         </transition>
@@ -1087,6 +1093,8 @@ input:focus { border-color: #6366f1; }
 .ai-tip--over { background: rgba(16, 185, 129, 0.95); font-weight: bold; }
 .ai-tip__close { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #94a3b8; font-size: 0.8rem; cursor: pointer; padding: 2px 6px; }
 .ai-tip__close:hover { color: #fff; }
+.ai-tip__agree { display: block; margin-top: 10px; background: #10b981; border: none; color: #fff; font-weight: bold; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+.ai-tip__agree:hover { background: #059669; }
 .tip-enter-active, .tip-leave-active { transition: opacity 0.3s; }
 .tip-enter-from, .tip-leave-to { opacity: 0; }
 .over-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
