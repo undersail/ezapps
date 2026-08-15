@@ -1,6 +1,6 @@
 // ============ AI 教学：简单 AI 引擎（客户端） ============
 // 五子棋：攻防评分；黑白棋：翻转+角权重；国际跳棋：吃子优先+前进
-import { GOMOKU, REVERSI, CHECKERS, CHESS, XIANGQI, type AIGame } from './engine'
+import { GOMOKU, REVERSI, CHECKERS, CHESS, XIANGQI, GO, type AIGame } from './engine'
 
 export interface AIMove {
   idx?: number          // gomoku / reversi
@@ -137,10 +137,32 @@ export function xiangqiAI(board: number[]): AIMove {
   return { from: best.from, to: best.to }
 }
 
+// ===== 围棋 AI（围地 + 吃子 + 自保） =====
+export function goAI(board: number[], koPoint = -1): AIMove {
+  let bestIdx = -1, bestScore = -Infinity
+  for (let i = 0; i < 169; i++) {
+    if (board[i] !== 0 || i === koPoint) continue
+    const r = Math.floor(i / 13), c = i % 13
+    const res = GO.tryMove(board, r, c, 2, koPoint)
+    if (!res.ok) continue
+    let s = 0
+    s += (res.captured?.length || 0) * 30            // 吃子优先
+    const dist = Math.abs(6 - r) + Math.abs(6 - c)
+    s += Math.max(0, 6 - dist) * 2                   // 中央控制
+    if (res.koPoint >= 0) s += 5                     // 制造打劫
+    // 自保：落子后己方组气多
+    const mine = GO.groupInfo(res.board!, i)
+    s += mine.liberties.length * 0.5
+    if (s > bestScore) { bestScore = s; bestIdx = i }
+  }
+  return { idx: bestIdx }
+}
+
 export function aiMove(game: AIGame, board: number[]): AIMove {
   if (game === 'gomoku') return gomokuAI(board)
   if (game === 'reversi') return reversiAI(board)
   if (game === 'chess') return chessAI(board)
   if (game === 'xiangqi') return xiangqiAI(board)
+  if (game === 'go') return goAI(board)
   return checkersAI(board)
 }

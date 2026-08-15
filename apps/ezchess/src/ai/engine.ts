@@ -1,7 +1,7 @@
 // ============ AI 教学：前端本地规则引擎 ============
 // 三种棋的本地规则（初始化 / 合法落子 / 判胜），与服务端规则一致
 
-export type AIGame = 'gomoku' | 'reversi' | 'checkers' | 'chess' | 'xiangqi'
+export type AIGame = 'gomoku' | 'reversi' | 'checkers' | 'chess' | 'xiangqi' | 'go'
 
 // ===== 五子棋 =====
 export const GOMOKU = {
@@ -331,6 +331,89 @@ export const XIANGQI = {
       if (ki >= 0 && !this.attacked(nb, Math.floor(ki / 9), ki % 9, opp)) out.push(m)
     }
     return out
+  },
+}
+
+
+// ===== 围棋（13 路入门款：气/提子/自杀/打劫/数子） =====
+export const GO = {
+  N: 13,
+  dirs: [[-1, 0], [1, 0], [0, -1], [0, 1]] as [number, number][],
+  init(): number[] { return new Array(169).fill(0) },
+  groupInfo(board: number[], start: number): { group: number[]; liberties: number[] } {
+    const player = board[start]
+    const group: number[] = []
+    const liberties: number[] = []
+    const seen = new Set<number>()
+    const queue = [start]
+    seen.add(start)
+    while (queue.length) {
+      const i = queue.pop()!
+      group.push(i)
+      const r = Math.floor(i / 13), c = i % 13
+      for (const [dr, dc] of this.dirs) {
+        const rr = r + dr, cc = c + dc
+        if (rr < 0 || rr >= 13 || cc < 0 || cc >= 13) continue
+        const j = rr * 13 + cc
+        if (seen.has(j)) continue
+        if (board[j] === 0) { liberties.push(j); seen.add(j) }
+        else if (board[j] === player) { seen.add(j); queue.push(j) }
+      }
+    }
+    return { group, liberties }
+  },
+  tryMove(board: number[], r: number, c: number, player: number, koPoint: number) {
+    const i = r * 13 + c
+    if (board[i] !== 0) return { ok: false, reason: '该位置已有棋子' }
+    if (i === koPoint) return { ok: false, reason: '打劫：不能立即回提' }
+    const nb = [...board]
+    nb[i] = player
+    const opp = player === 1 ? 2 : 1
+    const captured: number[] = []
+    for (const [dr, dc] of this.dirs) {
+      const rr = r + dr, cc = c + dc
+      if (rr < 0 || rr >= 13 || cc < 0 || cc >= 13) continue
+      const j = rr * 13 + cc
+      if (nb[j] === opp) {
+        const info = this.groupInfo(nb, j)
+        if (info.liberties.length === 0) {
+          for (const g of info.group) { nb[g] = 0; captured.push(g) }
+        }
+      }
+    }
+    const mine = this.groupInfo(nb, i)
+    if (mine.liberties.length === 0) return { ok: false, reason: '自杀落子禁止' }
+    return { ok: true, board: nb, captured, koPoint: captured.length === 1 ? captured[0] : -1 }
+  },
+  score(board: number[]): { black: number; white: number } {
+    let black = 0, white = 0
+    for (let i = 0; i < 169; i++) {
+      if (board[i] === 1) black++
+      else if (board[i] === 2) white++
+    }
+    const seen = new Set<number>()
+    for (let i = 0; i < 169; i++) {
+      if (board[i] !== 0 || seen.has(i)) continue
+      const queue = [i]; seen.add(i)
+      const group: number[] = []
+      let touchBlack = false, touchWhite = false
+      while (queue.length) {
+        const j = queue.pop()!
+        group.push(j)
+        const r = Math.floor(j / 13), c = j % 13
+        for (const [dr, dc] of this.dirs) {
+          const rr = r + dr, cc = c + dc
+          if (rr < 0 || rr >= 13 || cc < 0 || cc >= 13) continue
+          const k = rr * 13 + cc
+          if (board[k] === 0) { if (!seen.has(k)) { seen.add(k); queue.push(k) } }
+          else if (board[k] === 1) touchBlack = true
+          else if (board[k] === 2) touchWhite = true
+        }
+      }
+      if (touchBlack && !touchWhite) black += group.length
+      else if (touchWhite && !touchBlack) white += group.length
+    }
+    return { black, white }
   },
 }
 

@@ -860,7 +860,7 @@ export class GameRoom {
       else this.board = emptyBoard()
       this.goKo = -1
       this.goPass = 0
-      this.turn = this.game === 'chess' ? 0 : Math.floor(Math.random() * this.players.length)   // 国际象棋白先
+      this.turn = this.game === 'chess' || this.game === 'go' ? 0 : Math.floor(Math.random() * this.players.length)   // 国象白先/围棋黑先
       this.timers = Array(this.seats).fill(TURN_MS)
       this.moves = []
       this.broadcast({ type: 'state', board: this.board, turn: this.turn, timers: this.timers, phase: this.phase, players: this.players.map(p => ({ nick: p.nick, seat: p.seat })) })
@@ -894,7 +894,7 @@ export class GameRoom {
     else this.board = emptyBoard()
     this.goKo = -1
     this.goPass = 0
-    this.turn = this.game === 'chess' ? 0 : Math.floor(Math.random() * this.players.length)   // 国际象棋白先
+    this.turn = this.game === 'chess' || this.game === 'go' ? 0 : Math.floor(Math.random() * this.players.length)   // 国象白先/围棋黑先
     this.timers = Array(this.seats).fill(TURN_MS)
     this.moves = []
     this.broadcast({ type: 'state', board: this.board, turn: this.turn, timers: this.timers, phase: this.phase, players: this.players.map(p => ({ nick: p.nick, seat: p.seat })) })

@@ -3,7 +3,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import * as Net from './network/api'
 import { GameWS } from './network/ws'
-import { GOMOKU, REVERSI, CHECKERS, CHESS, XIANGQI } from './ai/engine'
+import { GOMOKU, REVERSI, CHECKERS, CHESS, XIANGQI, GO } from './ai/engine'
 import { aiMove } from './ai/ai'
 
 const BOARD = 15
@@ -24,6 +24,7 @@ const aiRules = computed(() => {
   if (g === 'reversi') return '规则：落子必须夹住对方棋子（横竖斜），被夹棋子翻转；无子可落自动跳过；双方都无法落子时子多者胜'
   if (g === 'chess') return '规则：车横竖、马走日、象斜走、后横竖斜、王走一格；兵直进斜吃、到底线升变；将死对方王获胜，无子可动为逼和'
   if (g === 'xiangqi') return '规则：车横竖、炮隔子打、马走日（蹩马腿）、相田字（象眼不过河）、仕九宫斜走、帅九宫直走；兵过河前直进过河后可横走；将死或困毙对方获胜'
+  if (g === 'go') return '规则：黑白轮流落子，围住的交叉点归自己；无气之子被提掉（禁止自杀与立即回提）；双方过一手后数子，黑贴 7.5 目，多者胜'
   return '规则：棋子斜走一格；跳吃相邻对方棋子（可连跳，有吃必吃）；到达对方底线升王（可斜走任意格）；吃光对方或对方无子可动者胜'
 })
 
@@ -127,6 +128,15 @@ function genTip(g: string, board: number[], last: string): string {
     if (red < black) return `💡 你子力落后（${red}:${black}），先防守稳住，找机会兑子或反击`
     return '💡 提示：兵过河才有威力；炮需炮架；马防蹩腿；保持帅的安全最重要'
   }
+  if (g === 'go') {
+    const myLib = board.filter((v, i) => v === 1 && GO.groupInfo(board, i).liberties.length < 2).length
+    if (myLib > 2) return '💡 你的棋子气太少（容易被提），先做眼或连接孤子'
+    const oppLib = board.filter((v, i) => v === 2 && GO.groupInfo(board, i).liberties.length === 1).length
+    if (oppLib > 0) return '💡 对方有只剩一口气的棋子，果断提掉！'
+    const total = board.filter(v => v !== 0).length
+    if (total < 6) return '💡 开局建议：先占角部星位或天元附近，角部最容易围地'
+    return '💡 提示：围地要连成片，棋子分散易被分断；落后时找对方弱点进攻'
+  }
   // checkers
   const myJumps = CHECKERS.moves(board, 0).filter(m => m.jump)
   if (myJumps.length) return `💡 你有 ${myJumps.length} 处跳吃机会！规则要求有吃必吃，优先跳吃对方棋子`
@@ -169,6 +179,7 @@ function startAI() {
   else if (curGame.value === 'checkers') aiBoard.value = CHECKERS.init()
   else if (curGame.value === 'chess') aiBoard.value = CHESS.init()
   else if (curGame.value === 'xiangqi') aiBoard.value = XIANGQI.init()
+  else if (curGame.value === 'go') aiBoard.value = GO.init()
   else aiBoard.value = GOMOKU.init()
   aiTurn.value = 0
   aiOver.value = null
@@ -189,6 +200,7 @@ function refreshAILegal() {
   else if (curGame.value === 'reversi') aiLegal.value = REVERSI.legalMoves(aiBoard.value, 1)
   else if (curGame.value === 'chess') aiCkMoves.value = CHESS.legalMoves(aiBoard.value, 0)
   else if (curGame.value === 'xiangqi') aiCkMoves.value = XIANGQI.legalMoves(aiBoard.value, 0)
+  else if (curGame.value === 'go') aiLegal.value = aiBoard.value.map((v, i) => v === 0 ? i : -1).filter(i => i >= 0)
   else aiCkMoves.value = CHECKERS.legalMoves(aiBoard.value, 0)
 }
 
@@ -210,6 +222,13 @@ function aiSummary(g: string, board: number[], winner: number): string {
     if (winner === 1) return '🎉 你赢了！将死对方 —— 记住：先出马象、控制中心、保护王，中局再发动攻击'
     if (winner === 2) return '🤖 AI 获胜 —— 复盘：你的王安全吗？子力是否落后？将军时有没有漏掉解将？'
     return '🤝 逼和 —— 对方无子可动但未被将军，势均力敌！'
+  }
+  if (g === 'go') {
+    const sc = GO.score(board)
+    const res = `黑 ${sc.black} 目 vs 白 ${sc.white} 目（白贴 7.5）`
+    if (winner === 1) return `🎉 你赢了（${res}）！—— 围地连片、及时提子，入门就要学会数气和做眼`
+    if (winner === 2) return `🤖 AI 获胜（${res}）—— 复盘：是不是棋子太散、被分断？角部围地了吗？`
+    return `🤝 和棋（${res}）—— 势均力敌！`
   }
   if (g === 'xiangqi') {
     if (winner === 1) return '🎉 你赢了！将死对方 —— 记住：开局先出车马炮，别让帅暴露，兵过河才有威力'
@@ -249,6 +268,14 @@ function xqLocalStatus(board: number[], owner: number): { over: boolean; winner:
     return { over: true, winner: 0, reason: '困毙' }
   }
   return { over: false, winner: 0, reason: '' }
+}
+
+// 围棋 AI 教学终局数子（黑贴 7.5）
+function goLocalFinish() {
+  const sc = GO.score(aiBoard.value)
+  const black = sc.black
+  const white = sc.white + 7.5
+  aiFinish(black > white ? 1 : white > black ? 2 : 0, `终局数子：黑 ${sc.black} 目 vs 白 ${sc.white} 目（白贴 7.5）`)
 }
 
 function aiFinish(winner: number, reason: string) {
@@ -298,6 +325,14 @@ function aiPlayerMove(idx: number, from?: number, to?: number) {
     // 判断对方（黑）状态
     const st = chLocalStatus(aiBoard.value, 1)
     if (st.over) return aiFinish(st.winner, st.reason)
+  } else if (g === 'go') {
+    // 围棋：玩家黑（1），服务端规则校验（气/提子/自杀/打劫）
+    const r = Math.floor(idx / 13), c = idx % 13
+    const res = GO.tryMove(aiBoard.value, r, c, 1, -1)
+    if (!res.ok || !res.board) return
+    aiBoard.value = res.board
+    markMove(r, c)
+    if (!aiBoard.value.includes(0)) return goLocalFinish()
   } else if (g === 'xiangqi') {
     // 中国象棋
     if (from === undefined || to === undefined) return
@@ -369,6 +404,15 @@ function aiMoveTurn() {
     markMove(Math.floor(mv.to! / 9), mv.to! % 9), false
     const st = xqLocalStatus(aiBoard.value, 0)
     if (st.over) return aiFinish(st.winner, st.reason)
+  } else if (g === 'go') {
+    const mv = aiMove(g, aiBoard.value)
+    if (mv.idx === -1) { aiTurn.value = 0; aiThinking.value = false; refreshAILegal(); return }
+    const r = Math.floor(mv.idx / 13), c = mv.idx % 13
+    const res = GO.tryMove(aiBoard.value, r, c, 2, -1)
+    if (!res.ok || !res.board) { aiTurn.value = 0; aiThinking.value = false; refreshAILegal(); return }
+    aiBoard.value = res.board
+    markMove(r, c, false)
+    if (!aiBoard.value.includes(0)) return goLocalFinish()
   } else if (g === 'gomoku') {
     const mv = aiMove(g, aiBoard.value)
     aiBoard.value[mv.idx!] = 2
@@ -396,6 +440,16 @@ function aiCellClick(e: MouseEvent) {
   const px = e.clientX - rect.left
   const py = e.clientY - rect.top
   const g = curGame.value
+  if (g === 'go') {
+    // 13 路：点交叉点落子
+    const n = 13
+    const cell = rect.width / (n + 1)
+    const pad = cell
+    const c = Math.round((px - pad) / cell), r = Math.round((py - pad) / cell)
+    if (r < 0 || r >= n || c < 0 || c >= n) return
+    aiPlayerMove(r * n + c)
+    return
+  }
   if (g === 'checkers' || g === 'chess' || g === 'xiangqi') {
     if (g === 'xiangqi') {
       // 9×10 网格反算（与 drawXiangqi 一致）
@@ -451,6 +505,7 @@ const GAME_LIST = [
   { id: 'checkers', emoji: '🏁', name: '国际跳棋', desc: '8×8 · 斜走跳吃', seats: 2 },
   { id: 'chess', emoji: '♞', name: '国际象棋', desc: '8×8 · 车马象后王', seats: 2 },
   { id: 'xiangqi', emoji: '🐘', name: '中国象棋', desc: '9×10 · 楚河汉界', seats: 2 },
+  { id: 'go', emoji: '⚫', name: '围棋', desc: '13路 · 入门款', seats: 2 },
 ]
 const gameId = ref('gomoku')
 
@@ -655,6 +710,16 @@ function cellClick(e: MouseEvent) {
   const px = e.clientX - rect.left
   const py = e.clientY - rect.top
 
+  if (curGame.value === 'go') {
+    // 13 路：点交叉点落子（服务端校验气/提子/打劫）
+    const n = 13
+    const cell = rect.width / (n + 1)
+    const pad = cell
+    const c = Math.round((px - pad) / cell), r = Math.round((py - pad) / cell)
+    if (r < 0 || r >= n || c < 0 || c >= n) return
+    ws.value?.send({ type: 'move', r, c })
+    return
+  }
   if (curGame.value === 'xiangqi') {
     // 9×10：点己方棋子选中 → 点目标格移动（服务端校验马脚/炮架/将军）
     const cell = rect.width / 10
@@ -731,6 +796,13 @@ function resign() {
   if (phase.value === 'PLAYING') ws.value?.send({ type: 'resign' })
 }
 
+// 围棋：过一手（双方连续 pass 后数子终局）
+function goPass() {
+  if (curGame.value !== 'go' || phase.value !== 'PLAYING') return
+  ws.value?.send({ type: 'move', pass: true })
+  lastMsg.value = '已过一手，等对方决定…（双方连续过手即终局数子）'
+}
+
 function backToLobby() {
   ws.value?.close()
   stage.value = 'lobby'
@@ -786,6 +858,8 @@ function drawBoard() {
     drawChess(ctx, size)
   } else if (curGame.value === 'xiangqi') {
     drawXiangqi(ctx, size)
+  } else if (curGame.value === 'go') {
+    drawGo(ctx, size)
   } else if (curGame.value === 'reversi') {
     drawReversi(ctx, size)
   } else {
@@ -815,8 +889,9 @@ function drawBoard() {
     const lm = lastMove.value
     ctx.strokeStyle = 'rgba(245, 158, 11, 0.98)'   // 琥珀金
     ctx.lineWidth = 3.5
-    if (g === 'gomoku') {
-      const cell = size / (BOARD + 1)
+    if (g === 'gomoku' || g === 'go') {
+      const n = g === 'go' ? 13 : BOARD
+      const cell = size / (n + 1)
       const pad = cell
       ctx.beginPath(); ctx.arc(pad + lm.c * cell, pad + lm.r * cell, cell * 0.42, 0, Math.PI * 2); ctx.stroke()
     } else if (g === 'reversi') {
@@ -871,6 +946,47 @@ function drawBoard() {
         ctx.beginPath(); ctx.arc(pad + c * cell + off, pad + r * cell + off, 4.5, 0, Math.PI * 2); ctx.fill()
       }
     }
+  }
+}
+
+// ===== 围棋棋盘（13 路） =====
+function drawGo(ctx: CanvasRenderingContext2D, size: number) {
+  const n = 13
+  const cell = size / (n + 1)
+  const pad = cell
+  ctx.fillStyle = '#d9a05b'
+  ctx.fillRect(0, 0, size, size)
+  ctx.strokeStyle = '#8b5a2b'
+  ctx.lineWidth = 1.2
+  for (let i = 0; i < n; i++) {
+    ctx.beginPath()
+    ctx.moveTo(pad + i * cell, pad); ctx.lineTo(pad + i * cell, size - pad)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(pad, pad + i * cell); ctx.lineTo(size - pad, pad + i * cell)
+    ctx.stroke()
+  }
+  // 星位（天元 + 四星）
+  ctx.fillStyle = '#8b5a2b'
+  for (const [sr, sc] of [[6, 6], [3, 3], [3, 9], [9, 3], [9, 9]]) {
+    ctx.beginPath(); ctx.arc(pad + sc * cell, pad + sr * cell, 4, 0, Math.PI * 2); ctx.fill()
+  }
+  // 棋子
+  for (let i = 0; i < activeBoard.value.length; i++) {
+    const v = activeBoard.value[i]
+    if (!v) continue
+    const r = Math.floor(i / n), c = i % n
+    const x = pad + c * cell, y = pad + r * cell
+    ctx.beginPath()
+    ctx.arc(x, y, cell * 0.44, 0, Math.PI * 2)
+    const grad = ctx.createRadialGradient(x - 2, y - 2, 2, x, y, cell * 0.44)
+    if (v === 1) { grad.addColorStop(0, '#555'); grad.addColorStop(1, '#111') }
+    else { grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#d1d5db') }
+    ctx.fillStyle = grad
+    ctx.fill()
+    ctx.strokeStyle = v === 1 ? '#000' : '#9ca3af'
+    ctx.lineWidth = 1
+    ctx.stroke()
   }
 }
 
@@ -1454,6 +1570,7 @@ onUnmounted(() => {
         <template v-if="phase === 'PLAYING'">
           {{ turn === mySeat ? '轮到你落子' : '等待对方落子…' }}
           <span class="turn-dot" :style="{ background: turn === 0 ? '#111' : '#f5f0e6', borderColor: turn === 0 ? '#111' : '#999' }"></span>
+          <button v-if="curGame === 'go' && phase === 'PLAYING' && turn === mySeat && !gameOver" class="btn pass-btn" @click="goPass">🙅 过一手</button>
         </template>
         <template v-else>{{ phase === 'FINISHED' ? '对局结束' : '等待开局（满 2 人自动开始）' }}</template>
       </p>
@@ -1558,6 +1675,9 @@ input:focus { border-color: #6366f1; }
 .players { display: flex; justify-content: center; gap: 12px; margin-bottom: 12px; }
 .player-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #f1f5f9; font-size: 0.85rem; border: 2px solid transparent; transition: background .2s, color .2s, border-color .2s; }
 .player-chip.active { border-color: #6366f1; background: #e0e7ff; color: #3730a3; }
+.player-chip.me { border-color: #6366f1; font-weight: 700; background: #eef2ff; }
+.pass-btn { margin-left: 8px; padding: 2px 10px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 999px; background: #fff; cursor: pointer; }
+.pass-btn:hover { background: #f1f5f9; }
 .player-chip.active .dot { border-color: #3730a3; }
 .player-chip .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #94a3b8; }
 .timer { color: #dc2626; font-weight: bold; font-size: 0.8rem; }
