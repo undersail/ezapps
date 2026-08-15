@@ -31,6 +31,7 @@ const aiTipVisible = ref(false)
 let aiTipTimer: ReturnType<typeof setTimeout> | null = null
 
 function showTip(text: string) {
+  if (!text) { aiTipVisible.value = false; return }
   aiTipText.value = text
   aiTipVisible.value = true
   if (aiTipTimer) clearTimeout(aiTipTimer)
@@ -71,7 +72,8 @@ function genTip(g: string, board: number[], last: string): string {
     if (my.three && ai.three) return '💡 双方都有活三！优先进攻形成双三，或堵住 AI 的活三两端'
     if (my.three) return '💡 你有一个活三！可尝试在活三两端继续延伸，形成双三必杀'
     if (ai.three) return '💡 AI 形成活三，建议堵住它延伸的一端，同时为自己的活三做准备'
-    if (mine + aiCount < 6) return '💡 开局建议：占天元或星位（中心附近），控制棋盘中心更容易五连'
+    // 开局建议只在进入教学时给一次，避免重复
+    if (mine + aiCount < 6) return last === 'start' ? '💡 开局建议：占天元或星位（中心附近），控制棋盘中心更容易五连' : ''
     if (last === 'ai') return '💡 观察 AI 的落子方向：它通常在攻防两端权衡，注意它的连子延伸'
     return '💡 建议：落子时同时考虑进攻（自己的连子）和防守（AI 的威胁），别只攻不守'
   }
@@ -83,7 +85,7 @@ function genTip(g: string, board: number[], last: string): string {
     const aiCorner = corners.filter(i => board[i] === 2).length
     if (myCorner > aiCorner) return '💡 你占角领先！角子永远不会被翻转，围绕角子建立边线优势'
     if (aiCorner > myCorner) return '💡 AI 已占角，别在它角旁 2 格落子（陷阱位），尽量抢另一边'
-    if (myC + aiC < 8) return '💡 开局建议：优先抢角（4 个角），其次是边格，避免过早翻中间的子'
+    if (myC + aiC < 8) return last === 'start' ? '💡 开局建议：优先抢角（4 个角），其次是边格，避免过早翻中间的子' : ''
     if (myC > aiC) return `💡 你暂时领先 ${myC}:${aiC}！但黑白棋关键在终局，继续稳占边角`
     return '💡 提示：尽量少给对方"可翻转选择"，落子后数一下对方还有几个可落点，越少越好'
   }
@@ -97,7 +99,8 @@ function genTip(g: string, board: number[], last: string): string {
   const myF = board.filter(v => v === 1 || v === 3).length
   const aiF = board.filter(v => v === 2 || v === 4).length
   if (myF > aiF) return `💡 你子数领先（${myF}:${aiF}）！继续向对方底线推进，争取升王`
-  return '💡 提示：棋子尽量保持抱团推进，孤子容易被对方跳吃；到达对方底线可升王'
+  // 通用建议只在进入教学时给一次，之后无具体局面则不提示
+  return last === 'start' ? '💡 提示：棋子尽量保持抱团推进，孤子容易被对方跳吃；到达对方底线可升王' : ''
 }
 
 function showTipFor(last: string) {
@@ -894,22 +897,11 @@ onUnmounted(() => {
           <p class="ai-rules">{{ aiRules }}</p>
         </div>
         <div class="ai-btns">
-          <button class="btn back" @click="stage = 'lobby'">← 返回大厅</button>
+          <button class="btn back" @click="stage = 'lobby'">← 大厅</button>
           <button class="btn" @click="showTipFor('manual')">💡 技巧</button>
           <button class="btn" @click="startAI">🔄 重开</button>
         </div>
       </header>
-
-      <div class="board-wrap">
-        <canvas ref="canvasRef" class="board" @click="aiCellClick"></canvas>
-        <!-- 技巧提示浮窗（棋盘中央悬浮） -->
-        <transition name="tip">
-          <div v-if="aiTipVisible" class="ai-tip" :class="{ 'ai-tip--over': aiOver }">
-            <span class="ai-tip__text">{{ aiTipText }}</span>
-            <button class="ai-tip__close" @click="aiTipVisible = false">✕</button>
-          </div>
-        </transition>
-      </div>
 
       <div class="players">
         <div class="player-chip" :class="{ active: aiTurn === 0 && !aiOver }">
@@ -920,6 +912,17 @@ onUnmounted(() => {
           <span class="dot" style="background:#eee"></span>
           <span>🤖 AI<small>（白）</small></span>
         </div>
+      </div>
+
+      <div class="board-wrap">
+        <canvas ref="canvasRef" class="board" @click="aiCellClick"></canvas>
+        <!-- 技巧提示浮窗（棋盘中央悬浮） -->
+        <transition name="tip">
+          <div v-if="aiTipVisible" class="ai-tip" :class="{ 'ai-tip--over': aiOver }">
+            <span class="ai-tip__text">{{ aiTipText }}</span>
+            <button class="ai-tip__close" @click="aiTipVisible = false">✕</button>
+          </div>
+        </transition>
       </div>
 
       <p class="status" v-if="!aiOver">
