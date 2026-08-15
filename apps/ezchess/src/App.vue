@@ -105,6 +105,11 @@ function genTip(g: string, board: number[], last: string): string {
 
 let lastTipShown = ''
 function showTipFor(last: string) {
+  // 对局结束：技巧按钮显示总结（而非终局棋盘上的普通提示）
+  if (aiOver.value) {
+    showTip(aiSummary(curGame.value, aiBoard.value, aiOver.value.winner))
+    return
+  }
   const g = curGame.value
   const tip = genTip(g, aiBoard.value, last)
   if (!tip) {
