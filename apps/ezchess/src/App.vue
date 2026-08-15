@@ -25,6 +25,91 @@ const aiRules = computed(() => {
   return '规则：棋子斜走一格；跳吃相邻对方棋子（可连跳，有吃必吃）；到达对方底线升王（可斜走任意格）；吃光对方或对方无子可动者胜'
 })
 
+// ===== 局面感知技巧提示 =====
+const aiTipText = ref('')
+const aiTipVisible = ref(false)
+let aiTipTimer: ReturnType<typeof setTimeout> | null = null
+
+function showTip(text: string) {
+  aiTipText.value = text
+  aiTipVisible.value = true
+  if (aiTipTimer) clearTimeout(aiTipTimer)
+  aiTipTimer = setTimeout(() => { aiTipVisible.value = false }, 6000)
+}
+
+// 五子棋：检测某方连子威胁
+function gomokuThreat(board: number[], player: number): { four: boolean; three: boolean; open: boolean } {
+  let four = false, three = false, open = false
+  const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]]
+  for (let i = 0; i < 225; i++) {
+    if (board[i] !== player) continue
+    const r = Math.floor(i / 15), c = i % 15
+    for (const [dr, dc] of dirs) {
+      let n = 1, openEnds = 0
+      for (const s of [1, -1]) {
+        let rr = r + dr * s, cc = c + dc * s
+        while (rr >= 0 && rr < 15 && cc >= 0 && cc < 15 && board[rr * 15 + cc] === player) { n++; rr += dr * s; cc += dc * s }
+        if (rr >= 0 && rr < 15 && cc >= 0 && cc < 15 && board[rr * 15 + cc] === 0) openEnds++
+      }
+      if (n >= 4) four = true
+      if (n === 3 && openEnds >= 1) three = true
+      if (n >= 3 && openEnds >= 2) open = true
+    }
+  }
+  return { four, three, open }
+}
+
+// 生成当前局面技巧提示
+function genTip(g: string, board: number[], last: string): string {
+  if (g === 'gomoku') {
+    const my = gomokuThreat(board, 1)
+    const ai = gomokuThreat(board, 2)
+    const mine = board.filter(v => v === 1).length
+    const aiCount = board.filter(v => v === 2).length
+    if (my.four) return '💡 你已形成冲四！下一手可直接获胜，注意别被 AI 抢先堵死'
+    if (ai.four) return '💡 警告：AI 已形成冲四！你必须立刻堵住，否则下一手就输了'
+    if (my.three && ai.three) return '💡 双方都有活三！优先进攻形成双三，或堵住 AI 的活三两端'
+    if (my.three) return '💡 你有一个活三！可尝试在活三两端继续延伸，形成双三必杀'
+    if (ai.three) return '💡 AI 形成活三，建议堵住它延伸的一端，同时为自己的活三做准备'
+    if (mine + aiCount < 6) return '💡 开局建议：占天元或星位（中心附近），控制棋盘中心更容易五连'
+    if (last === 'ai') return '💡 观察 AI 的落子方向：它通常在攻防两端权衡，注意它的连子延伸'
+    return '💡 建议：落子时同时考虑进攻（自己的连子）和防守（AI 的威胁），别只攻不守'
+  }
+  if (g === 'reversi') {
+    const corners = [0, 7, 56, 63]
+    const myC = board.filter(v => v === 1).length
+    const aiC = board.filter(v => v === 2).length
+    const myCorner = corners.filter(i => board[i] === 1).length
+    const aiCorner = corners.filter(i => board[i] === 2).length
+    if (myCorner > aiCorner) return '💡 你占角领先！角子永远不会被翻转，围绕角子建立边线优势'
+    if (aiCorner > myCorner) return '💡 AI 已占角，别在它角旁 2 格落子（陷阱位），尽量抢另一边'
+    if (myC + aiC < 8) return '💡 开局建议：优先抢角（4 个角），其次是边格，避免过早翻中间的子'
+    if (myC > aiC) return `💡 你暂时领先 ${myC}:${aiC}！但黑白棋关键在终局，继续稳占边角`
+    return '💡 提示：尽量少给对方"可翻转选择"，落子后数一下对方还有几个可落点，越少越好'
+  }
+  // checkers
+  const myJumps = CHECKERS.moves(board, 0).filter(m => m.jump)
+  if (myJumps.length) return `💡 你有 ${myJumps.length} 处跳吃机会！规则要求有吃必吃，优先跳吃对方棋子`
+  const aiJumps = CHECKERS.moves(board, 1).filter(m => m.jump)
+  if (aiJumps.length) return '💡 小心：AI 有跳吃机会，避免把棋子送到它可跳的位置'
+  const kings = board.filter(v => v === 3).length
+  if (kings) return '💡 你的王棋已就位！王可以斜走任意格、远距离跳吃，让它深入对方腹地'
+  const myF = board.filter(v => v === 1 || v === 3).length
+  const aiF = board.filter(v => v === 2 || v === 4).length
+  if (myF > aiF) return `💡 你子数领先（${myF}:${aiF}）！继续向对方底线推进，争取升王`
+  return '💡 提示：棋子尽量保持抱团推进，孤子容易被对方跳吃；到达对方底线可升王'
+}
+
+function showTipFor(last: string) {
+  const g = curGame.value
+  if (g === 'checkers') {
+    // 跳棋两步操作，选子后提示更准确 —— 落子后统一给
+    showTip(genTip(g, aiBoard.value, last))
+  } else {
+    showTip(genTip(g, aiBoard.value, last))
+  }
+}
+
 function startAI() {
   stage.value = 'ai'
   curGame.value = gameId.value
@@ -128,6 +213,7 @@ function aiMoveTurn() {
   aiTurn.value = 0
   aiThinking.value = false
   refreshAILegal()
+  showTipFor('ai')
 }
 
 function aiCellClick(e: MouseEvent) {
@@ -783,9 +869,18 @@ onUnmounted(() => {
         </div>
         <div class="ai-btns">
           <button class="btn back" @click="stage = 'lobby'">← 返回大厅</button>
+          <button class="btn" @click="showTipFor('manual')">💡 技巧</button>
           <button class="btn" @click="startAI">🔄 重开</button>
         </div>
       </header>
+
+      <!-- 技巧提示浮窗 -->
+      <transition name="tip">
+        <div v-if="aiTipVisible && !aiOver" class="ai-tip">
+          <span class="ai-tip__text">{{ aiTipText }}</span>
+          <button class="ai-tip__close" @click="aiTipVisible = false">✕</button>
+        </div>
+      </transition>
 
       <div class="players">
         <div class="player-chip" :class="{ active: aiTurn === 0 && !aiOver }">
@@ -895,6 +990,11 @@ input:focus { border-color: #6366f1; }
 .ai-rules { margin: 6px 0 0; font-size: 0.76rem; color: #64748b; line-height: 1.7; background: #f8fafc; border-radius: 8px; padding: 8px 12px; text-align: left; }
 .ai-btns { display: flex; justify-content: space-between; align-items: center; width: 100%; }
 .ai-btns .btn { flex-shrink: 0; }
+.ai-tip { position: fixed; right: 16px; bottom: 20px; max-width: min(320px, 86vw); background: rgba(30, 41, 59, 0.94); color: #f1f5f9; padding: 12px 38px 12px 14px; border-radius: 12px; font-size: 0.82rem; line-height: 1.6; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); z-index: 99; }
+.ai-tip__close { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #94a3b8; font-size: 0.8rem; cursor: pointer; padding: 2px 6px; }
+.ai-tip__close:hover { color: #fff; }
+.tip-enter-active, .tip-leave-active { transition: opacity 0.3s, transform 0.3s; }
+.tip-enter-from, .tip-leave-to { opacity: 0; transform: translateY(8px); }
 .over-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
 .btn-block { display: block; width: 100%; padding: 11px; font-size: 0.95rem; }
 .mode-note { margin: 12px 0 0; font-size: 0.76rem; color: #94a3b8; line-height: 1.6; }
