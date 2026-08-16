@@ -13,6 +13,9 @@ interface ExperimentCard {
 import SinglePendulum from './components/demo/SinglePendulum.vue'
 import Projectile from './components/demo/Projectile.vue'
 import WaveSuperposition from './components/demo/WaveSuperposition.vue'
+import Lever from './components/demo/Lever.vue'
+import Lens from './components/demo/Lens.vue'
+import Momentum from './components/demo/Momentum.vue'
 
 const selectedDemo = ref<string | null>(null)
 
@@ -21,6 +24,9 @@ const DEMO_MAP: Record<string, { title: string; component: any }> = {
   pendulum: { title: '单摆 · 简谐运动', component: SinglePendulum },
   projectile: { title: '平抛运动 · 抛物线轨迹', component: Projectile },
   wave: { title: '波的叠加 · 干涉', component: WaveSuperposition },
+  lever: { title: '杠杆 · 力矩平衡', component: Lever },
+  lens: { title: '凸透镜 · 成像规律', component: Lens },
+  momentum: { title: '动量碰撞 · 动量守恒', component: Momentum },
 }
 
 const experiments: ExperimentCard[] = [
