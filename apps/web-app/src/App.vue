@@ -119,21 +119,18 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
         </div>
       </div>
 
-      <p class="foot__copy">
-        EZAPPS · {{ new Date().getFullYear() }} · by
-        <a href="https://github.com/undersail">@undersail</a>
-      </p>
-
       <div class="foot__wechat" aria-label="科普狮公众号">
         <img src="/kepushi-qrcode.jpg" alt="科普狮公众号二维码" class="foot__wechat-qr" />
         <div class="foot__wechat-info">
           <b>科普狮</b>
-          <span>码农视角看世界 · IDEA &amp; TECH</span>
+          <span>码农视角看世界</span>
           <span class="foot__wechat-id">公众号 ID：scilion</span>
         </div>
       </div>
-      <p class="foot__small">
-        添加新应用？只需在 <code>apps/&lt;name&gt;</code> 新建子项目并加一行 <code>apps.config.ts</code>。
+
+      <p class="foot__copy">
+        EZAPPS · {{ new Date().getFullYear() }} · by
+        <a href="https://github.com/undersail">@undersail</a>
       </p>
 
       <div class="foot__meta" aria-label="build metadata">
