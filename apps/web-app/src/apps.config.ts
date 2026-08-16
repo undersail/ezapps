@@ -18,7 +18,7 @@ export const apps: AppEntry[] = [
   {
     id: 'funphy',
     title: '飞飞历险记',
-    emoji: '🛸',
+    emoji: '✈️',
     tagline: 'Funphy Adventure',
     description: '操控飞飞在物理空间里穿行，体验速度、惯性与阻力的平衡。简单到 5 秒上手。',
     tags: ['物理', '游戏', 'BETA'],

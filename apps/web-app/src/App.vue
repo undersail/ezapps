@@ -13,7 +13,7 @@ const API_BASE = 'https://api.ezapps.cc'
 const stats = ref<Record<string, number>>({})
 const statsLoaded = ref(false)
 const appMeta: Record<string, { emoji: string; name: string }> = {
-  funphy: { emoji: '🛸', name: '飞飞历险记' },
+  funphy: { emoji: '✈️', name: '飞飞历险记' },
   funmath: { emoji: '🧮', name: '曼曼闯天涯' },
   ezchess: { emoji: '♟️', name: '棋类对战' },
   grimphy: { emoji: '🔬', name: '物理实验室' },
@@ -80,11 +80,8 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
                style="display:inline-block;vertical-align:-2px;color:#94a3b8"
                aria-hidden="true">
-            <path d="M12 2v8" />
-            <path d="M9 6l3-3 3 3" />
-            <path d="M12 10v8" />
-            <path d="M9 14h6l-1 4h-4z" />
-            <path d="M12 22v-4" />
+            <path d="M12 17v5" />
+            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z" />
           </svg>
           可置顶（最多 {{ MAX }} 个，超出时自动覆盖最早置顶的）。
         </p>

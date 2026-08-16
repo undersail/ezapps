@@ -8,7 +8,7 @@
         <div class="lobby">
           <!-- 顶部：标题 + 故事 -->
           <div class="lobby-header">
-            <h1 class="lobby-title">🛸 飞飞历险记</h1>
+            <h1 class="lobby-title">✈️ 飞飞历险记</h1>
             <p class="lobby-story">驾驶全能飞船，从海洋出发，穿越大陆与天空，冲向广袤宇宙！</p>
           </div>
 
@@ -16,7 +16,7 @@
           <div class="lobby-main">
             <div class="mode-cards">
               <button class="mode-card" :class="{ on: lobbyMode === 'adventure' }" @click="lobbyMode = 'adventure'">
-                <span class="mode-card__emoji">🛸</span>
+                <span class="mode-card__emoji">✈️</span>
                 <span class="mode-card__title">探险模式</span>
                 <span class="mode-card__desc">按章节推进剧情闯关<br />解锁海洋→大陆→天空→宇宙</span>
               </button>
@@ -28,7 +28,7 @@
             </div>
 
             <div v-if="lobbyMode === 'adventure'">
-              <button class="btn-primary lobby-start" @click="handleStart">🛸 开始探险 · 第 {{ adventureIndex + 1 }}/{{ runnerLevels.length }} 关</button>
+              <button class="btn-primary lobby-start" @click="handleStart">✈️ 开始探险 · 第 {{ adventureIndex + 1 }}/{{ runnerLevels.length }} 关</button>
               <button class="cardbook-btn" @click="openDaily">📅 每日挑战</button>
             </div>
 
