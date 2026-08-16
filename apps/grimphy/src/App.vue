@@ -57,10 +57,10 @@ const experiments: ExperimentCard[] = [
 <template>
   <div class="lab">
     <header class="hero">
-      <div class="badge">Lab · Grimphy</div>
+      <div class="badge">BETA · Grimphy Lab</div>
       <h1>🔬 物理实验室</h1>
-      <p class="tag">Grimphy Lab · 物理实验趣味动画演示</p>
-      <p class="intro">每个卡片是一个独立的小实验，点进去看现象、学原理。</p>
+      <p class="tag">物理实验趣味动画演示，看现象、学原理。</p>
+      <p class="intro">每个卡片是一个独立的小实验，点进去就能看到物理在发生什么。</p>
     </header>
 
     <h2 class="group-title">🧒 初中物理</h2>
@@ -224,6 +224,9 @@ const experiments: ExperimentCard[] = [
 
 .foot { margin-top: 3rem; text-align: center; }
 .foot a { color: #0891b2; text-decoration: none; font-weight: 500; }
+</style>
+
+<style>
 /* ===== 实验演示弹窗 ===== */
 .demo-overlay {
   position: fixed;
