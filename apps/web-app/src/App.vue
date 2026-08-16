@@ -13,8 +13,8 @@ const API_BASE = 'https://api.ezapps.cc'
 const stats = ref<Record<string, number>>({})
 const statsLoaded = ref(false)
 const appMeta: Record<string, { emoji: string; name: string }> = {
-  funphy: { emoji: '🚀', name: '飞飞历险记' },
-  funmath: { emoji: '📐', name: '曼曼闯天涯' },
+  funphy: { emoji: '🛸', name: '飞飞历险记' },
+  funmath: { emoji: '🧮', name: '曼曼闯天涯' },
   ezchess: { emoji: '♟️', name: '棋类对战' },
   grimphy: { emoji: '🔬', name: '物理实验室' },
 }
@@ -270,7 +270,7 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
   margin: 0 auto 1.5rem;
   padding: 0.9rem 1.4rem;
   max-width: 420px;
-  background: #fff;
+  background: linear-gradient(135deg, #f8fafc, #eef2ff);
   border: 1px solid #e2e8f0;
   border-radius: 14px;
 }

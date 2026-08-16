@@ -58,15 +58,12 @@ function onPin(e: MouseEvent) {
           :aria-pressed="pinned"
           @click="onPin"
         >
-          <!-- 通用 SVG 图标，颜色由 CSS 控制 -->
+          <!-- 图钉 SVG 图标（feather pin），颜色由 CSS 控制 -->
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none"
                stroke="currentColor" stroke-width="2.2"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 2v8" />
-            <path d="M9 6l3-3 3 3" />
-            <path d="M12 10v8" />
-            <path d="M9 14h6l-1 4h-4z" />
-            <path d="M12 22v-4" />
+            <path d="M12 17v5" />
+            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z" />
           </svg>
           <span class="pin-btn__text">{{ pinned ? '已置顶' : '置顶' }}</span>
         </button>

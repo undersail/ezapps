@@ -439,7 +439,7 @@ onErrorCaptured((err) => {
   <main v-else class="math">
     <header class="hero">
       <div class="badge">BETA · FunMath Adventure</div>
-      <h1>📐 曼曼闯天涯</h1>
+      <h1>🧮 曼曼闯天涯</h1>
       <p class="tag">曼曼在数学王国里闯关，答对一题前进一格。</p>
     </header>
 
