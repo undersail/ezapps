@@ -69,7 +69,7 @@ import type { Question as DailyQuestion } from './types'
 
 const showRank = ref(false)
 const rankList = ref<Net.RankEntry[]>([])
-const rankMode = ref<'stars' | 'daily'>('stars')
+const rankMode = ref<'stars' | 'daily'>('daily')   // 默认今日榜
 const nickInput = ref(Net.getNickname())
 const dailyQuestions = ref<DailyQuestion[]>([])
 const dailyLoading = ref(false)
@@ -84,11 +84,13 @@ function switchRankMode(m: 'stars' | 'daily') {
   rankList.value = []
   refreshRank()
 }
-async function openRank() {
-  showRank.value = true
+async function loadRank() {
   nickInput.value = Net.getNickname() || nickInput.value
   await refreshRank()
 }
+// 排行榜直接显示：回主界面自动刷新 + 初始加载
+watch(stage, (s) => { if (s === 'lobby') refreshRank() })
+loadRank()
 function saveNick() {
   const nick = nickInput.value.trim()
   if (nick) Net.setNickname(nick)
@@ -469,9 +471,6 @@ onErrorCaptured((err) => {
         </button>
       </div>
 
-      <!-- 排行榜入口 -->
-      <button class="rank-entry" @click="openRank">🏅 排行榜 · 星榜/今日榜</button>
-
       <!-- 进度统计 -->
       <div class="progress-stats">
         <div class="stat">
@@ -496,6 +495,29 @@ onErrorCaptured((err) => {
           <span class="stat__icon">🏰</span>
           <span class="stat__num">{{ unlockedChapterCount }} / 6</span>
           <span class="stat__label">章节</span>
+        </div>
+      </div>
+
+      <!-- 排行榜（直接显示，默认今日榜） -->
+      <div class="rank-box">
+        <div class="rank-box__head">
+          <h3>🏅 排行榜</h3>
+          <div class="rank-tabs">
+            <button class="rank-tab" :class="{ on: rankMode === 'daily' }" @click="switchRankMode('daily')">📅 今日榜</button>
+            <button class="rank-tab" :class="{ on: rankMode === 'stars' }" @click="switchRankMode('stars')">⭐ 总星榜</button>
+          </div>
+        </div>
+        <div class="rank-nick">
+          <input v-model="nickInput" maxlength="20" placeholder="输入昵称参与排行" @keyup.enter="saveNick" />
+          <button class="rank-save" @click="saveNick">保存</button>
+        </div>
+        <div class="rank-list">
+          <div v-if="!rankList.length" class="rank-empty">暂无成绩，去挑战！🏁</div>
+          <div v-for="(r, i) in rankList" :key="i" class="rank-row">
+            <span class="rank-no">{{ i + 1 }}</span>
+            <span class="rank-player">{{ r.player }}<span v-if="r.dev" class="rank-dev">#{{ r.dev }}</span></span>
+            <span class="rank-score">{{ r.score }}<template v-if="r.time"> · {{ Math.floor(r.time / 60) }}:{{ String(r.time % 60).padStart(2, '0') }}</template></span>
+          </div>
         </div>
       </div>
 
@@ -633,30 +655,6 @@ onErrorCaptured((err) => {
       <p class="score">你答对了 <b>{{ score }}</b> / {{ questions.length }} 题</p>
       <button class="start-btn" @click="retry">回到大厅</button>
     </section>
-
-    <!-- 排行榜弹窗（独立于 stage 链） -->
-    <div v-if="showRank" class="rank-overlay" @click.self="showRank = false">
-      <div class="rank-card">
-        <button class="rank-close" @click="showRank = false">✕</button>
-        <h2>🏅 排行榜</h2>
-        <div class="rank-tabs">
-          <button class="rank-tab" :class="{ on: rankMode === 'stars' }" @click="switchRankMode('stars')">⭐ 总星榜</button>
-          <button class="rank-tab" :class="{ on: rankMode === 'daily' }" @click="switchRankMode('daily')">📅 今日榜</button>
-        </div>
-        <div class="rank-nick">
-          <input v-model="nickInput" maxlength="20" placeholder="输入昵称参与排行" @keyup.enter="saveNick" />
-          <button class="rank-save" @click="saveNick">保存</button>
-        </div>
-        <div class="rank-list">
-          <div v-if="!rankList.length" class="rank-empty">暂无成绩，去挑战！🏁</div>
-          <div v-for="(r, i) in rankList" :key="i" class="rank-row">
-            <span class="rank-no">{{ i + 1 }}</span>
-            <span class="rank-player">{{ r.player }}<span v-if="r.dev" class="rank-dev">#{{ r.dev }}</span></span>
-            <span class="rank-score">{{ r.score }}<template v-if="r.time"> · {{ Math.floor(r.time / 60) }}:{{ String(r.time % 60).padStart(2, '0') }}</template></span>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <footer class="foot">
       <a href="/">← 返回 EZAPPS 主页</a>
@@ -976,6 +974,32 @@ onErrorCaptured((err) => {
 .mode-card--daily { border-color: #f59e0b; }
 .mode-card--daily:hover { border-color: #fbbf24; background: #fffbeb; }
 .mode-card--daily .mode-card__title { color: #b45309; }
+
+/* 排行榜内嵌卡片 */
+.rank-box {
+  margin: 18px auto 0;
+  max-width: 480px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  text-align: left;
+}
+.rank-box__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.rank-box__head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+.rank-box .rank-tabs { display: flex; gap: 6px; }
+.rank-box .rank-list { max-height: 280px; overflow-y: auto; }
 
 .rank-entry {
   margin: 14px auto 4px;

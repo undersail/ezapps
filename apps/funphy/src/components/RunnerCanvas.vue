@@ -58,8 +58,31 @@
             </div>
             <button class="cardbook-btn" @click="openCardbook">📚 物理卡册 {{ ownedCards }}/{{ physicsCards.length }}</button>
             <button class="cardbook-btn" @click="openDaily">📅 每日挑战</button>
-            <button class="cardbook-btn" @click="openRank">🏅 排行榜</button>
             <a class="home-link" href="/">🏠 返回 ezapps 主页</a>
+          </div>
+
+          <!-- 排行榜（直接显示，默认今日榜） -->
+          <div class="rank-box">
+            <div class="rank-box__head">
+              <h3>🏅 排行榜</h3>
+              <div class="rank-tabs">
+                <button class="rank-tab" :class="{ on: rankMode === 'daily' }" @click="switchRankMode('daily')">📅 今日榜</button>
+                <button class="rank-tab" :class="{ on: rankMode === 'endless' }" @click="switchRankMode('endless')">🌌 无限总榜</button>
+              </div>
+            </div>
+            <div class="nick-row">
+              <input v-model="nickInput" class="nick-input" maxlength="20" placeholder="输入昵称参与排行" @keyup.enter="saveNick" />
+              <button class="btn-secondary" style="margin:0" @click="saveNick">保存</button>
+            </div>
+            <div class="rank-list">
+              <div v-if="!rankList.length" class="rank-empty">暂无成绩，去挑战！🏁</div>
+              <div v-for="(r, i) in rankList" :key="i" class="rank-row" :class="{ 'rank-me': r.player === nickInput }">
+                <span class="rank-no">{{ i + 1 }}</span>
+                <span class="rank-player">{{ r.player }}<span v-if="r.dev" class="rank-dev">#{{ r.dev }}</span></span>
+                <span class="rank-score">{{ r.score }}<template v-if="r.time"> · {{ fmtTime2(r.time) }}</template></span>
+              </div>
+            </div>
+            <div class="rank-mine" v-if="myRank > 0">我的排名：第 {{ myRank }} 名</div>
           </div>
         </div>
       </div>
@@ -193,34 +216,6 @@
       <!-- 右下冲刺键（与左摇杆平齐，动作区对称） -->
       <button class="dash-fab" v-if="gameState === 'playing'" @click="dash" aria-label="冲刺">⚡</button>
 
-      <!-- 排行榜弹窗 -->
-      <div class="overlay" v-if="showRank" @click.self="showRank = false">
-        <div class="overlay-card rank-card">
-          <button class="modal-close" @click="showRank = false" aria-label="关闭">✕</button>
-          <h2>🏅 排行榜</h2>
-          <!-- 模式切换 -->
-          <div class="rank-tabs">
-            <button class="rank-tab" :class="{ on: rankMode === 'endless' }" @click="switchRankMode('endless')">🌌 无限总榜</button>
-            <button class="rank-tab" :class="{ on: rankMode === 'daily' }" @click="switchRankMode('daily')">📅 今日榜</button>
-          </div>
-          <!-- 昵称设置 -->
-          <div class="nick-row">
-            <input v-model="nickInput" class="nick-input" maxlength="20" placeholder="输入昵称参与排行" @keyup.enter="saveNick" />
-            <button class="btn-secondary" style="margin:0" @click="saveNick">保存</button>
-          </div>
-          <!-- 榜单（昵称#设备码 组合显示） -->
-          <div class="rank-list">
-            <div v-if="!rankList.length" class="rank-empty">暂无成绩，去挑战！🏁</div>
-            <div v-for="(r, i) in rankList" :key="i" class="rank-row" :class="{ 'rank-me': r.player === nickInput }">
-              <span class="rank-no">{{ i + 1 }}</span>
-              <span class="rank-player">{{ r.player }}<span v-if="r.dev" class="rank-dev">#{{ r.dev }}</span></span>
-              <span class="rank-score">{{ r.score }}<template v-if="r.time"> · {{ fmtTime2(r.time) }}</template></span>
-            </div>
-          </div>
-          <div class="rank-mine" v-if="myRank > 0">我的排名：第 {{ myRank }} 名</div>
-        </div>
-      </div>
-
       <!-- 升级弹窗（暂停游戏） -->
       <div class="overlay" v-if="showShipyard">
         <div class="overlay-card">
@@ -348,10 +343,9 @@ const showRank = ref(false)
 const rankList = ref<Net.RankEntry[]>([])
 const nickInput = ref(Net.getNickname())
 const myRank = ref(0)
-const rankMode = ref<'endless' | 'daily'>('endless')
+const rankMode = ref<'endless' | 'daily'>('daily')   // 默认今日榜
 function openCardbook() { showCardbook.value = true }
-async function openRank() {
-  showRank.value = true
+async function loadRank() {
   nickInput.value = Net.getNickname() || nickInput.value
   await refreshRank()
 }
@@ -406,7 +400,10 @@ watch(gameState, (s) => {
   if (s === 'won' && lastNewCardId.value) {
     openCardDetail(lastNewCardId.value)
   }
-  if (s === 'menu') lastNewCardId.value = ''   // 回大厅清空
+  if (s === 'menu') {
+    lastNewCardId.value = ''   // 回大厅清空
+    refreshRank()              // 排行榜直接显示：回菜单自动刷新
+  }
 })
 
 const fmtTime = computed(() => {
@@ -1195,6 +1192,45 @@ canvas {
   justify-content: center;
 }
 .modal-close:hover { background: rgba(255, 255, 255, 0.22); color: #fff; }
+
+/* 排行榜内嵌卡片 */
+.rank-box {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 16px;
+}
+.rank-box__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.rank-box__head h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #e2e8f0;
+}
+.rank-box .rank-tabs { display: flex; gap: 6px; }
+.rank-box .rank-tab {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.rank-box .rank-tab.on {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+}
+.rank-box .nick-row { margin-bottom: 10px; }
+.rank-box .rank-list { max-height: 260px; overflow-y: auto; }
 
 /* 排行榜弹窗 */
 .rank-card { max-width: 420px; width: 92%; }
