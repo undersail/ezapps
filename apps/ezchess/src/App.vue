@@ -1605,7 +1605,7 @@ h1 { margin: 0; font-size: 1.8rem; }
   font-size: 0.85rem;
   color: #64748b;
 }
-.nick-save { flex: none; min-width: 72px; }
+.nick-save { flex: none; min-width: 88px; }
 .nick-row input {
   flex: 1;
   min-width: 0;

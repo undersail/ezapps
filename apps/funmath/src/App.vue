@@ -464,12 +464,15 @@ onErrorCaptured((err) => {
           <p class="mode-card__desc">选择已解锁的任意关卡<br />自由练习、刷分、复习</p>
         </button>
 
-        <button class="mode-card mode-card--daily" @click="openDaily">
-          <span class="mode-card__emoji">📅</span>
-          <h3 class="mode-card__title">每日挑战</h3>
-          <p class="mode-card__desc">全服同 10 题<br />比得分、比速度！</p>
-        </button>
       </div>
+
+      <!-- 每日挑战：横向平铺按钮（宽度与模式卡片总宽对齐） -->
+      <button class="daily-bar" @click="openDaily">
+        <span class="daily-bar__emoji">📅</span>
+        <span class="daily-bar__text">每日挑战</span>
+        <span class="daily-bar__sub">全服同 10 题 · 比得分、比速度！</span>
+        <span class="daily-bar__arrow">›</span>
+      </button>
 
       <!-- 进度统计 -->
       <div class="progress-stats">
@@ -976,6 +979,27 @@ onErrorCaptured((err) => {
 .mode-card--daily:hover { border-color: #fbbf24; background: #fffbeb; }
 .mode-card--daily .mode-card__title { color: #b45309; }
 
+.daily-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto 1.5rem;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 2px solid #f59e0b;
+  background: linear-gradient(135deg, #fffbeb, #fff7ed);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.daily-bar:hover { border-color: #fbbf24; background: #fffbeb; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.18); }
+.daily-bar__emoji { font-size: 1.4rem; flex: none; }
+.daily-bar__text { font-size: 1.02rem; font-weight: 700; color: #b45309; flex: none; }
+.daily-bar__sub { flex: 1; font-size: 0.82rem; color: #92400e; }
+.daily-bar__arrow { font-size: 1.3rem; color: #f59e0b; flex: none; }
+
 /* 排行榜内嵌卡片 */
 .rank-box {
   margin: 18px auto 0;
@@ -1088,7 +1112,7 @@ onErrorCaptured((err) => {
   border: none;
   border-radius: 8px;
   padding: 6px 14px;
-  min-width: 64px;
+  min-width: 84px;
   color: #fff;
   cursor: pointer;
 }

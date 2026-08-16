@@ -12,15 +12,24 @@
             <p class="lobby-story">驾驶全能飞船，从海洋出发，穿越大陆与天空，冲向广袤宇宙！</p>
           </div>
 
-          <!-- 中部：模式 + 图例 + 进度 -->
+          <!-- 中部：模式卡片 + 内容 -->
           <div class="lobby-main">
-            <div class="mode-tabs">
-              <button class="mode-tab" :class="{ active: lobbyMode === 'adventure' }" @click="lobbyMode = 'adventure'">🚀 探险</button>
-              <button class="mode-tab" :class="{ active: lobbyMode === 'revisit' }" @click="lobbyMode = 'revisit'">🔄 重游</button>
+            <div class="mode-cards">
+              <button class="mode-card" :class="{ on: lobbyMode === 'adventure' }" @click="lobbyMode = 'adventure'">
+                <span class="mode-card__emoji">🚀</span>
+                <span class="mode-card__title">探险模式</span>
+                <span class="mode-card__desc">按章节推进剧情闯关<br />解锁海洋→大陆→天空→宇宙</span>
+              </button>
+              <button class="mode-card" :class="{ on: lobbyMode === 'revisit' }" @click="lobbyMode = 'revisit'">
+                <span class="mode-card__emoji">🔄</span>
+                <span class="mode-card__title">重游模式</span>
+                <span class="mode-card__desc">自由选择已解锁关卡<br />无限模式刷里程冲榜</span>
+              </button>
             </div>
 
             <div v-if="lobbyMode === 'adventure'">
               <button class="btn-primary lobby-start" @click="handleStart">🚀 开始探险 · 第 {{ adventureIndex + 1 }}/{{ runnerLevels.length }} 关</button>
+              <button class="cardbook-btn" @click="openDaily">📅 每日挑战</button>
             </div>
 
             <div v-else class="revisit-panel">
@@ -57,7 +66,6 @@
               </div>
             </div>
             <button class="cardbook-btn" @click="openCardbook">📚 物理卡册 {{ ownedCards }}/{{ physicsCards.length }}</button>
-            <button class="cardbook-btn" @click="openDaily">📅 每日挑战</button>
           </div>
 
           <!-- 排行榜（直接显示，默认今日榜） -->
@@ -878,6 +886,35 @@ canvas {
   border-radius: 16px;
   padding: 16px;
 }
+.mode-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 10px;
+  border-radius: 14px;
+  border: 2px solid rgba(148, 163, 184, 0.25);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+.mode-card.on {
+  border-color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+  color: #fff;
+}
+.mode-card__emoji { font-size: 1.6rem; }
+.mode-card__title { font-size: 1rem; font-weight: 700; }
+.mode-card__desc { font-size: 0.72rem; color: rgba(148, 163, 184, 0.9); line-height: 1.5; }
+.lobby-main .cardbook-btn { margin-top: 10px; }
 .lobby-start { width: 100%; }
 .lobby-footer {
   background: rgba(10, 20, 35, 0.6);
@@ -1038,10 +1075,11 @@ canvas {
   padding-top: 2px;
 }
 .shipyard-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 10px;
   text-align: left;
+  color: rgba(255, 255, 255, 0.92);
 }
 .upgrade-row {
   display: flex;
@@ -1262,8 +1300,8 @@ canvas {
   font-size: 0.85rem;
   color: rgba(226, 232, 240, 0.85);
 }
-.nick-save { flex: none; width: 64px; padding: 8px 0; }
-.rank-box button.nick-save { width: 64px !important; }
+.nick-save { flex: none; width: 88px; padding: 8px 0; }
+.rank-box button.nick-save { width: 88px !important; }
 .nick-input {
   flex: 1;
   min-width: 0;
