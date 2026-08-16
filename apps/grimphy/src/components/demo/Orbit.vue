@@ -3,7 +3,7 @@
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-const speed = ref(2.2)   // 切向速度
+const speed = ref(1.0)   // 切向速度（圆轨道 ≈1.0）
 
 const W = 560, H = 320
 let raf = 0
@@ -20,13 +20,15 @@ function frame(now: number) {
   const sx = W / 2, sy = H / 2
   const dx = sx - px.value, dy = sy - py.value
   const d = Math.max(Math.hypot(dx, dy), 30)
-  const g = 900 / (d * d)
+  const g = 90000 / (d * d)    // GM=90000：圆轨道 v=1.0 时 v²/r = 9 = GM/r²
   vx += (dx / d) * g * dt
   vy += (dy / d) * g * dt
-  px.value += vx * dt * 30
-  py.value += vy * dt * 30
+  px.value += vx * dt          // vx/vy 单位 px/s
+  py.value += vy * dt
   // 边界逃逸处理
   if (d > 500) { trail.length = 0; reset() }
+  // 撞上恒星（角动量不足直接撞上）→ 重新发射
+  if (d < 22) { trail.length = 0; reset() }
   trail.push({ x: px.value, y: py.value })
   if (trail.length > 400) trail.shift()
   draw()
@@ -92,21 +94,21 @@ function draw() {
   ctx.textAlign = 'left'
   ctx.font = '13px system-ui'
   ctx.fillStyle = '#e2e8f0'
-  ctx.fillText(`行星切向速度：${speed.value.toFixed(1)}`, 16, 26)
+  ctx.fillText(`行星切向速度：${speed.value.toFixed(2)}（圆轨道速度 = 1.0）`, 16, 26)
   const sp = speed.value
-  const orbit = sp < 1.7 ? '被吸引坠落' : sp < 2.1 ? '椭圆轨道' : sp < 2.7 ? '近圆轨道' : '飞离（逃逸）'
-  ctx.fillStyle = sp < 1.7 ? '#f87171' : sp > 2.7 ? '#a78bfa' : '#38bdf8'
+  const orbit = sp < 0.75 ? '扁椭圆（近点很靠近恒星，可能撞上）' : sp < 1.05 ? '椭圆轨道' : sp < 1.25 ? '近圆轨道' : sp < 1.42 ? '圆轨道' : '双曲线 · 逃逸'
+  ctx.fillStyle = sp < 0.75 ? '#fbbf24' : sp >= 1.42 ? '#a78bfa' : '#38bdf8'
   ctx.fillText(`轨道状态：${orbit}`, 16, 46)
   ctx.fillStyle = 'rgba(226,232,240,0.6)'
-  ctx.fillText('万有引力提供向心力，速度决定轨道形状', 16, 66)
+  ctx.fillText('万有引力使行星始终绕恒星转动：速度只决定椭圆的扁圆程度', 16, 66)
 }
 
 function reset() {
   px.value = 380; py.value = 160
   trail.length = 0
-  // 切向速度（垂直径向）
+  // 切向速度（垂直径向），单位 px/s：v=1.0 → 30px/s（圆轨道）
   vx = 0
-  vy = speed.value
+  vy = speed.value * 30
   last = performance.now()
 }
 
@@ -121,7 +123,7 @@ onBeforeUnmount(() => cancelAnimationFrame(raf))
     <div class="demo__controls">
       <label class="demo__ctl">
         <span>切向速度：{{ speed.toFixed(1) }}</span>
-        <input type="range" v-model.number="speed" min="1" max="3.5" step="0.1" />
+        <input type="range" v-model.number="speed" min="0.5" max="2" step="0.05" />
       </label>
       <button class="demo__btn" @click="reset">🔄 重新发射</button>
     </div>

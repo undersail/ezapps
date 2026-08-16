@@ -22,30 +22,6 @@ function draw() {
 
   const cx = W / 2, cy = H / 2 - 10
 
-  // 磁感线（从 N 极出发 → S 极，数量随电流）
-  const lines = Math.round(fieldStrength.value)
-  ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)'
-  ctx.lineWidth = 1.5
-  for (let i = 0; i < lines; i++) {
-    const spread = (i - (lines - 1) / 2) * (110 / Math.max(lines, 1)) + 30
-    ctx.beginPath()
-    ctx.moveTo(cx - 70, cy + spread * 0.55)
-    ctx.quadraticCurveTo(cx - 130, cy + spread, cx - 70, cy - spread * 0.55)  // 左侧外弧
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(cx + 70, cy - spread * 0.55)
-    ctx.quadraticCurveTo(cx + 130, cy + spread, cx + 70, cy + spread * 0.55)  // 右侧外弧
-    ctx.stroke()
-  }
-  // 内部磁感线（直）
-  ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)'
-  for (let i = 0; i < lines; i++) {
-    const y = cy + (i - (lines - 1) / 2) * 12
-    ctx.beginPath()
-    ctx.moveTo(cx - 70, y); ctx.lineTo(cx + 70, y)
-    ctx.stroke()
-  }
-
   // 螺线管（线圈）
   ctx.strokeStyle = '#b45309'
   ctx.lineWidth = 3
@@ -59,6 +35,42 @@ function draw() {
   // 铁芯
   ctx.fillStyle = '#475569'
   ctx.fillRect(cx - 70, cy - 40, 140, 80)
+
+
+  // 磁感线（闭合回路：内部直线从 S→N + 外部弧从 N→S）
+  const lines = Math.round(fieldStrength.value)
+  ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)'
+  ctx.lineWidth = 1.8
+  for (let i = 0; i < lines; i++) {
+    // 内部 y 位置（螺线管芯内分布）
+    const y = cy + (i - (lines - 1) / 2) * 11
+    if (y < cy - 38 || y > cy + 38) continue
+    // 内部直线（S 端 → N 端，即从右到左）
+    ctx.beginPath()
+    ctx.moveTo(cx + 70, y)
+    ctx.lineTo(cx - 70, y)
+    ctx.stroke()
+    // 外部弧（N 端绕出 → S 端绕入，半圈闭合）
+    const dir = y < cy ? -1 : 1            // 上半绕上方、下半绕下方
+    const arcY = y + dir * 88              // 弧顶/弧底
+    ctx.beginPath()
+    ctx.moveTo(cx - 70, y)
+    ctx.quadraticCurveTo(cx, arcY, cx + 70, y)
+    ctx.stroke()
+  }
+  // 磁感线方向箭头（N → S，在外部弧上标 3 个）
+  ctx.fillStyle = 'rgba(239, 68, 68, 0.8)'
+  for (const ay of [cy - 76, cy, cy + 76]) {
+    if (Math.abs(ay - cy) > 70) {
+      const ax = cx
+      ctx.beginPath()
+      ctx.moveTo(ax, ay)
+      ctx.lineTo(ax - 5, ay + (ay < cy ? 8 : -8))
+      ctx.lineTo(ax + 5, ay + (ay < cy ? 8 : -8))
+      ctx.closePath()
+      ctx.fill()
+    }
+  }
 
   // 磁极标记
   ctx.fillStyle = '#dc2626'
