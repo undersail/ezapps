@@ -71,16 +71,14 @@ function draw() {
   ctx.moveTo(lensX, axisY - 30)
   ctx.lineTo(lensX, axisY + 30)
   ctx.stroke()
-  // 上端短横（凸面示意）
+  // 两端圆点（凸面示意，与物体箭头区分）
+  ctx.fillStyle = '#6366f1'
   ctx.beginPath()
-  ctx.moveTo(lensX - 12, axisY - 27)
-  ctx.lineTo(lensX + 12, axisY - 27)
-  ctx.stroke()
-  // 下端短横
+  ctx.arc(lensX, axisY - 27, 5, 0, Math.PI * 2)
+  ctx.fill()
   ctx.beginPath()
-  ctx.moveTo(lensX - 12, axisY + 27)
-  ctx.lineTo(lensX + 12, axisY + 27)
-  ctx.stroke()
+  ctx.arc(lensX, axisY + 27, 5, 0, Math.PI * 2)
+  ctx.fill()
 
   // 物体（左侧，箭头朝上）
   const objX = lensX - u.value * SCALE

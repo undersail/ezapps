@@ -86,7 +86,7 @@ function draw() {
   ctx.fillStyle = '#64748b'
   ctx.font = '11px system-ui'
   ctx.textAlign = 'left'
-  ctx.fillText('粒子从左向右射入 ↓', 60, fieldBottom + 16)
+  ctx.fillText('粒子从画面中央向右射入 ↓', 60, fieldBottom + 16)
 
   // ===== 顶部信息区（白条盖住越界图形，文字最后画） =====
   ctx.fillStyle = '#f8fafc'
@@ -110,7 +110,7 @@ function draw() {
 }
 
 function reset() {
-  px = 120; py = 170
+  px = W / 2; py = 190
   vx = speed.value
   vy = 0
   trail.length = 0

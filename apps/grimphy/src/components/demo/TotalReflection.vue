@@ -23,7 +23,7 @@ function draw() {
   ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, W, H)
 
   // 分界面（上半空气 / 下半水）
-  const midY = H / 2
+  const midY = H / 2 + 30
   ctx.fillStyle = 'rgba(56, 189, 248, 0.22)'
   ctx.fillRect(0, midY, W, H - midY)
   ctx.strokeStyle = '#94a3b8'
@@ -40,39 +40,37 @@ function draw() {
   const px0 = W / 2, py0 = midY
   ctx.strokeStyle = '#cbd5e1'
   ctx.setLineDash([5, 4])
-  ctx.beginPath(); ctx.moveTo(px0, 40); ctx.lineTo(px0, H - 40); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(px0, 70); ctx.lineTo(px0, H - 40); ctx.stroke()
   ctx.setLineDash([])
 
   // 入射光（从左下 → 分界点）
   const rad = (angle.value * Math.PI) / 180
   ctx.strokeStyle = '#f59e0b'
   ctx.lineWidth = 3
-  const inLen = 150
+  const inLen = 105
   ctx.beginPath()
   ctx.moveTo(px0 - Math.sin(rad) * inLen, py0 + Math.cos(rad) * inLen)
   ctx.lineTo(px0, py0)
   ctx.stroke()
 
   if (!isTotal.value) {
-    // 折射光（右上，按斯涅尔定律）
-    const rr = (Math.asin(nWater * Math.sin(rad)) * 180) / Math.PI
-    const rrad = (rr * Math.PI) / 180
+    // 未达临界角：光进入空气（折射内容见「光的折射」实验）
     ctx.strokeStyle = '#3b82f6'
     ctx.lineWidth = 3
     ctx.beginPath()
     ctx.moveTo(px0, py0)
-    ctx.lineTo(px0 + Math.sin(rrad) * 180, py0 - Math.cos(rrad) * 180)
+    ctx.lineTo(px0 + 60, py0 - 60)
     ctx.stroke()
     ctx.fillStyle = '#1d4ed8'
     ctx.font = '12px system-ui'
-    ctx.fillText('折射光', px0 + 70, py0 - 60)
+    ctx.fillText('光进入空气', px0 + 50, py0 - 70)
   } else {
     // 反射光（左上，θ' = θ）
     ctx.strokeStyle = '#3b82f6'
     ctx.lineWidth = 3
     ctx.beginPath()
     ctx.moveTo(px0, py0)
-    ctx.lineTo(px0 - Math.sin(rad) * 180, py0 - Math.cos(rad) * 180)
+    ctx.lineTo(px0 - Math.sin(rad) * 130, py0 - Math.cos(rad) * 130)
     ctx.stroke()
     ctx.fillStyle = '#1d4ed8'
     ctx.font = 'bold 13px system-ui'
@@ -111,7 +109,7 @@ function draw() {
   ctx.font = 'bold 14px system-ui'
   ctx.fillText(
     isTotal.value ? '入射角 > 临界角 → 光全部反射回水中（全反射）' :
-    '入射角 < 临界角 → 部分折射出去', 16, 46)
+    '入射角 < 临界角 → 光进入空气（未全反射）', 16, 46)
   ctx.fillStyle = '#64748b'
   ctx.font = '13px system-ui'
   ctx.fillText('全反射应用：光纤通信、钻石的闪耀', 16, 66)

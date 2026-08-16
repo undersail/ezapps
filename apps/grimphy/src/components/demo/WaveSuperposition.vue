@@ -40,7 +40,7 @@ function draw() {
   ctx.fillRect(0, 0, w, h)
 
   const mid = h / 2
-  const amp = 56
+  const amp = 46
   const N = 200
 
   // 中线

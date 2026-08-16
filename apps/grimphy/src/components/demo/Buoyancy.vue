@@ -64,7 +64,10 @@ function draw() {
   // 顶部位置：自然漂浮（露出部分随密度）+ 压入深度
   const lift = (naturalSub.value) * objH          // 水下部分（自然）
   const extra = Math.max(0, forcedSub.value - naturalSub.value)  // 额外压入比例
-  const objTopY = waterY - (objH - lift) + extra * 90   // 密度小→浮得高；压入→下沉
+  // 密度>水 → 沉底；否则自然漂浮/压入
+  const objTopY = objDensity.value > 1
+    ? cBottom - objH - 4
+    : waterY - (objH - lift) + extra * 90
   const clampedTop = Math.max(cTop + 4, Math.min(objTopY, cBottom - objH - 4))
   const objX = W / 2 - 32
 

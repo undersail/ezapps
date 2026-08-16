@@ -26,7 +26,7 @@ function draw() {
   ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, W, H)
 
   // 分界面（上半空气 / 下半水）
-  const midY = H / 2
+  const midY = H / 2 + 30
   ctx.fillStyle = 'rgba(56, 189, 248, 0.22)'
   ctx.fillRect(0, midY, W, H - midY)
   ctx.strokeStyle = '#94a3b8'
@@ -41,14 +41,14 @@ function draw() {
   const px0 = W / 2, py0 = midY
   ctx.strokeStyle = '#cbd5e1'
   ctx.setLineDash([5, 4])
-  ctx.beginPath(); ctx.moveTo(px0, 40); ctx.lineTo(px0, H - 40); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(px0, 70); ctx.lineTo(px0, H - 40); ctx.stroke()
   ctx.setLineDash([])
 
   // 入射光线（左上 → 分界点）
   const rad = (angle.value * Math.PI) / 180
   ctx.strokeStyle = '#f59e0b'
   ctx.lineWidth = 3
-  const inLen = 150
+  const inLen = 105
   ctx.beginPath()
   ctx.moveTo(px0 - Math.sin(rad) * inLen, py0 - Math.cos(rad) * inLen)
   ctx.lineTo(px0, py0)
@@ -58,7 +58,7 @@ function draw() {
   const rrad = (refracted.value * Math.PI) / 180
   ctx.strokeStyle = '#3b82f6'
   ctx.lineWidth = 3
-  const outLen = 160
+  const outLen = 150
   ctx.beginPath()
   ctx.moveTo(px0, py0)
   ctx.lineTo(px0 + Math.sin(rrad) * outLen, py0 + Math.cos(rrad) * outLen)

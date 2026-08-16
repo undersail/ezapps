@@ -27,17 +27,17 @@ function draw() {
 
   const fixed = pulleyType.value === 'fixed'
   const cx = w / 2
-  const cy = fixed ? 140 : 160   // 动滑轮位置更低
+  const cy = fixed ? 155 : 175   // 动滑轮位置更低
 
   // 绳子（滑轮上端到顶部固定点）
   ctx.strokeStyle = '#94a3b8'
   ctx.lineWidth = 2
   ctx.beginPath()
-  ctx.moveTo(cx - 28, 94)
+  ctx.moveTo(cx - 28, 108)
   ctx.lineTo(cx - 28, cy - 16)
   ctx.stroke()
   ctx.beginPath()
-  ctx.moveTo(cx - 28, 94)
+  ctx.moveTo(cx - 28, 108)
   ctx.lineTo(cx + 60, 24)
   ctx.stroke()
 
@@ -53,7 +53,7 @@ function draw() {
   ctx.stroke()
 
   // 重物（下方）
-  const wY = cy + 46
+  const wY = cy + 50
   ctx.strokeStyle = '#64748b'
   ctx.lineWidth = 2
   ctx.beginPath()
@@ -73,7 +73,7 @@ function draw() {
   ctx.lineWidth = 2.5
   ctx.beginPath()
   if (fixed) {
-    ctx.moveTo(pullX, 94)
+    ctx.moveTo(pullX, 108)
     ctx.lineTo(pullX, h - 40)
   } else {
     ctx.moveTo(pullX, cy - 16)
@@ -82,7 +82,7 @@ function draw() {
   ctx.stroke()
   // 拉力箭头
   const force = fixed ? weight.value : weight.value / 2
-  const arrowY = fixed ? h - 55 : 100
+  const arrowY = fixed ? h - 60 : 116
   const arrowDir = fixed ? 1 : -1   // 定滑轮向下拉，动滑轮向上拉
   ctx.fillStyle = '#f59e0b'
   ctx.beginPath()
@@ -121,7 +121,7 @@ onMounted(draw)
 
 <template>
   <div class="demo">
-    <canvas ref="canvasRef" width="560" height="300" class="demo__canvas"></canvas>
+    <canvas ref="canvasRef" width="560" height="320" class="demo__canvas"></canvas>
     <div class="demo__controls">
       <label class="demo__ctl">
         <span>重物重量：{{ weight }} N</span>

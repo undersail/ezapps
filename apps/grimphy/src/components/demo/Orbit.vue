@@ -17,7 +17,7 @@ function frame(now: number) {
   const dt = Math.min((now - last) / 1000, 0.05)
   last = now
   // 引力（万有引力 → 恒星）
-  const sx = W / 2, sy = H / 2
+  const sx = W / 2, sy = 185
   const dx = sx - px.value, dy = sy - py.value
   const d = Math.max(Math.hypot(dx, dy), 30)
   const g = 90000 / (d * d)    // GM=90000：圆轨道 v=1.0 时 v²/r = 9 = GM/r²
@@ -60,7 +60,7 @@ function draw() {
   ctx.lineWidth = 1
   ctx.setLineDash([4, 4])
   ctx.beginPath()
-  ctx.arc(W / 2, H / 2, 150, 0, Math.PI * 2)
+  ctx.arc(W / 2, 185, 85, 0, Math.PI * 2)
   ctx.stroke()
   ctx.setLineDash([])
 
@@ -77,11 +77,11 @@ function draw() {
   // 恒星
   ctx.fillStyle = '#f59e0b'
   ctx.beginPath()
-  ctx.arc(W / 2, H / 2, 16, 0, Math.PI * 2)
+  ctx.arc(W / 2, 185, 16, 0, Math.PI * 2)
   ctx.fill()
   ctx.fillStyle = 'rgba(251, 191, 36, 0.3)'
   ctx.beginPath()
-  ctx.arc(W / 2, H / 2, 26, 0, Math.PI * 2)
+  ctx.arc(W / 2, 185, 26, 0, Math.PI * 2)
   ctx.fill()
 
   // 行星
@@ -113,7 +113,7 @@ function draw() {
 }
 
 function reset() {
-  px.value = 380; py.value = 160
+  px.value = 365; py.value = 185
   trail.length = 0
   // 切向速度（垂直径向），单位 px/s：v=1.0 → 30px/s（圆轨道）
   vx = 0
