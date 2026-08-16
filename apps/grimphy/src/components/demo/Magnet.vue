@@ -93,6 +93,15 @@ function draw() {
   ctx.fillText(attracted ? '回形针被吸住 ✓' : '电流太小，吸不住', cx, nailY + 46)
 
   // 数据
+  // ===== 顶部信息区（白条盖住越界图形，文字专属区） =====
+  ctx.fillStyle = '#f8fafc'
+  ctx.fillRect(0, 0, W, 80)
+  ctx.strokeStyle = '#e2e8f0'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(0, 80)
+  ctx.lineTo(W, 80)
+  ctx.stroke()
   ctx.textAlign = 'left'
   ctx.fillStyle = '#334155'
   ctx.font = '13px system-ui'

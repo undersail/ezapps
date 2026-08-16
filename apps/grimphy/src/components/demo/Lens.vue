@@ -64,17 +64,24 @@ function draw() {
   ctx.fillText('F', fLeft - 8, axisY - 10)
   ctx.fillText('F', fRight + 4, axisY - 10)
 
-  // 凸透镜（标准画法：两段大圆弧，弧心在另一侧，上下端相接）
-  // 透镜宽 44 高 60：弧心距中心 9.45，半径 31.4（数学推导，非半圆）
+  // 凸透镜（课本标准符号：竖线 + 上下箭头表示凸面）
   ctx.strokeStyle = '#6366f1'
   ctx.lineWidth = 3
-  const aL1 = (-107.5 * Math.PI) / 180   // 左弧上端角
-  const aL2 = (107.5 * Math.PI) / 180    // 左弧下端角
-  const aR1 = (-72.5 * Math.PI) / 180    // 右弧上端角
-  const aR2 = (72.5 * Math.PI) / 180     // 右弧下端角
   ctx.beginPath()
-  ctx.arc(lensX + 9.45, axisY, 31.4, aL1, aL2, true)   // 左弧：圆心在右，凸向左
-  ctx.arc(lensX - 9.45, axisY, 31.4, aR1, aR2, true)   // 右弧：圆心在左，凸向右
+  ctx.moveTo(lensX, axisY - 30)
+  ctx.lineTo(lensX, axisY + 30)
+  ctx.stroke()
+  // 上箭头（朝上，表示凸面向外）
+  ctx.beginPath()
+  ctx.moveTo(lensX - 8, axisY - 24)
+  ctx.lineTo(lensX, axisY - 34)
+  ctx.lineTo(lensX + 8, axisY - 24)
+  ctx.stroke()
+  // 下箭头（朝下）
+  ctx.beginPath()
+  ctx.moveTo(lensX - 8, axisY + 24)
+  ctx.lineTo(lensX, axisY + 34)
+  ctx.lineTo(lensX + 8, axisY + 24)
   ctx.stroke()
 
   // 物体（左侧，箭头朝上）
@@ -132,6 +139,15 @@ function draw() {
   // 数据
   ctx.font = '13px system-ui'
   ctx.fillStyle = '#334155'
+  // ===== 顶部信息区（白条盖住越界图形，文字专属区） =====
+  ctx.fillStyle = '#f8fafc'
+  ctx.fillRect(0, 0, W, 80)
+  ctx.strokeStyle = '#e2e8f0'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(0, 80)
+  ctx.lineTo(W, 80)
+  ctx.stroke()
   ctx.textAlign = 'left'
   const kind = u.value > 2 * f ? '倒立缩小实像' : u.value === 2 * f ? '等大实像' : u.value > f ? '倒立放大实像' : '正立放大虚像'
   ctx.fillText(`物距 u = ${u.value.toFixed(1)}f`, 16, 24)

@@ -90,6 +90,15 @@ function draw() {
   ctx.arc(px.value, py.value, 7, 0, Math.PI * 2)
   ctx.fill()
 
+  // ===== 顶部信息区（深色条盖住越界轨迹） =====
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.94)'
+  ctx.fillRect(0, 0, W, 80)
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(0, 80)
+  ctx.lineTo(W, 80)
+  ctx.stroke()
   // 数据
   ctx.textAlign = 'left'
   ctx.font = '13px system-ui'

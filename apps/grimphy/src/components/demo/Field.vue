@@ -26,7 +26,7 @@ function frame(now: number) {
   py += vy * dt * 26
   trail.push({ x: px, y: py })
   if (trail.length > 240) trail.shift()
-  if (px < 40 || px > W - 40 || py < 96 || py > H - 20) reset()   // y≥96 不穿文字区
+  if (px < 40 || px > W - 40 || py < 92 || py > H - 20) reset()   // 轨迹不穿顶部白条区
   draw()
   raf = requestAnimationFrame(frame)
 }
@@ -43,20 +43,8 @@ function draw() {
   ctx.clearRect(0, 0, W, H)
   ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, W, H)
 
-  // ===== 顶部信息区（y<90） =====
-  ctx.fillStyle = '#334155'
-  ctx.font = '13px system-ui'
-  ctx.textAlign = 'left'
-  ctx.fillText(`粒子速度 v=${speed.value.toFixed(1)}  电荷：${charge.value > 0 ? '正 (+)' : '负 (−)'}`, 16, 24)
-  ctx.fillStyle = '#7c3aed'
-  ctx.font = 'bold 14px system-ui'
-  ctx.fillText('洛伦兹力 F = qvB 始终垂直于速度 → 粒子做圆周运动', 16, 46)
-  ctx.fillStyle = '#64748b'
-  ctx.font = '13px system-ui'
-  ctx.fillText('F 只改变方向不做功，速度大小不变；电荷正负偏转方向相反', 16, 68)
-
-  // ===== 磁场区域（y≥90，浅灰底 + ⊗ 符号） =====
-  const fieldTop = 90, fieldBottom = 300
+  // ===== 磁场区域（y≥88，浅灰底 + ⊗ 符号） =====
+  const fieldTop = 88, fieldBottom = 300
   ctx.fillStyle = '#f1f5f9'
   ctx.fillRect(50, fieldTop, 460, fieldBottom - fieldTop)
   ctx.strokeStyle = '#cbd5e1'
@@ -73,7 +61,7 @@ function draw() {
   }
   ctx.fillStyle = '#64748b'
   ctx.font = 'bold 12px system-ui'
-  ctx.fillText('磁场区域（B ⊗ 垂直纸面向里）', W / 2, fieldTop - 12)
+  ctx.fillText('磁场区域（B ⊗ 垂直纸面向里）', W / 2, fieldTop + 16)
 
   // 轨迹
   if (trail.length > 1) {
@@ -99,6 +87,26 @@ function draw() {
   ctx.font = '11px system-ui'
   ctx.textAlign = 'left'
   ctx.fillText('粒子从左向右射入 ↓', 60, fieldBottom + 16)
+
+  // ===== 顶部信息区（白条盖住越界图形，文字最后画） =====
+  ctx.fillStyle = '#f8fafc'
+  ctx.fillRect(0, 0, W, 80)
+  ctx.strokeStyle = '#e2e8f0'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(0, 80)
+  ctx.lineTo(W, 80)
+  ctx.stroke()
+  ctx.fillStyle = '#334155'
+  ctx.font = '13px system-ui'
+  ctx.textAlign = 'left'
+  ctx.fillText(`粒子速度 v=${speed.value.toFixed(1)}  电荷：${charge.value > 0 ? '正 (+)' : '负 (−)'}`, 16, 24)
+  ctx.fillStyle = '#7c3aed'
+  ctx.font = 'bold 14px system-ui'
+  ctx.fillText('洛伦兹力 F = qvB 始终垂直于速度 → 粒子做圆周运动', 16, 46)
+  ctx.fillStyle = '#64748b'
+  ctx.font = '13px system-ui'
+  ctx.fillText('F 只改变方向不做功，速度大小不变；电荷正负偏转方向相反', 16, 68)
 }
 
 function reset() {

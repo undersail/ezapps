@@ -97,6 +97,15 @@ function draw() {
   // 读数
   ctx.font = '13px system-ui'
   ctx.fillStyle = '#334155'
+  // ===== 顶部信息区（白条盖住越界图形，文字专属区） =====
+  ctx.fillStyle = '#f8fafc'
+  ctx.fillRect(0, 0, W, 80)
+  ctx.strokeStyle = '#e2e8f0'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(0, 80)
+  ctx.lineTo(W, 80)
+  ctx.stroke()
   ctx.textAlign = 'left'
   ctx.fillText(`左力矩 = ${F1.value} × ${d1.value} = ${F1.value * d1.value}`, 16, 24)
   ctx.fillText(`右力矩 = ${F2.value} × ${d2.value} = ${F2.value * d2.value}`, 16, 44)
