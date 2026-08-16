@@ -10,14 +10,24 @@ interface ExperimentCard {
 }
 
 const experiments: ExperimentCard[] = [
-  { id: 'pendulum',  icon: '⏱️', title: '单摆',     desc: '长度、角度、阻尼对周期的影响',     accent: '#a855f7' },
-  { id: 'gravity',   icon: '🪐', title: '引力奇点', desc: '模拟引力源，观察轨道如何扭曲',     accent: '#3b82f6' },
-  { id: 'light',     icon: '🔆', title: '光学折射', desc: '光从空气进入水的角度变化',         accent: '#f59e0b' },
-  { id: 'circuit',   icon: '🔋', title: '电路',     desc: '搭一个闭合回路，看电流怎么流',     accent: '#10b981' },
-  { id: 'wave',      icon: '🌊', title: '波叠加',   desc: '两列波相遇会发生什么',             accent: '#06b6d4' },
-  { id: 'magnet',    icon: '🧲', title: '磁场',     desc: '磁感线随手画',                     accent: '#ef4444', badge: 'NEW' },
-  { id: 'spring',    icon: '🌀', title: '弹簧振子', desc: '虎克定律的可视化探索',             accent: '#14b8a6' },
-  { id: 'friction',  icon: '🛷', title: '摩擦力',   desc: '摩擦系数与初速度如何决定滑行距离', accent: '#0ea5e9' },
+  // ===== 初中物理 =====
+  { id: 'lever',      icon: '⚖️', title: '杠杆与滑轮', desc: '力臂、省力杠杆与滑轮组（初中·简单机械）', accent: '#10b981', badge: '初中' },
+  { id: 'buoyancy',   icon: '🛶', title: '浮力',       desc: '阿基米德原理：排开液体越多浮力越大（初中）', accent: '#0ea5e9', badge: '初中' },
+  { id: 'pressure',   icon: '🫗', title: '压强',       desc: '固体压强与液体压强：面积越小压得越疼（初中）', accent: '#f59e0b', badge: '初中' },
+  { id: 'circuit',    icon: '🔋', title: '电路',       desc: '串联并联与欧姆定律：电压电流电阻的关系（初中）', accent: '#10b981', badge: '初中' },
+  { id: 'lens',       icon: '🔭', title: '凸透镜',     desc: '成像规律：物距变化像怎么变（初中·光学）', accent: '#f59e0b', badge: '初中' },
+  { id: 'state',      icon: '🌡️', title: '物态变化',   desc: '熔化凝固汽化液化：水在三态间穿梭（初中·热学）', accent: '#06b6d4', badge: '初中' },
+  { id: 'magnet',     icon: '🧲', title: '磁场与电磁铁', desc: '磁感线与通电螺线管：电磁铁为什么能吸铁（初中）', accent: '#ef4444', badge: '初中' },
+  { id: 'friction',   icon: '🛷', title: '摩擦力',     desc: '压力与粗糙程度决定滑动摩擦（初中·力学）', accent: '#0ea5e9', badge: '初中' },
+  // ===== 高中物理 =====
+  { id: 'pendulum',   icon: '⏱️', title: '单摆',       desc: '周期只与摆长有关：简谐运动的节奏（高中）', accent: '#a855f7', badge: '高中' },
+  { id: 'gravity',    icon: '🪐', title: '引力与轨道',  desc: '万有引力：卫星为什么不会掉下来（高中）', accent: '#3b82f6', badge: '高中' },
+  { id: 'projectile', icon: '🎯', title: '平抛运动',    desc: '水平速度与重力叠加的抛物线轨迹（高中）', accent: '#14b8a6', badge: '高中' },
+  { id: 'momentum',   icon: '💥', title: '动量碰撞',    desc: '碰撞前后总动量守恒（高中·动量）', accent: '#ef4444', badge: '高中' },
+  { id: 'energy',     icon: '⚡', title: '机械能',      desc: '动能与势能转化：过山车的能量守恒（高中）', accent: '#f59e0b', badge: '高中' },
+  { id: 'wave',       icon: '🌊', title: '波的叠加',    desc: '两列波相遇：干涉与衍射（高中·波动）', accent: '#06b6d4', badge: '高中' },
+  { id: 'light',      icon: '🔆', title: '折射与全反射', desc: '光速改变光线拐弯：从空气到水到全反射（高中）', accent: '#f59e0b', badge: '高中' },
+  { id: 'field',      icon: '🌀', title: '电场与磁场',  desc: '电场线与洛伦兹力：带电粒子的偏转（高中）', accent: '#3b82f6', badge: '高中' },
 ]
 </script>
 
@@ -32,9 +42,28 @@ const experiments: ExperimentCard[] = [
       </p>
     </header>
 
+    <h2 class="group-title">🧒 初中物理</h2>
     <section class="grid">
       <a
-        v-for="e in experiments"
+        v-for="e in experiments.filter(x => x.badge === '初中')"
+        :key="e.id"
+        :href="`#${e.id}`"
+        class="card"
+        :style="{ '--accent': e.accent }"
+        @click.prevent
+      >
+        <div v-if="e.badge" class="card__badge">{{ e.badge }}</div>
+        <div class="card__icon">{{ e.icon }}</div>
+        <h3>{{ e.title }}</h3>
+        <p>{{ e.desc }}</p>
+        <span class="card__cta">▶ 查看演示</span>
+      </a>
+    </section>
+
+    <h2 class="group-title">🎓 高中物理</h2>
+    <section class="grid">
+      <a
+        v-for="e in experiments.filter(x => x.badge === '高中')"
         :key="e.id"
         :href="`#${e.id}`"
         class="card"
@@ -67,18 +96,43 @@ const experiments: ExperimentCard[] = [
 .badge {
   display: inline-block;
   font-size: 0.75rem;
-  background: #06b6d4;
+  background: linear-gradient(135deg, #22d3ee, #0891b2);
   color: white;
   padding: 4px 12px;
   border-radius: 999px;
   letter-spacing: 0.1em;
   margin-bottom: 1rem;
+  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
 }
-.hero h1 { font-size: 2.75rem; margin: 0 0 0.5rem; letter-spacing: -0.03em; }
+.hero h1 {
+  font-size: 2.8rem;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  background: linear-gradient(135deg, #155e75, #0891b2);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 .tag { font-size: 1.05rem; color: #0891b2; margin: 0 0 1.25rem; font-weight: 500; }
 .intro { color: #475569; max-width: 580px; margin: 0 auto; line-height: 1.7; }
 .intro strong { color: #0f172a; }
 
+.group-title {
+  margin: 2.5rem 0 1rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.group-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));

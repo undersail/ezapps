@@ -8,7 +8,9 @@
         <div class="lobby">
           <!-- 顶部：标题 + 故事 -->
           <div class="lobby-header">
+            <div class="lobby-badge">BETA · Funphy Adventure</div>
             <h1 class="lobby-title">✈️ 飞飞历险记</h1>
+            <p class="lobby-tag">物理趣味跑酷 · 速度惯性阻力一学就会</p>
             <p class="lobby-story">驾驶全能飞船，从海洋出发，穿越大陆与天空，冲向广袤宇宙！</p>
           </div>
 
@@ -878,7 +880,28 @@ canvas {
   padding: 24px 8px 18px;
 }
 .lobby-header { text-align: center; }
-.lobby-title { margin: 0 0 8px; font-size: 2.2rem; letter-spacing: 2px; }
+.lobby-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 999px;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.35);
+}
+.lobby-tag { margin: 0 0 6px; color: #c084fc; font-size: 1rem; font-weight: 500; }
+.lobby-title {
+  margin: 0 0 8px;
+  font-size: 2.8rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #e9d5ff, #a855f7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 .lobby-story { margin: 0; color: rgba(255,255,255,0.75); font-size: 0.95rem; line-height: 1.6; }
 .lobby-main {
   background: rgba(10, 20, 35, 0.6);
