@@ -17,6 +17,15 @@ import Lever from './components/demo/Lever.vue'
 import Lens from './components/demo/Lens.vue'
 import Momentum from './components/demo/Momentum.vue'
 import Pulley from './components/demo/Pulley.vue'
+import Buoyancy from './components/demo/Buoyancy.vue'
+import Pressure from './components/demo/Pressure.vue'
+import Circuit from './components/demo/Circuit.vue'
+import StateChange from './components/demo/StateChange.vue'
+import Magnet from './components/demo/Magnet.vue'
+import Friction from './components/demo/Friction.vue'
+import Orbit from './components/demo/Orbit.vue'
+import Energy from './components/demo/Energy.vue'
+import Field from './components/demo/Field.vue'
 
 const selectedDemo = ref<string | null>(null)
 
@@ -27,6 +36,15 @@ const DEMO_MAP: Record<string, { title: string; component: any }> = {
   wave: { title: '波的叠加 · 干涉', component: WaveSuperposition },
   lever: { title: '杠杆 · 力矩平衡', component: Lever },
   pulley: { title: '滑轮 · 定滑轮与动滑轮', component: Pulley },
+  buoyancy: { title: '浮力 · 阿基米德原理', component: Buoyancy },
+  pressure: { title: '压强 · 面积越小越疼', component: Pressure },
+  circuit: { title: '电路 · 欧姆定律', component: Circuit },
+  state: { title: '物态变化 · 分子运动', component: StateChange },
+  magnet: { title: '磁场与电磁铁', component: Magnet },
+  friction: { title: '摩擦力 · μN', component: Friction },
+  gravity: { title: '引力与轨道', component: Orbit },
+  energy: { title: '机械能 · 能量守恒', component: Energy },
+  field: { title: '电场与磁场 · 洛伦兹力', component: Field },
   lens: { title: '凸透镜 · 成像规律', component: Lens },
   momentum: { title: '动量碰撞 · 动量守恒', component: Momentum },
 }

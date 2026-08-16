@@ -64,14 +64,16 @@ function draw() {
   ctx.fillText('F', fLeft - 8, axisY - 10)
   ctx.fillText('F', fRight + 4, axisY - 10)
 
-  // 透镜（双凸：左弧凸向左 + 右弧凸向右）
+  // 透镜（双凸：两段弧线拼接，弧在上下端相接）
   ctx.strokeStyle = '#6366f1'
   ctx.lineWidth = 3
   ctx.beginPath()
-  ctx.arc(lensX - 14, axisY, 34, Math.PI / 2, -Math.PI / 2)   // 顺时针经 180° → 左半圆，凸向左
-  ctx.stroke()
-  ctx.beginPath()
-  ctx.arc(lensX + 14, axisY, 34, -Math.PI / 2, Math.PI / 2)   // 顺时针经 0° → 右半圆，凸向右
+  // 左弧：从左上到左下，控制点向左凸出
+  ctx.moveTo(lensX - 16, axisY - 26)
+  ctx.quadraticCurveTo(lensX - 44, axisY, lensX - 16, axisY + 26)
+  // 右弧：从右下到右上，控制点向右凸出（两弧在上下端拼接）
+  ctx.quadraticCurveTo(lensX + 44, axisY, lensX + 16, axisY - 26)
+  ctx.closePath()
   ctx.stroke()
 
   // 物体（左侧，箭头朝上）
