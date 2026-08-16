@@ -26,6 +26,8 @@ import Friction from './components/demo/Friction.vue'
 import Orbit from './components/demo/Orbit.vue'
 import Energy from './components/demo/Energy.vue'
 import Field from './components/demo/Field.vue'
+import Refraction from './components/demo/Refraction.vue'
+import TotalReflection from './components/demo/TotalReflection.vue'
 
 const selectedDemo = ref<string | null>(null)
 
@@ -45,6 +47,8 @@ const DEMO_MAP: Record<string, { title: string; component: any }> = {
   gravity: { title: '引力与轨道', component: Orbit },
   energy: { title: '机械能 · 能量守恒', component: Energy },
   field: { title: '电场与磁场 · 洛伦兹力', component: Field },
+  refraction: { title: '光的折射 · 斯涅尔定律', component: Refraction },
+  reflection: { title: '全反射 · 临界角', component: TotalReflection },
   lens: { title: '凸透镜 · 成像规律', component: Lens },
   momentum: { title: '动量碰撞 · 动量守恒', component: Momentum },
 }
@@ -67,7 +71,8 @@ const experiments: ExperimentCard[] = [
   { id: 'momentum',   icon: '💥', title: '动量碰撞',    desc: '碰撞前后总动量守恒（高中·动量）', accent: '#ef4444', badge: '高中' },
   { id: 'energy',     icon: '⚡', title: '机械能',      desc: '动能与势能转化：过山车的能量守恒（高中）', accent: '#f59e0b', badge: '高中' },
   { id: 'wave',       icon: '🌊', title: '波的叠加',    desc: '两列波相遇：干涉与衍射（高中·波动）', accent: '#06b6d4', badge: '高中' },
-  { id: 'light',      icon: '🔆', title: '折射与全反射', desc: '光速改变光线拐弯：从空气到水到全反射（高中）', accent: '#f59e0b', badge: '高中' },
+  { id: 'refraction', icon: '🔆', title: '光的折射',   desc: '斯涅尔定律：光进入水向法线靠拢（高中·光学）', accent: '#f59e0b', badge: '高中' },
+  { id: 'reflection', icon: '✨', title: '全反射',     desc: '入射角超临界角，光全部弹回（高中·光学）', accent: '#f59e0b', badge: '高中' },
   { id: 'field',      icon: '🌀', title: '电场与磁场',  desc: '电场线与洛伦兹力：带电粒子的偏转（高中）', accent: '#3b82f6', badge: '高中' },
 ]
 </script>

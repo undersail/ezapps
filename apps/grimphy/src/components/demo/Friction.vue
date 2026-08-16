@@ -8,7 +8,8 @@ const press = ref(5)        // 压力 N
 const pull = ref(3)         // 拉力
 
 const W = 560, H = 320
-const friction = computed(() => roughness.value * press.value)   // 最大静摩擦≈滑动摩擦
+const friction = computed(() => roughness.value * press.value)   // 最大摩擦力 μN
+const showFriction = computed(() => Math.min(pull.value, friction.value))  // 未动时静摩擦=拉力
 
 function draw() {
   const canvas = canvasRef.value
@@ -62,33 +63,34 @@ function draw() {
   ctx.font = 'bold 12px system-ui'
   ctx.fillText('F=' + pull.value, ox + 28 + pullDir * 70, y - 30)
 
-  // 摩擦力箭头（左）
+  // 摩擦力箭头（左，长度=当前实际摩擦力）
+  const fLen = Math.min(showFriction.value, pull.value) * 12
   ctx.strokeStyle = '#dc2626'
   ctx.lineWidth = 3
   ctx.beginPath()
   ctx.moveTo(ox + 28 - 30, y - 8)
-  ctx.lineTo(ox + 28 - 30 - Math.min(friction.value, pull.value) * 12, y - 8)
+  ctx.lineTo(ox + 28 - 30 - fLen, y - 8)
   ctx.stroke()
   ctx.beginPath()
-  ctx.moveTo(ox + 28 - 30 - Math.min(friction.value, pull.value) * 12, y - 8)
-  ctx.lineTo(ox + 28 - 30 - Math.min(friction.value, pull.value) * 12 + 8, y - 15)
-  ctx.moveTo(ox + 28 - 30 - Math.min(friction.value, pull.value) * 12, y - 8)
-  ctx.lineTo(ox + 28 - 30 - Math.min(friction.value, pull.value) * 12 + 8, y - 1)
+  ctx.moveTo(ox + 28 - 30 - fLen, y - 8)
+  ctx.lineTo(ox + 28 - 30 - fLen + 8, y - 15)
+  ctx.moveTo(ox + 28 - 30 - fLen, y - 8)
+  ctx.lineTo(ox + 28 - 30 - fLen + 8, y - 1)
   ctx.stroke()
   ctx.fillStyle = '#dc2626'
-  ctx.fillText('f=' + friction.value.toFixed(1), ox + 28 - 60, y + 26)
+  ctx.fillText('f=' + showFriction.value.toFixed(1), ox + 28 - 60, y + 26)
 
   // 数据
   ctx.textAlign = 'left'
   ctx.fillStyle = '#334155'
   ctx.font = '13px system-ui'
   ctx.fillText(`摩擦系数 μ=${roughness.value.toFixed(1)}  压力 N=${press.value}`, 16, 26)
-  ctx.fillText(`滑动摩擦力 f = μN = ${friction.value.toFixed(1)}`, 16, 46)
+  ctx.fillText(`最大摩擦力 f = μN = ${friction.value.toFixed(1)}（未动时静摩擦=拉力）`, 16, 46)
   ctx.fillStyle = moving ? '#059669' : pull.value > friction.value ? '#dc2626' : '#64748b'
   ctx.font = 'bold 13px system-ui'
   ctx.fillText(
-    moving ? '木块被拉动 ✓（拉力大于摩擦力）' :
-    pull.value > friction.value ? '刚开始动！' : '拉力小于摩擦力，木块不动', 16, 66)
+    moving ? '木块被拉动 ✓（拉力大于最大摩擦力）' :
+    pull.value > friction.value ? '刚开始动！' : `静摩擦 = 拉力 = ${pull.value.toFixed(1)}，木块不动`, 16, 66)
 }
 
 watch([roughness, press, pull], draw)

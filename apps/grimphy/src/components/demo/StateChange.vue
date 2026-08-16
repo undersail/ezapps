@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // 物态变化演示：温度滑块 → 冰（固态）/水（液态）/汽（气态）分子运动
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const temp = ref(0)   // 温度 ℃
@@ -92,8 +92,18 @@ function draw() {
   ctx.fillText('温度越高，分子运动越剧烈 —— 这就是“热”的本质', 16, 68)
 }
 
+let raf = 0
+let last = 0
+function frame(now: number) {
+  const dt = Math.min((now - last) / 1000, 0.05)
+  last = now
+  void dt
+  draw()
+  raf = requestAnimationFrame(frame)
+}
 watch([temp], draw)
-onMounted(draw)
+onMounted(() => { last = performance.now(); raf = requestAnimationFrame(frame) })
+onBeforeUnmount(() => cancelAnimationFrame(raf))
 </script>
 
 <template>
