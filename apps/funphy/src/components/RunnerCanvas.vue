@@ -58,7 +58,6 @@
             </div>
             <button class="cardbook-btn" @click="openCardbook">📚 物理卡册 {{ ownedCards }}/{{ physicsCards.length }}</button>
             <button class="cardbook-btn" @click="openDaily">📅 每日挑战</button>
-            <a class="home-link" href="/">🏠 返回 ezapps 主页</a>
           </div>
 
           <!-- 排行榜（直接显示，默认今日榜） -->
@@ -86,6 +85,11 @@
           </div>
         </div>
       </div>
+
+      <!-- 页面底部：返回主页 -->
+      <footer class="lobby-foot-page" v-if="gameState === 'menu'">
+        <a class="home-link" href="/">🏠 返回 ezapps 主页</a>
+      </footer>
 
       <!-- HUD 顶部：三栏卡片布局 -->
       <div class="runner-hud" v-if="gameState === 'playing' || gameState === 'paused' || gameState === 'won' || gameState === 'lost'">
@@ -876,6 +880,20 @@ canvas {
   border: 1px solid rgba(148, 163, 184, 0.15);
   border-radius: 16px;
   padding: 14px 16px 18px;
+}
+.lobby-foot-page {
+  margin-top: 26px;
+  padding: 14px 0 30px;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+}
+.lobby-foot-page .home-link {
+  display: block;
+  text-align: center;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 0.82rem;
 }
 .home-link {
   display: block;

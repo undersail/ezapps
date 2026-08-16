@@ -978,7 +978,7 @@ onErrorCaptured((err) => {
 /* 排行榜内嵌卡片 */
 .rank-box {
   margin: 18px auto 0;
-  max-width: 480px;
+  max-width: 560px;
   padding: 14px 16px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
@@ -1101,4 +1101,31 @@ onErrorCaptured((err) => {
 .rank-dev { color: rgba(148,163,184,0.6); font-size: 0.72rem; margin-left: 3px; }
 .rank-score { color: #fbbf24; font-weight: bold; }
 .rank-empty { text-align: center; color: rgba(255,255,255,0.45); padding: 20px 0; font-size: 0.85rem; }
+/* 排行榜浅色主题覆盖（置于弹窗旧样式之后，确保生效） */
+.rank-box .rank-tab {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  color: #64748b;
+}
+.rank-box .rank-tab:hover { border-color: #10b981; }
+.rank-box .rank-tab.on { background: #10b981; border-color: #10b981; color: #fff; }
+.rank-box .rank-nick input {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+.rank-box .rank-nick input::placeholder { color: #94a3b8; }
+.rank-box .rank-save { background: #10b981; color: #fff; }
+.rank-box .rank-list { max-height: 280px; overflow-y: auto; }
+.rank-box .rank-row { background: #fff; color: #1e293b; }
+.rank-box .rank-row:nth-child(odd) { background: #f1f5f9; }
+.rank-box .rank-no { color: #94a3b8; }
+.rank-box .rank-row:nth-child(1) .rank-no { color: #f59e0b; }
+.rank-box .rank-row:nth-child(2) .rank-no { color: #94a3b8; }
+.rank-box .rank-row:nth-child(3) .rank-no { color: #d97706; }
+.rank-box .rank-player { color: #1e293b; }
+.rank-box .rank-score { color: #475569; }
+.rank-box .rank-dev { color: #94a3b8; }
+.rank-box .rank-empty { color: #64748b; }
 </style>
