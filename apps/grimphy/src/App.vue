@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 try { fetch('https://api.ezapps.cc/api/stats/hit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app: 'grimphy' }) }).catch(() => {}) } catch { /* 忽略 */ }
 interface ExperimentCard {
   id: string
@@ -7,6 +8,19 @@ interface ExperimentCard {
   desc: string
   accent: string
   badge?: string
+}
+
+import SinglePendulum from './components/demo/SinglePendulum.vue'
+import Projectile from './components/demo/Projectile.vue'
+import WaveSuperposition from './components/demo/WaveSuperposition.vue'
+
+const selectedDemo = ref<string | null>(null)
+
+/** 已实现演示的实验 id → 组件 */
+const DEMO_MAP: Record<string, { title: string; component: any }> = {
+  pendulum: { title: '单摆 · 简谐运动', component: SinglePendulum },
+  projectile: { title: '平抛运动 · 抛物线轨迹', component: Projectile },
+  wave: { title: '波的叠加 · 干涉', component: WaveSuperposition },
 }
 
 const experiments: ExperimentCard[] = [
@@ -50,7 +64,7 @@ const experiments: ExperimentCard[] = [
         :href="`#${e.id}`"
         class="card"
         :style="{ '--accent': e.accent }"
-        @click.prevent
+        @click="DEMO_MAP[e.id] && (selectedDemo = e.id)"
       >
         <div v-if="e.badge" class="card__badge">{{ e.badge }}</div>
         <div class="card__icon">{{ e.icon }}</div>
@@ -68,7 +82,7 @@ const experiments: ExperimentCard[] = [
         :href="`#${e.id}`"
         class="card"
         :style="{ '--accent': e.accent }"
-        @click.prevent
+        @click="DEMO_MAP[e.id] && (selectedDemo = e.id)"
       >
         <div v-if="e.badge" class="card__badge">{{ e.badge }}</div>
         <div class="card__icon">{{ e.icon }}</div>
@@ -77,6 +91,15 @@ const experiments: ExperimentCard[] = [
         <span class="card__cta">▶ 查看演示</span>
       </a>
     </section>
+
+    <!-- 实验演示弹窗 -->
+    <div v-if="selectedDemo" class="demo-overlay" @click.self="selectedDemo = null">
+      <div class="demo-card">
+        <button class="demo-close" @click="selectedDemo = null" aria-label="关闭">✕</button>
+        <h3>{{ DEMO_MAP[selectedDemo]?.title }}</h3>
+        <component :is="DEMO_MAP[selectedDemo]?.component" />
+      </div>
+    </div>
 
     <footer class="foot">
       <a href="/">← 返回 EZAPPS 主页</a>
@@ -194,4 +217,78 @@ const experiments: ExperimentCard[] = [
 
 .foot { margin-top: 3rem; text-align: center; }
 .foot a { color: #0891b2; text-decoration: none; font-weight: 500; }
+/* ===== 实验演示弹窗 ===== */
+.demo-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  padding: 20px;
+}
+.demo-card {
+  position: relative;
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px 28px 28px;
+  width: min(620px, 96vw);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+.demo-card h3 {
+  margin: 0 0 16px;
+  font-size: 1.15rem;
+  color: #0f172a;
+  text-align: center;
+}
+.demo-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: rgba(0, 0, 0, 0.08);
+  border: none;
+  color: #475569;
+  font-size: 0.9rem;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  line-height: 1;
+}
+.demo-close:hover { background: rgba(0, 0, 0, 0.16); }
+.demo__canvas {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.demo__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  margin-top: 14px;
+}
+.demo__ctl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #475569;
+  white-space: nowrap;
+}
+.demo__ctl input[type='range'] { width: 130px; accent-color: #6366f1; }
+.demo__ctl--inline input[type='range'] { width: 90px; }
+.demo__btn {
+  background: #6366f1;
+  border: none;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.demo__btn:hover { background: #4f46e5; }
 </style>
