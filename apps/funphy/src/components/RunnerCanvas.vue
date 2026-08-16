@@ -962,7 +962,7 @@ canvas {
 .cardbook-btn:hover { border-color: rgba(125, 211, 252, 0.4); color: #fff; }
 
 /* 物理卡册弹窗 */
-.cardbook-card { max-width: 560px; max-height: 84dvh; overflow-y: auto; text-align: center; }
+.cardbook-card { max-width: min(880px, 92vw); max-height: 84dvh; overflow-y: auto; text-align: center; }
 .cardbook-hint { margin: 0 0 12px; color: rgba(255,255,255,0.55); font-size: 0.8rem; }
 .cardbook-grid {
   display: grid;

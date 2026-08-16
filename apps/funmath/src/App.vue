@@ -987,18 +987,19 @@ onErrorCaptured((err) => {
   max-width: 560px;
   margin: 0 auto 1.5rem;
   padding: 14px 18px;
-  border-radius: 14px;
-  border: 2px solid #f59e0b;
-  background: linear-gradient(135deg, #fffbeb, #fff7ed);
+  border-radius: 16px;
+  border: 2px solid #e2e8f0;
+  background: #fff;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s;
 }
-.daily-bar:hover { border-color: #fbbf24; background: #fffbeb; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.18); }
+.daily-bar:hover { border-color: #f59e0b; background: #fffbeb; }
 .daily-bar__emoji { font-size: 1.4rem; flex: none; }
-.daily-bar__text { font-size: 1.02rem; font-weight: 700; color: #b45309; flex: none; }
-.daily-bar__sub { flex: 1; font-size: 0.82rem; color: #92400e; }
-.daily-bar__arrow { font-size: 1.3rem; color: #f59e0b; flex: none; }
+.daily-bar__text { font-size: 1.02rem; font-weight: 700; color: #0f172a; flex: none; }
+.daily-bar__sub { flex: 1; font-size: 0.82rem; color: #64748b; }
+.daily-bar__arrow { font-size: 1.3rem; color: #94a3b8; flex: none; }
+.daily-bar:hover .daily-bar__arrow { color: #f59e0b; }
 
 /* 排行榜内嵌卡片 */
 .rank-box {

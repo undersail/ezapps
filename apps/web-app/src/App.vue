@@ -123,6 +123,15 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
         EZAPPS · {{ new Date().getFullYear() }} · by
         <a href="https://github.com/undersail">@undersail</a>
       </p>
+
+      <div class="foot__wechat" aria-label="科普狮公众号">
+        <img src="/kepushi-qrcode.jpg" alt="科普狮公众号二维码" class="foot__wechat-qr" />
+        <div class="foot__wechat-info">
+          <b>科普狮</b>
+          <span>码农视角看世界 · IDEA &amp; TECH</span>
+          <span class="foot__wechat-id">公众号 ID：scilion</span>
+        </div>
+      </div>
       <p class="foot__small">
         添加新应用？只需在 <code>apps/&lt;name&gt;</code> 新建子项目并加一行 <code>apps.config.ts</code>。
       </p>
@@ -255,6 +264,40 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
   .foot__stats-total {
     padding-right: 0.9rem;
   }
+}
+.foot__wechat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 0 auto 1.5rem;
+  padding: 0.9rem 1.4rem;
+  max-width: 420px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+.foot__wechat-qr {
+  width: 76px;
+  height: 76px;
+  border-radius: 8px;
+  flex: none;
+}
+.foot__wechat-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  font-size: 0.85rem;
+  color: #475569;
+}
+.foot__wechat-info b {
+  font-size: 1rem;
+  color: #0f172a;
+}
+.foot__wechat-id {
+  font-size: 0.75rem;
+  color: #94a3b8;
 }
 .foot__copy {
   margin: 0 0 0.5rem;
