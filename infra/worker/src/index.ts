@@ -55,6 +55,26 @@ async function handleRequest(request: Request): Promise<Response> {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers })
 
   try {
+    // ===== 访问统计：打点 =====
+    if (url.pathname === '/api/stats/hit' && request.method === 'POST') {
+      const body = await request.json() as any
+      const key = String(body.app || 'home').replace(/[^a-z0-9_-]/gi, '')
+      const raw = await RANK.get(`stats:${key}`)
+      const n = (parseInt(raw || '0', 10) || 0) + 1
+      await RANK.put(`stats:${key}`, String(n), { expirationTtl: 86400 * 400 })
+      return new Response(JSON.stringify({ ok: true, count: n }), { status: 200, headers })
+    }
+
+    // ===== 访问统计：查询 =====
+    if (url.pathname === '/api/stats' && request.method === 'GET') {
+      const out: Record<string, number> = {}
+      for (const k of ['home', 'funphy', 'funmath', 'ezchess', 'grimphy']) {
+        const raw = await RANK.get(`stats:${k}`)
+        out[k] = parseInt(raw || '0', 10) || 0
+      }
+      return new Response(JSON.stringify(out), { status: 200, headers })
+    }
+
     // ===== 排行榜 TOP =====
     if (url.pathname === '/api/rank/top' && request.method === 'GET') {
       const app = url.searchParams.get('app') || ''

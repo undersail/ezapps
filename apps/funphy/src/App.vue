@@ -1,4 +1,5 @@
 <script setup lang="ts">
+try { fetch('https://api.ezapps.cc/api/stats/hit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app: 'funphy' }) }).catch(() => {}) } catch { /* 忽略 */ }
 // V2-1 临时入口：直接进入跑酷测试关（V2-5 将替换为正式大厅页）
 import RunnerCanvas from './components/RunnerCanvas.vue'
 </script>

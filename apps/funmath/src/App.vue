@@ -1,4 +1,5 @@
 <script setup lang="ts">
+try { fetch('https://api.ezapps.cc/api/stats/hit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app: 'funmath' }) }).catch(() => {}) } catch { /* 忽略 */ }
 import { ref, computed, watch, onErrorCaptured } from 'vue'
 import MapView from './pages/MapView.vue'
 import LevelPlay from './pages/LevelPlay.vue'

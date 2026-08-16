@@ -1,4 +1,5 @@
 <script setup lang="ts">
+try { fetch('https://api.ezapps.cc/api/stats/hit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app: 'grimphy' }) }).catch(() => {}) } catch { /* 忽略 */ }
 interface ExperimentCard {
   id: string
   icon: string

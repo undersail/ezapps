@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { apps, type AppEntry } from './apps.config'
 import AppCard from './components/AppCard.vue'
 import Hero from './components/Hero.vue'
@@ -7,6 +7,26 @@ import { usePinnedApps } from './composables/usePinnedApps'
 
 const { sortedIds, isPinned, togglePin, MAX } = usePinnedApps()
 const buildTime = new Date().toISOString()
+
+// ===== 访问统计（页脚） =====
+const API_BASE = 'https://api.ezapps.cc'
+const stats = ref<Record<string, number>>({})
+const statsLoaded = ref(false)
+const appMeta: Record<string, { emoji: string; name: string }> = {
+  funphy: { emoji: '🚀', name: '飞飞历险记' },
+  funmath: { emoji: '🧮', name: '曼曼闯天涯' },
+  ezchess: { emoji: '♟', name: 'EZChess 棋类' },
+  grimphy: { emoji: '👾', name: 'GrimPhy' },
+}
+const fmt = (n: number) => (n >= 10000 ? (n / 10000).toFixed(1) + 'w' : n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n))
+onMounted(async () => {
+  // 主页访问打点 + 拉取统计
+  try { fetch(`${API_BASE}/api/stats/hit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app: 'home' }) }).catch(() => {}) } catch { /* 忽略 */ }
+  try {
+    const res = await fetch(`${API_BASE}/api/stats`)
+    if (res.ok) { stats.value = await res.json(); statsLoaded.value = true }
+  } catch { /* 统计不可用则不显示 */ }
+})
 
 /** 按置顶时间倒序的 app（最多 MAX 个） */
 const pinnedApps = computed<AppEntry[]>(() => {
@@ -85,6 +105,20 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
     </section>
 
     <footer class="foot">
+      <div v-if="statsLoaded" class="foot__stats" aria-label="访问统计">
+        <div class="foot__stats-total">
+          <span class="foot__stats-icon">👀</span>
+          <span class="foot__stats-label">总访问</span>
+          <b>{{ fmt(stats.home) }}</b>
+        </div>
+        <span class="foot__stats-sep"></span>
+        <div v-for="(meta, id) in appMeta" :key="id" class="foot__stats-item">
+          <span class="foot__stats-icon">{{ meta.emoji }}</span>
+          <span class="foot__stats-label">{{ meta.name }}</span>
+          <b>{{ fmt(stats[id] || 0) }}</b>
+        </div>
+      </div>
+
       <p class="foot__copy">
         EZAPPS · {{ new Date().getFullYear() }} · by
         <a href="https://github.com/undersail">@undersail</a>
@@ -167,6 +201,60 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
   text-align: center;
   color: #94a3b8;
   font-size: 0.9rem;
+}
+.foot__stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 1.25rem;
+  margin-bottom: 1.5rem;
+  padding: 0.8rem 1.25rem;
+  background: linear-gradient(135deg, #f8fafc, #eef2ff);
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  font-size: 0.85rem;
+  color: #475569;
+}
+.foot__stats-total {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding-right: 1.25rem;
+  border-right: 1px dashed #cbd5e1;
+  font-weight: 600;
+}
+.foot__stats-total b {
+  font-size: 1.05rem;
+  color: #4f46e5;
+  font-variant-numeric: tabular-nums;
+}
+.foot__stats-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.foot__stats-icon {
+  font-size: 0.95rem;
+}
+.foot__stats-label {
+  color: #64748b;
+}
+.foot__stats-item b {
+  color: #1e293b;
+  font-variant-numeric: tabular-nums;
+}
+.foot__stats-sep {
+  display: none;
+}
+@media (max-width: 560px) {
+  .foot__stats {
+    gap: 0.4rem 0.9rem;
+    font-size: 0.78rem;
+  }
+  .foot__stats-total {
+    padding-right: 0.9rem;
+  }
 }
 .foot__copy {
   margin: 0 0 0.5rem;

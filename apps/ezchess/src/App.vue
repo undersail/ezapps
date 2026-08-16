@@ -1,4 +1,5 @@
 <script setup lang="ts">
+try { fetch('https://api.ezapps.cc/api/stats/hit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app: 'ezchess' }) }).catch(() => {}) } catch { /* 忽略 */ }
 // EZChess · 经典棋类对战（M1 五子棋 MVP）
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import * as Net from './network/api'
