@@ -12,7 +12,8 @@ const tilt = computed(() => {
   const t1 = F1.value * d1.value
   const t2 = F2.value * d2.value
   const max = Math.max(t1, t2, 1)
-  return Math.max(-14, Math.min(14, ((t1 - t2) / max) * 14))
+  // 左力矩大 → 左端下沉 → 逆时针（负角度）
+  return Math.max(-16, Math.min(16, -((t1 - t2) / max) * 16))
 })
 const balance = computed(() => F1.value * d1.value === F2.value * d2.value)
 

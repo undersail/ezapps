@@ -16,6 +16,7 @@ import WaveSuperposition from './components/demo/WaveSuperposition.vue'
 import Lever from './components/demo/Lever.vue'
 import Lens from './components/demo/Lens.vue'
 import Momentum from './components/demo/Momentum.vue'
+import Pulley from './components/demo/Pulley.vue'
 
 const selectedDemo = ref<string | null>(null)
 
@@ -25,13 +26,15 @@ const DEMO_MAP: Record<string, { title: string; component: any }> = {
   projectile: { title: '平抛运动 · 抛物线轨迹', component: Projectile },
   wave: { title: '波的叠加 · 干涉', component: WaveSuperposition },
   lever: { title: '杠杆 · 力矩平衡', component: Lever },
+  pulley: { title: '滑轮 · 定滑轮与动滑轮', component: Pulley },
   lens: { title: '凸透镜 · 成像规律', component: Lens },
   momentum: { title: '动量碰撞 · 动量守恒', component: Momentum },
 }
 
 const experiments: ExperimentCard[] = [
   // ===== 初中物理 =====
-  { id: 'lever',      icon: '⚖️', title: '杠杆与滑轮', desc: '力臂、省力杠杆与滑轮组（初中·简单机械）', accent: '#10b981', badge: '初中' },
+  { id: 'lever',      icon: '⚖️', title: '杠杆',       desc: '力 × 力臂：撬起地球的支点原理（初中·简单机械）', accent: '#10b981', badge: '初中' },
+  { id: 'pulley',     icon: '🪢', title: '滑轮',       desc: '定滑轮不省力、动滑轮省一半力（初中·简单机械）', accent: '#14b8a6', badge: '初中' },
   { id: 'buoyancy',   icon: '🛶', title: '浮力',       desc: '阿基米德原理：排开液体越多浮力越大（初中）', accent: '#0ea5e9', badge: '初中' },
   { id: 'pressure',   icon: '🫗', title: '压强',       desc: '固体压强与液体压强：面积越小压得越疼（初中）', accent: '#f59e0b', badge: '初中' },
   { id: 'circuit',    icon: '🔋', title: '电路',       desc: '串联并联与欧姆定律：电压电流电阻的关系（初中）', accent: '#10b981', badge: '初中' },
@@ -57,9 +60,7 @@ const experiments: ExperimentCard[] = [
       <div class="badge">Lab · Grimphy</div>
       <h1>🔬 物理实验室</h1>
       <p class="tag">Grimphy Lab · 物理实验趣味动画演示</p>
-      <p class="intro">
-        每个卡片是一个<strong>独立的小实验</strong>。点进去看现象、学原理——不用记公式，看见就知道物理在发生什么。
-      </p>
+      <p class="intro">每个卡片是一个独立的小实验，点进去看现象、学原理。</p>
     </header>
 
     <h2 class="group-title">🧒 初中物理</h2>
@@ -273,25 +274,53 @@ const experiments: ExperimentCard[] = [
 .demo__controls {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 18px;
-  margin-top: 14px;
+  align-items: flex-end;
+  gap: 10px 18px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed #e2e8f0;
 }
 .demo__ctl {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.82rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.8rem;
   color: #475569;
   white-space: nowrap;
+  flex: 1;
+  min-width: 150px;
+  max-width: 220px;
 }
-.demo__ctl input[type='range'] { width: 130px; accent-color: #6366f1; }
-.demo__ctl--inline input[type='range'] { width: 90px; }
+.demo__ctl > span {
+  font-weight: 600;
+  color: #334155;
+}
+.demo__ctl input[type='range'] {
+  width: 100%;
+  accent-color: #6366f1;
+  height: 18px;
+  margin: 0;
+}
+.demo__ctl--inline input[type='range'] { width: 100%; }
+.demo__select {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #334155;
+  background: #fff;
+}
 .demo__btn {
+  flex: none;
+  align-self: flex-end;
+  height: 34px;
+  min-width: 96px;
   background: #6366f1;
   border: none;
   color: #fff;
-  padding: 8px 16px;
+  padding: 0 16px;
   border-radius: 8px;
   font-size: 0.85rem;
   cursor: pointer;
