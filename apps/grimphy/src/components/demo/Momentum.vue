@@ -59,25 +59,25 @@ function draw() {
   ctx.fillText('m=' + m2.value, x2, y + 4)
 
   // 速度箭头
-  function arrow(x: number, v: number, color: string) {
+  function arrow(c: CanvasRenderingContext2D, x: number, v: number, color: string) {
     if (Math.abs(v) < 0.05) return
     const dir = v > 0 ? 1 : -1
     const ax = x + dir * (R + 14)
-    ctx.strokeStyle = color
-    ctx.lineWidth = 2.5
-    ctx.beginPath()
-    ctx.moveTo(ax, y + R + 20)
-    ctx.lineTo(ax + dir * 30, y + R + 20)
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(ax + dir * 30, y + R + 20)
-    ctx.lineTo(ax + dir * 22, y + R + 16)
-    ctx.moveTo(ax + dir * 30, y + R + 20)
-    ctx.lineTo(ax + dir * 22, y + R + 24)
-    ctx.stroke()
+    c.strokeStyle = color
+    c.lineWidth = 2.5
+    c.beginPath()
+    c.moveTo(ax, y + R + 20)
+    c.lineTo(ax + dir * 30, y + R + 20)
+    c.stroke()
+    c.beginPath()
+    c.moveTo(ax + dir * 30, y + R + 20)
+    c.lineTo(ax + dir * 22, y + R + 16)
+    c.moveTo(ax + dir * 30, y + R + 20)
+    c.lineTo(ax + dir * 22, y + R + 24)
+    c.stroke()
   }
-  arrow(x1, running ? v1.value : s1, '#3b82f6')
-  arrow(x2, running ? v2.value : s2, '#10b981')
+  arrow(ctx, x1, running ? v1.value : s1, '#3b82f6')
+  arrow(ctx, x2, running ? v2.value : s2, '#10b981')
 
   // 数据
   ctx.textAlign = 'left'
