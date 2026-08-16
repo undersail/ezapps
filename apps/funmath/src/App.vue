@@ -1074,7 +1074,7 @@ onErrorCaptured((err) => {
 .rank-nick input {
   flex: 1;
   min-width: 0;
-  max-width: 300px;
+  max-width: 240px;
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(148,163,184,0.3);
   border-radius: 8px;

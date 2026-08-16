@@ -1609,7 +1609,7 @@ h1 { margin: 0; font-size: 1.8rem; }
 .nick-row input {
   flex: 1;
   min-width: 0;
-  max-width: none;
+  max-width: 240px;
 }
 input { flex: 1; max-width: 260px; padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; outline: none; }
 input:focus { border-color: #6366f1; }

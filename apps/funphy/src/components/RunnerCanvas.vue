@@ -354,6 +354,8 @@ async function loadRank() {
   nickInput.value = Net.getNickname() || nickInput.value
   await refreshRank()
 }
+// 排行榜直接显示：首次挂载立即加载（避免默认今日榜空白）
+loadRank()
 async function refreshRank() {
   const list = await Net.fetchTop(rankMode.value, 10)
   if (list) rankList.value = list
@@ -1260,10 +1262,12 @@ canvas {
   font-size: 0.85rem;
   color: rgba(226, 232, 240, 0.85);
 }
-.nick-save { flex: none; width: 64px; }
+.nick-save { flex: none; width: 64px; padding: 8px 0; }
+.rank-box button.nick-save { width: 64px !important; }
 .nick-input {
   flex: 1;
   min-width: 0;
+  max-width: 240px;
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(148,163,184,0.3);
   border-radius: 8px;
