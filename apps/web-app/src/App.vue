@@ -14,9 +14,9 @@ const stats = ref<Record<string, number>>({})
 const statsLoaded = ref(false)
 const appMeta: Record<string, { emoji: string; name: string }> = {
   funphy: { emoji: '🚀', name: '飞飞历险记' },
-  funmath: { emoji: '🧮', name: '曼曼闯天涯' },
-  ezchess: { emoji: '♟', name: 'EZChess 棋类' },
-  grimphy: { emoji: '👾', name: 'GrimPhy' },
+  funmath: { emoji: '📐', name: '曼曼闯天涯' },
+  ezchess: { emoji: '♟️', name: '棋类对战' },
+  grimphy: { emoji: '🔬', name: '物理实验室' },
 }
 const fmt = (n: number) => (n >= 10000 ? (n / 10000).toFixed(1) + 'w' : n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n))
 onMounted(async () => {
