@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 电场与磁场演示：带电粒子在磁场中做圆周运动（洛伦兹力）
+// 电场与磁场演示：带电粒子垂直射入匀强磁场 → 洛伦兹力提供向心力做圆周运动
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -16,19 +16,17 @@ const trail: { x: number; y: number }[] = []
 function frame(now: number) {
   const dt = Math.min((now - last) / 1000, 0.05)
   last = now
-  // 洛伦兹力：F = qv×B（垂直速度方向 → 圆周运动）
-  const f = speed.value * charge.value * 0.8
-  // 磁场方向垂直纸面向外（+z），正电荷偏转方向：F = qv×B
-  const ax = vy * f * charge.value
-  const ay = -vx * f * charge.value
-  vx += ax * dt * 2
-  vy += ay * dt * 2
-  px += vx * dt * 30
-  py += vy * dt * 30
+  // 洛伦兹力 F = qv×B（B 垂直纸面向里 ⊗，力垂直于速度 → 圆周运动）
+  const f = speed.value * charge.value * 0.55
+  const ax = vy * f
+  const ay = -vx * f
+  vx += ax * dt
+  vy += ay * dt
+  px += vx * dt * 26
+  py += vy * dt * 26
   trail.push({ x: px, y: py })
-  if (trail.length > 260) trail.shift()
-  // 出界重置
-  if (px < 30 || px > W - 30 || py < 30 || py > H - 30) reset()
+  if (trail.length > 240) trail.shift()
+  if (px < 40 || px > W - 40 || py < 100 || py > H - 20) reset()
   draw()
   raf = requestAnimationFrame(frame)
 }
@@ -45,26 +43,42 @@ function draw() {
   ctx.clearRect(0, 0, W, H)
   ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, W, H)
 
-  // 磁场区域（均匀）
-  ctx.fillStyle = 'rgba(99, 102, 241, 0.08)'
-  ctx.fillRect(50, 40, 460, 240)
-  // 磁场符号（点 = 纸面向外）
-  ctx.fillStyle = 'rgba(99, 102, 241, 0.5)'
-  ctx.font = '10px system-ui'
+  // ===== 顶部信息区（y<90） =====
+  ctx.fillStyle = '#334155'
+  ctx.font = '13px system-ui'
+  ctx.textAlign = 'left'
+  ctx.fillText(`粒子速度 v=${speed.value.toFixed(1)}  电荷：${charge.value > 0 ? '正 (+)' : '负 (−)'}`, 16, 24)
+  ctx.fillStyle = '#7c3aed'
+  ctx.font = 'bold 14px system-ui'
+  ctx.fillText('洛伦兹力 F = qvB 始终垂直于速度 → 粒子做圆周运动', 16, 46)
+  ctx.fillStyle = '#64748b'
+  ctx.font = '13px system-ui'
+  ctx.fillText('F 只改变方向不做功，速度大小不变；电荷正负偏转方向相反', 16, 68)
+
+  // ===== 磁场区域（y≥90，浅灰底 + ⊗ 符号） =====
+  const fieldTop = 90, fieldBottom = 300
+  ctx.fillStyle = '#f1f5f9'
+  ctx.fillRect(50, fieldTop, 460, fieldBottom - fieldTop)
+  ctx.strokeStyle = '#cbd5e1'
+  ctx.lineWidth = 1.5
+  ctx.strokeRect(50, fieldTop, 460, fieldBottom - fieldTop)
+  // ⊗ 符号网格（B 向里）
+  ctx.fillStyle = 'rgba(100, 116, 139, 0.55)'
+  ctx.font = '12px system-ui'
   ctx.textAlign = 'center'
-  for (let r = 0; r < 4; r++) {
-    for (let c = 0; c < 7; c++) {
-      ctx.fillText('•', 95 + c * 66, 70 + r * 58)
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 6; c++) {
+      ctx.fillText('⊗', 110 + c * 72, 118 + r * 66)
     }
   }
-  ctx.fillStyle = '#6366f1'
-  ctx.font = 'bold 13px system-ui'
-  ctx.fillText('B ⊗（垂直纸面向里）', W / 2, 30)
+  ctx.fillStyle = '#64748b'
+  ctx.font = 'bold 12px system-ui'
+  ctx.fillText('磁场区域（B ⊗ 垂直纸面向里）', W / 2, fieldTop - 12)
 
   // 轨迹
   if (trail.length > 1) {
-    ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)'
-    ctx.lineWidth = 2
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.75)'
+    ctx.lineWidth = 2.5
     ctx.beginPath()
     ctx.moveTo(trail[0].x, trail[0].y)
     for (const p of trail) ctx.lineTo(p.x, p.y)
@@ -80,16 +94,11 @@ function draw() {
   ctx.font = 'bold 10px system-ui'
   ctx.fillText(charge.value > 0 ? '+' : '−', px, py + 3.5)
 
-  // 数据
-  ctx.textAlign = 'left'
-  ctx.fillStyle = '#334155'
-  ctx.font = '13px system-ui'
-  ctx.fillText(`粒子速度：${speed.value.toFixed(1)}  电荷：${charge.value > 0 ? '正' : '负'}`, 16, 66 + 20)
-  ctx.fillStyle = '#7c3aed'
-  ctx.font = 'bold 13px system-ui'
-  ctx.fillText(`洛伦兹力 F = qvB → 粒子做圆周运动（半径 ∝ 速度）`, 16, 86 + 20)
+  // 入射方向说明
   ctx.fillStyle = '#64748b'
-  ctx.fillText('力始终垂直于速度方向：只改变方向，不做功', 16, 106 + 20)
+  ctx.font = '11px system-ui'
+  ctx.textAlign = 'left'
+  ctx.fillText('粒子从左向右射入 ↓', 60, fieldBottom + 16)
 }
 
 function reset() {

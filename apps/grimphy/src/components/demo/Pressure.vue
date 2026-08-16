@@ -86,7 +86,7 @@ function drawSolid(ctx: CanvasRenderingContext2D) {
 
 function drawLiquid(ctx: CanvasRenderingContext2D) {
   // 容器 + 液体
-  const top = 70, bottom = 270
+  const top = 84, bottom = 280
   ctx.strokeStyle = '#94a3b8'
   ctx.lineWidth = 2
   ctx.strokeRect(90, top, 380, bottom - top)

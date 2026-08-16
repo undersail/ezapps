@@ -1,16 +1,26 @@
 <script setup lang="ts">
-// 浮力演示：F浮 = ρgV排，浸入越多浮力越大，物体上浮/下沉
+// 浮力演示：物体密度决定浸入比例（漂浮时 ρ_obj/ρ_水 = 浸入比例）
+// 重力 G = ρ_obj·V·g；漂浮时 F浮 = G → V浸 = ρ_obj/ρ水·V
 import { ref, computed, watch, onMounted } from 'vue'
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-const depth = ref(50)   // 浸入深度 %
-const objDensity = ref(0.7)  // 物体密度（水=1）
+const depth = ref(0)          // 人为压入深度（0=自然漂浮，演示用）
+const objDensity = ref(0.7)   // 物体密度（水=1）
 
 const W = 560, H = 320
+const waterY = 130            // 水面
+const objH = 40
 
-const buoyancy = computed(() => (depth.value / 100) * 10)          // 浮力（N，满浸=10）
-const weight = computed(() => objDensity.value * 10)               // 重力（N）
-const net = computed(() => buoyancy.value - weight.value)          // 合力（+上浮 -下沉）
+// 自然漂浮时浸入比例 = 密度；用户滑块模拟"压入/上浮"干涉
+const naturalSub = computed(() => objDensity.value)             // 0-1
+const forcedSub = computed(() => depth.value / 100)             // 0-1
+// 物体实际浸入 = 两者较大者（压入 > 自然漂浮时被压下去）
+const subRatio = computed(() => Math.max(naturalSub.value, forcedSub.value))
+// 浮力（满浸 = 重力浮力 10N 基准）
+const buoyancy = computed(() => subRatio.value * 10)
+const weight = computed(() => objDensity.value * 10)
+// 合外力：上浮（正）/下沉（负）—— 只在水下部分产生浮力
+const net = computed(() => buoyancy.value - weight.value)
 
 function draw() {
   const canvas = canvasRef.value
@@ -24,48 +34,104 @@ function draw() {
   ctx.clearRect(0, 0, W, H)
   ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, W, H)
 
-  // 水面（容器）
-  const waterY = 140
-  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2
-  ctx.strokeRect(70, 60, 420, 230)
-  // 水
+  // ===== 容器 + 水（水面固定） =====
+  const cTop = 84, cBottom = 280
+  ctx.strokeStyle = '#94a3b8'
+  ctx.lineWidth = 2
+  ctx.strokeRect(80, cTop, 400, cBottom - cTop)
+  // 水（水面到容器底）
   ctx.fillStyle = 'rgba(56, 189, 248, 0.35)'
-  ctx.fillRect(71, waterY, 418, 230 - waterY + 1)
-  ctx.fillStyle = '#0ea5e9'
+  ctx.fillRect(81, waterY, 399, cBottom - waterY)
+  // 水面线
+  ctx.strokeStyle = '#38bdf8'
+  ctx.lineWidth = 2
+  ctx.beginPath(); ctx.moveTo(80, waterY); ctx.lineTo(480, waterY); ctx.stroke()
+  ctx.fillStyle = '#0284c7'
   ctx.font = '12px system-ui'
-  ctx.fillText('水', 76, waterY + 18)
+  ctx.textAlign = 'left'
+  ctx.fillText('水面', 86, waterY - 6)
 
-  // 物体（随净力上下浮动）
-  const ballY = waterY + (1 - depth.value / 100) * 120 - net.value * 3
-  const objH = 34
+  // ===== 物体 =====
+  // 顶部位置：自然漂浮（露出部分随密度）+ 压入深度
+  const lift = (naturalSub.value) * objH          // 水下部分（自然）
+  const extra = Math.max(0, forcedSub.value - naturalSub.value)  // 额外压入比例
+  const objTopY = waterY - (objH - lift) + extra * 90   // 密度小→浮得高；压入→下沉
+  const clampedTop = Math.max(cTop + 4, Math.min(objTopY, cBottom - objH - 4))
+  const objX = W / 2 - 32
+
+  // 水下部分（计算浸入范围）
+  const submergedTop = Math.max(clampedTop, waterY)
+  const submergedBottom = Math.min(clampedTop + objH, cBottom)
+  const submergedH = Math.max(0, submergedBottom - submergedTop)
+
+  // 物体（露出部分浅色，水下部分深色半透明）
   ctx.fillStyle = '#f59e0b'
-  ctx.fillRect(W / 2 - 30, ballY, 60, objH)
+  ctx.fillRect(objX, clampedTop, 64, objH)
+  if (submergedH > 0) {
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.55)'
+    ctx.fillRect(objX, submergedTop, 64, submergedH)
+    // 水下轮廓
+    ctx.strokeStyle = '#f59e0b'
+    ctx.lineWidth = 2
+    ctx.setLineDash([5, 3])
+    ctx.strokeRect(objX, submergedTop, 64, submergedH)
+    ctx.setLineDash([])
+  }
+  // 物体文字
   ctx.fillStyle = '#fff'
   ctx.font = 'bold 13px system-ui'
   ctx.textAlign = 'center'
-  ctx.fillText('物体', W / 2, ballY + objH / 2 + 4)
-  // 浸入深度指示
-  const subY = Math.max(ballY, waterY)
-  const subH = Math.max(0, Math.min(ballY + objH, waterY + 230) - subY)
-  if (subH > 0) {
-    ctx.strokeStyle = '#f59e0b'
-    ctx.lineWidth = 2
-    ctx.setLineDash([4, 3])
-    ctx.strokeRect(W / 2 - 30, subY, 60, subH)
-    ctx.setLineDash([])
-  }
+  ctx.fillText('物体', W / 2, clampedTop + objH / 2 + 4)
+  // 密度标签
+  ctx.fillStyle = '#b45309'
+  ctx.font = '11px system-ui'
+  ctx.fillText('ρ=' + objDensity.value.toFixed(1), W / 2, clampedTop - 8)
 
-  // 数据
+  // 浮力/重力箭头
+  const arrowY = clampedTop + objH + 8
+  // 浮力箭头（上，长度 ∝ 浮力）
+  ctx.strokeStyle = '#38bdf8'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(objX - 18, arrowY); ctx.lineTo(objX - 18, arrowY - buoyancy.value * 3); ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(objX - 18, arrowY - buoyancy.value * 3)
+  ctx.lineTo(objX - 22, arrowY - buoyancy.value * 3 + 8)
+  ctx.moveTo(objX - 18, arrowY - buoyancy.value * 3)
+  ctx.lineTo(objX - 14, arrowY - buoyancy.value * 3 + 8)
+  ctx.stroke()
+  ctx.fillStyle = '#0284c7'
+  ctx.font = 'bold 11px system-ui'
+  ctx.fillText('F浮', objX - 34, arrowY - buoyancy.value * 3 + 4)
+
+  // 重力箭头（下，长度 ∝ 重力）
+  ctx.strokeStyle = '#ef4444'
+  ctx.beginPath()
+  ctx.moveTo(objX + 82, arrowY - 12); ctx.lineTo(objX + 82, arrowY - 12 + weight.value * 3); ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(objX + 82, arrowY - 12 + weight.value * 3)
+  ctx.lineTo(objX + 78, arrowY - 12 + weight.value * 3 - 8)
+  ctx.moveTo(objX + 82, arrowY - 12 + weight.value * 3)
+  ctx.lineTo(objX + 86, arrowY - 12 + weight.value * 3 - 8)
+  ctx.stroke()
+  ctx.fillStyle = '#dc2626'
+  ctx.fillText('G', objX + 94, arrowY - 12 + weight.value * 3 + 4)
+
+  // ===== 数据（顶部专用区，不与图形重叠） =====
   ctx.textAlign = 'left'
   ctx.font = '13px system-ui'
   ctx.fillStyle = '#334155'
-  ctx.fillText(`浸入深度：${depth.value}% → 排开体积越大浮力越大`, 16, 26)
-  ctx.fillText(`浮力 F浮 = ${buoyancy.value.toFixed(1)}N  |  重力 G = ${weight.value.toFixed(1)}N`, 16, 46)
+  ctx.fillText(`物体密度 ρ=${objDensity.value.toFixed(1)}（水=1）  压入深度 ${depth.value}%`, 16, 24)
+  ctx.fillStyle = '#0284c7'
+  ctx.font = 'bold 14px system-ui'
+  ctx.fillText(`浮力 F浮=${buoyancy.value.toFixed(1)}N   重力 G=${weight.value.toFixed(1)}N`, 16, 44)
   ctx.fillStyle = net.value > 0.5 ? '#059669' : net.value < -0.5 ? '#dc2626' : '#64748b'
   ctx.font = 'bold 13px system-ui'
   ctx.fillText(
-    net.value > 0.5 ? '↑ 浮力大于重力，物体上浮' :
-    net.value < -0.5 ? '↓ 重力大于浮力，物体下沉' : '≈ 浮力≈重力，悬浮/缓慢', 16, 66)
+    objDensity.value < 1 && depth.value <= objDensity.value * 100
+      ? `ρ<水 → 自然漂浮，浸入 ${(naturalSub.value * 100).toFixed(0)}%`
+      : net.value > 0.5 ? '浮力 > 重力，松手会上浮' : net.value < -0.5 ? '重力 > 浮力，会下沉' : '≈ 平衡',
+    16, 66)
 }
 
 watch([depth, objDensity], draw)
@@ -77,12 +143,12 @@ onMounted(draw)
     <canvas ref="canvasRef" width="560" height="320" class="demo__canvas"></canvas>
     <div class="demo__controls">
       <label class="demo__ctl">
-        <span>浸入深度：{{ depth }}%</span>
-        <input type="range" v-model.number="depth" min="10" max="100" step="5" />
-      </label>
-      <label class="demo__ctl">
         <span>物体密度：{{ objDensity.toFixed(1) }}（水=1）</span>
         <input type="range" v-model.number="objDensity" min="0.3" max="1.5" step="0.1" />
+      </label>
+      <label class="demo__ctl">
+        <span>压入深度：{{ depth }}%</span>
+        <input type="range" v-model.number="depth" min="0" max="100" step="5" />
       </label>
     </div>
   </div>

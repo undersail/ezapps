@@ -64,15 +64,13 @@ function draw() {
   ctx.fillText('F', fLeft - 8, axisY - 10)
   ctx.fillText('F', fRight + 4, axisY - 10)
 
-  // 透镜（双凸：两段弧线拼接，弧在上下端相接）
+  // 透镜（双凸：两段 cubic 弧线在上下端拼接，圆润弧面）
   ctx.strokeStyle = '#6366f1'
   ctx.lineWidth = 3
   ctx.beginPath()
-  // 左弧：从左上到左下，控制点向左凸出
-  ctx.moveTo(lensX - 16, axisY - 26)
-  ctx.quadraticCurveTo(lensX - 44, axisY, lensX - 16, axisY + 26)
-  // 右弧：从右下到右上，控制点向右凸出（两弧在上下端拼接）
-  ctx.quadraticCurveTo(lensX + 44, axisY, lensX + 16, axisY - 26)
+  ctx.moveTo(lensX - 22, axisY - 28)
+  ctx.bezierCurveTo(lensX - 56, axisY - 16, lensX - 56, axisY + 16, lensX - 22, axisY + 28)
+  ctx.bezierCurveTo(lensX + 56, axisY + 16, lensX + 56, axisY - 16, lensX + 22, axisY - 28)
   ctx.closePath()
   ctx.stroke()
 
@@ -90,7 +88,7 @@ function draw() {
   ctx.lineTo(objX + 7, axisY - objH + 10)
   ctx.stroke()
 
-  // 成像
+  // 成像（实像倒立朝下 / 虚像正立朝上）
   if (v.value !== Infinity && isReal.value && v.value > 0) {
     const imgX = lensX + v.value * SCALE
     const imgH = objH * mag.value
@@ -99,16 +97,16 @@ function draw() {
       ctx.lineWidth = 2.5
       ctx.beginPath()
       ctx.moveTo(imgX, axisY)
-      ctx.lineTo(imgX, axisY - imgH)
+      ctx.lineTo(imgX, axisY + imgH)          // 实像倒立：箭头朝下
       ctx.stroke()
       ctx.beginPath()
-      ctx.moveTo(imgX - 6, axisY - imgH + 9)
-      ctx.lineTo(imgX, axisY - imgH)
-      ctx.lineTo(imgX + 6, axisY - imgH + 9)
+      ctx.moveTo(imgX - 6, axisY + imgH - 9)
+      ctx.lineTo(imgX, axisY + imgH)
+      ctx.lineTo(imgX + 6, axisY + imgH - 9)
       ctx.stroke()
     }
   } else if (v.value !== Infinity && !isReal.value) {
-    // 虚像：同侧（透镜左侧），虚线
+    // 虚像：同侧（透镜左侧），虚线，正立朝上
     const imgX = lensX + v.value * SCALE   // v 为负 → 透镜左侧
     const imgH = objH * mag.value
     if (imgX > 20) {

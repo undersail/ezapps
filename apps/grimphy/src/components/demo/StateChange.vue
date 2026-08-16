@@ -12,7 +12,7 @@ const stateName = computed(() => ({ solid: '冰 · 固态', liquid: '水 · 液�
 // 分子位置（随机但固定种子）
 const molecules = Array.from({ length: 24 }, (_, i) => ({
   x: 90 + ((i * 37) % 380),
-  y: 90 + ((i * 53) % 150),
+  y: 100 + ((i * 53) % 150),
   dx: ((i % 5) - 2) * 0.3,
   dy: (((i * 3) % 5) - 2) * 0.3,
 }))
@@ -48,14 +48,14 @@ function draw() {
   if (state.value !== 'gas') {
     ctx.strokeStyle = '#94a3b8'
     ctx.lineWidth = 2
-    ctx.strokeRect(70, 70, 420, 190)
+    ctx.strokeRect(70, 84, 420, 190)
     ctx.fillStyle = state.value === 'solid' ? 'rgba(99,102,241,0.15)' : 'rgba(14,165,233,0.2)'
-    ctx.fillRect(71, 71, 419, 189)
+    ctx.fillRect(71, 85, 419, 189)
   } else {
     ctx.strokeStyle = 'rgba(239,68,68,0.3)'
     ctx.setLineDash([6, 4])
     ctx.lineWidth = 2
-    ctx.strokeRect(50, 50, 460, 230)
+    ctx.strokeRect(50, 60, 460, 220)
     ctx.setLineDash([])
   }
 
