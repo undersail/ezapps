@@ -26,7 +26,7 @@ function frame(now: number) {
   py += vy * dt * 26
   trail.push({ x: px, y: py })
   if (trail.length > 240) trail.shift()
-  if (px < 40 || px > W - 40 || py < 100 || py > H - 20) reset()
+  if (px < 40 || px > W - 40 || py < 96 || py > H - 20) reset()   // y≥96 不穿文字区
   draw()
   raf = requestAnimationFrame(frame)
 }
@@ -102,7 +102,7 @@ function draw() {
 }
 
 function reset() {
-  px = 120; py = 160
+  px = 120; py = 170
   vx = speed.value
   vy = 0
   trail.length = 0

@@ -55,7 +55,7 @@ function draw() {
     ctx.strokeStyle = 'rgba(239,68,68,0.3)'
     ctx.setLineDash([6, 4])
     ctx.lineWidth = 2
-    ctx.strokeRect(50, 60, 460, 220)
+    ctx.strokeRect(50, 84, 460, 196)
     ctx.setLineDash([])
   }
 

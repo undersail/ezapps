@@ -64,14 +64,17 @@ function draw() {
   ctx.fillText('F', fLeft - 8, axisY - 10)
   ctx.fillText('F', fRight + 4, axisY - 10)
 
-  // 透镜（双凸：两段 cubic 弧线在上下端拼接，圆润弧面）
+  // 凸透镜（标准画法：两段大圆弧，弧心在另一侧，上下端相接）
+  // 透镜宽 44 高 60：弧心距中心 9.45，半径 31.4（数学推导，非半圆）
   ctx.strokeStyle = '#6366f1'
   ctx.lineWidth = 3
+  const aL1 = (-107.5 * Math.PI) / 180   // 左弧上端角
+  const aL2 = (107.5 * Math.PI) / 180    // 左弧下端角
+  const aR1 = (-72.5 * Math.PI) / 180    // 右弧上端角
+  const aR2 = (72.5 * Math.PI) / 180     // 右弧下端角
   ctx.beginPath()
-  ctx.moveTo(lensX - 22, axisY - 28)
-  ctx.bezierCurveTo(lensX - 56, axisY - 16, lensX - 56, axisY + 16, lensX - 22, axisY + 28)
-  ctx.bezierCurveTo(lensX + 56, axisY + 16, lensX + 56, axisY - 16, lensX + 22, axisY - 28)
-  ctx.closePath()
+  ctx.arc(lensX + 9.45, axisY, 31.4, aL1, aL2, true)   // 左弧：圆心在右，凸向左
+  ctx.arc(lensX - 9.45, axisY, 31.4, aR1, aR2, true)   // 右弧：圆心在左，凸向右
   ctx.stroke()
 
   // 物体（左侧，箭头朝上）
