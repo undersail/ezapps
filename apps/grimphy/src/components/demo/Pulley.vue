@@ -9,10 +9,19 @@ const pulleyType = ref<'fixed' | 'moving'>('fixed')  // 定滑轮 / 动滑轮
 function draw() {
   const canvas = canvasRef.value
   if (!canvas) return
+  const dpr = window.devicePixelRatio || 1
+  const W = 560, H = 300
+  if (canvas.width !== W * dpr || canvas.height !== H * dpr) {
+    canvas.width = W * dpr
+    canvas.height = H * dpr
+  }
+  canvas.style.width = W + 'px'
+  canvas.style.height = H + 'px'
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-  const w = canvas.width, h = canvas.height
-  ctx.clearRect(0, 0, w, h)
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, W, H)
+  const w = W, h = H
   ctx.fillStyle = '#f8fafc'
   ctx.fillRect(0, 0, w, h)
 

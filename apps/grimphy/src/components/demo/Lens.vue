@@ -18,10 +18,19 @@ const mag = computed(() => (v.value === Infinity ? 0 : Math.abs(v.value / u.valu
 function draw() {
   const canvas = canvasRef.value
   if (!canvas) return
+  const dpr = window.devicePixelRatio || 1
+  const W = 560, H = 300
+  if (canvas.width !== W * dpr || canvas.height !== H * dpr) {
+    canvas.width = W * dpr
+    canvas.height = H * dpr
+  }
+  canvas.style.width = W + 'px'
+  canvas.style.height = H + 'px'
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-  const w = canvas.width, h = canvas.height
-  ctx.clearRect(0, 0, w, h)
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, W, H)
+  const w = W, h = H
   ctx.fillStyle = '#f8fafc'
   ctx.fillRect(0, 0, w, h)
 
@@ -55,14 +64,14 @@ function draw() {
   ctx.fillText('F', fLeft - 8, axisY - 10)
   ctx.fillText('F', fRight + 4, axisY - 10)
 
-  // 透镜（双凸）
+  // 透镜（双凸：左弧凸向左 + 右弧凸向右）
   ctx.strokeStyle = '#6366f1'
   ctx.lineWidth = 3
   ctx.beginPath()
-  ctx.arc(lensX - 14, axisY, 34, -Math.PI / 2, Math.PI / 2)
+  ctx.arc(lensX - 14, axisY, 34, Math.PI / 2, -Math.PI / 2)   // 顺时针经 180° → 左半圆，凸向左
   ctx.stroke()
   ctx.beginPath()
-  ctx.arc(lensX + 14, axisY, 34, -Math.PI / 2, Math.PI / 2)
+  ctx.arc(lensX + 14, axisY, 34, -Math.PI / 2, Math.PI / 2)   // 顺时针经 0° → 右半圆，凸向右
   ctx.stroke()
 
   // 物体（左侧，箭头朝上）
