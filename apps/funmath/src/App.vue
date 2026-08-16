@@ -508,6 +508,7 @@ onErrorCaptured((err) => {
           </div>
         </div>
         <div class="rank-nick">
+          <span class="rank-nick-label">用户名</span>
           <input v-model="nickInput" maxlength="20" placeholder="输入昵称参与排行" @keyup.enter="saveNick" />
           <button class="rank-save" @click="saveNick">保存</button>
         </div>
@@ -1063,10 +1064,17 @@ onErrorCaptured((err) => {
   cursor: pointer;
 }
 .rank-tab.on { background: rgba(245, 158, 11, 0.2); border-color: #f59e0b; color: #fff; }
-.rank-nick { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+.rank-nick { display: flex; gap: 8px; align-items: center; justify-content: center; margin-bottom: 14px; }
+.rank-nick-label {
+  flex: none;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: #475569;
+}
 .rank-nick input {
   flex: 1;
-  max-width: 220px;
+  min-width: 0;
+  max-width: 300px;
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(148,163,184,0.3);
   border-radius: 8px;
@@ -1080,6 +1088,7 @@ onErrorCaptured((err) => {
   border: none;
   border-radius: 8px;
   padding: 6px 14px;
+  min-width: 64px;
   color: #fff;
   cursor: pointer;
 }

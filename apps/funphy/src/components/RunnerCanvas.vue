@@ -70,8 +70,9 @@
               </div>
             </div>
             <div class="nick-row">
+              <span class="nick-label">用户名</span>
               <input v-model="nickInput" class="nick-input" maxlength="20" placeholder="输入昵称参与排行" @keyup.enter="saveNick" />
-              <button class="btn-secondary" style="margin:0" @click="saveNick">保存</button>
+              <button class="btn-secondary nick-save" style="margin:0" @click="saveNick">保存</button>
             </div>
             <div class="rank-list">
               <div v-if="!rankList.length" class="rank-empty">暂无成绩，去挑战！🏁</div>
@@ -83,13 +84,13 @@
             </div>
             <div class="rank-mine" v-if="myRank > 0">我的排名：第 {{ myRank }} 名</div>
           </div>
+
+          <!-- 页面底部：返回主页（lobby 滚动区最底部） -->
+          <footer class="lobby-foot-page">
+            <a class="home-link" href="/">🏠 返回 ezapps 主页</a>
+          </footer>
         </div>
       </div>
-
-      <!-- 页面底部：返回主页 -->
-      <footer class="lobby-foot-page" v-if="gameState === 'menu'">
-        <a class="home-link" href="/">🏠 返回 ezapps 主页</a>
-      </footer>
 
       <!-- HUD 顶部：三栏卡片布局 -->
       <div class="runner-hud" v-if="gameState === 'playing' || gameState === 'paused' || gameState === 'won' || gameState === 'lost'">
@@ -871,6 +872,7 @@ canvas {
 .lobby-story { margin: 0; color: rgba(255,255,255,0.75); font-size: 0.95rem; line-height: 1.6; }
 .lobby-main {
   background: rgba(10, 20, 35, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.15);
   border-radius: 16px;
   padding: 16px;
 }
@@ -1031,8 +1033,7 @@ canvas {
 /* 飞船库（装备升级） */
 .shipyard {
   margin-bottom: 16px;
-  border-top: 1px solid rgba(148, 163, 184, 0.2);
-  padding-top: 12px;
+  padding-top: 2px;
 }
 .shipyard-title {
   font-size: 0.85rem;
@@ -1247,7 +1248,30 @@ canvas {
   border-color: #6366f1;
   color: #fff;
 }
-.rank-box .nick-row { margin-bottom: 10px; }
+.rank-box .nick-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.nick-label {
+  flex: none;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: rgba(226, 232, 240, 0.85);
+}
+.nick-save { flex: none; width: 64px; }
+.nick-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(148,163,184,0.3);
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: #fff;
+  font-size: 0.85rem;
+  outline: none;
+}
 .rank-box .rank-list { max-height: 260px; overflow-y: auto; }
 
 /* 排行榜弹窗 */
@@ -1264,17 +1288,7 @@ canvas {
 }
 .rank-tab.on { background: rgba(56, 189, 248, 0.2); border-color: #38bdf8; color: #fff; }
 .nick-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
-.nick-input {
-  flex: 1;
-  max-width: 220px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(148,163,184,0.3);
-  border-radius: 8px;
-  padding: 6px 12px;
-  color: #fff;
-  font-size: 0.85rem;
-  outline: none;
-}
+
 .nick-input:focus { border-color: #38bdf8; }
 .rank-list { max-height: 300px; overflow-y: auto; text-align: left; }
 .rank-row {

@@ -1385,8 +1385,9 @@ onUnmounted(() => {
 
       <!-- 昵称 -->
       <div class="nick-row">
+        <span class="nick-label">用户名</span>
         <input v-model="nickInput" maxlength="12" placeholder="输入昵称" @keyup.enter="saveNick" />
-        <button class="btn" @click="saveNick">保存</button>
+        <button class="btn nick-save" @click="saveNick">保存</button>
       </div>
 
       <!-- 游戏选择 -->
@@ -1593,6 +1594,23 @@ onUnmounted(() => {
 h1 { margin: 0; font-size: 1.8rem; }
 .tag { color: #64748b; margin: 6px 0 0; font-size: 0.9rem; }
 .nick-row, .join-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+.nick-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nick-label {
+  flex: none;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+.nick-save { flex: none; min-width: 72px; }
+.nick-row input {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+}
 input { flex: 1; max-width: 260px; padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; outline: none; }
 input:focus { border-color: #6366f1; }
 .btn { padding: 9px 18px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; cursor: pointer; font-size: 0.9rem; }
