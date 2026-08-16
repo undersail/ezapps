@@ -56,7 +56,7 @@ const DEMO_MAP: Record<string, { title: string; component: any }> = {
 const experiments: ExperimentCard[] = [
   // ===== 初中物理 =====
   { id: 'lever',      icon: '⚖️', title: '杠杆',       desc: '力 × 力臂：撬起地球的支点原理（初中·简单机械）', accent: '#10b981', badge: '初中' },
-  { id: 'pulley',     icon: '🪢', title: '滑轮',       desc: '定滑轮不省力、动滑轮省一半力（初中·简单机械）', accent: '#14b8a6', badge: '初中' },
+  { id: 'pulley',     icon: '⚙️', title: '滑轮',       desc: '定滑轮不省力、动滑轮省一半力（初中·简单机械）', accent: '#14b8a6', badge: '初中' },
   { id: 'buoyancy',   icon: '🛶', title: '浮力',       desc: '阿基米德原理：排开液体越多浮力越大（初中）', accent: '#0ea5e9', badge: '初中' },
   { id: 'pressure',   icon: '🫗', title: '压强',       desc: '固体压强与液体压强：面积越小压得越疼（初中）', accent: '#f59e0b', badge: '初中' },
   { id: 'circuit',    icon: '🔋', title: '电路',       desc: '串联并联与欧姆定律：电压电流电阻的关系（初中）', accent: '#10b981', badge: '初中' },

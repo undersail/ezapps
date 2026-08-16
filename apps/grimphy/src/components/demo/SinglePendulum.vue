@@ -38,7 +38,7 @@ function draw() {
   const w = W, h = H
   ctx.fillStyle = '#f8fafc'
   ctx.fillRect(0, 0, w, h)
-  const pivotX = w / 2, pivotY = 42
+  const pivotX = w / 2, pivotY = 110
 
   const omega = Math.sqrt(G / L.value)
   const rad = (theta0.value * Math.PI / 180) * Math.cos(omega * t)
@@ -118,7 +118,7 @@ onBeforeUnmount(() => cancelAnimationFrame(raf))
     <div class="demo__controls">
       <label class="demo__ctl">
         <span>摆长：{{ L }}px</span>
-        <input type="range" v-model.number="L" min="60" max="220" step="5" />
+        <input type="range" v-model.number="L" min="60" max="190" step="5" />
       </label>
       <label class="demo__ctl">
         <span>初始角度：{{ theta0 }}°</span>

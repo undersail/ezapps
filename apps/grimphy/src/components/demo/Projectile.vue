@@ -24,7 +24,7 @@ function frame(now: number) {
   const dtSim = dt * 1.2
   t += dtSim
   // 物理计算：起点 (x=50px, y=100px)
-  const x0 = 60, y0 = 90
+  const x0 = 60, y0 = 115
   const xm = v0.value * t
   const ym = 0.5 * G * t * t
   const px = x0 + xm * SCALE
@@ -69,7 +69,7 @@ function draw(ballX: number, ballY: number) {
 
   // 起点平台
   ctx.fillStyle = '#e2e8f0'
-  ctx.fillRect(20, 60, 60, GROUND - 60)
+  ctx.fillRect(20, 85, 60, GROUND - 85)
 
   // 轨迹
   if (trail.length > 1) {

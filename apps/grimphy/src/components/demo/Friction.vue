@@ -23,7 +23,7 @@ function draw() {
   ctx.clearRect(0, 0, W, H)
   ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, W, H)
 
-  const y = 170
+  const y = 195
   // 地面（粗糙度决定纹理）
   ctx.fillStyle = '#cbd5e1'
   ctx.fillRect(60, y, 440, 12)

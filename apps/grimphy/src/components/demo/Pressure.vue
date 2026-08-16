@@ -34,7 +34,7 @@ function draw() {
 }
 
 function drawSolid(ctx: CanvasRenderingContext2D) {
-  const groundY = 210
+  const groundY = 235
   ctx.fillStyle = '#cbd5e1'
   ctx.fillRect(50, groundY, 460, 14)
 
@@ -95,7 +95,7 @@ function drawSolid(ctx: CanvasRenderingContext2D) {
 
 function drawLiquid(ctx: CanvasRenderingContext2D) {
   // 容器 + 液体
-  const top = 84, bottom = 280
+  const top = 112, bottom = 280
   ctx.strokeStyle = '#94a3b8'
   ctx.lineWidth = 2
   ctx.strokeRect(90, top, 380, bottom - top)

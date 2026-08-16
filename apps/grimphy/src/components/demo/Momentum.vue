@@ -43,7 +43,7 @@ function draw() {
   ctx.clearRect(0, 0, w, h)
   ctx.fillStyle = '#f8fafc'
   ctx.fillRect(0, 0, w, h)
-  const y = h / 2
+  const y = h / 2 + 20
 
   ctx.strokeStyle = '#e2e8f0'
   ctx.lineWidth = 2

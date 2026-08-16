@@ -21,7 +21,7 @@ function draw() {
   ctx.clearRect(0, 0, W, H)
   ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, W, H)
 
-  const midY = H / 2 + 20
+  const midY = H / 2 + 35
   // 导线（矩形回路）
   ctx.strokeStyle = '#64748b'
   ctx.lineWidth = 3

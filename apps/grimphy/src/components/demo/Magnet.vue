@@ -20,7 +20,7 @@ function draw() {
   ctx.clearRect(0, 0, W, H)
   ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, W, H)
 
-  const cx = W / 2, cy = H / 2 - 10
+  const cx = W / 2, cy = H / 2 + 10
 
   // 螺线管（线圈）
   ctx.strokeStyle = '#b45309'
@@ -52,7 +52,7 @@ function draw() {
     ctx.stroke()
     // 外部弧（N 端绕出 → S 端绕入，半圈闭合）
     const dir = y < cy ? -1 : 1            // 上半绕上方、下半绕下方
-    const arcY = y + dir * 88              // 弧顶/弧底
+    const arcY = y + dir * 66              // 弧顶/弧底
     ctx.beginPath()
     ctx.moveTo(cx - 70, y)
     ctx.quadraticCurveTo(cx, arcY, cx + 70, y)

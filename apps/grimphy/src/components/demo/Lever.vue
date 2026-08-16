@@ -36,15 +36,15 @@ function draw() {
   ctx.fillStyle = '#f8fafc'
   ctx.fillRect(0, 0, w, h)
 
-  const pivotX = w / 2, pivotY = h / 2 - 20
+  const pivotX = w / 2, pivotY = h / 2 + 15
   const rad = tilt.value * Math.PI / 180
-  const HALF = 210
+  const HALF = 165
 
   // 支点三角
   ctx.fillStyle = '#64748b'
   ctx.beginPath()
-  ctx.moveTo(pivotX - 12, pivotY + 18)
-  ctx.lineTo(pivotX + 12, pivotY + 18)
+  ctx.moveTo(pivotX - 12, pivotY + 22)
+  ctx.lineTo(pivotX + 12, pivotY + 22)
   ctx.lineTo(pivotX, pivotY)
   ctx.closePath()
   ctx.fill()

@@ -8,7 +8,7 @@ const depth = ref(0)          // 人为压入深度（0=自然漂浮，演示用
 const objDensity = ref(0.7)   // 物体密度（水=1）
 
 const W = 560, H = 320
-const waterY = 130            // 水面
+const waterY = 150            // 水面
 const objH = 40
 
 // 自然漂浮时浸入比例 = 密度；用户滑块模拟"压入/上浮"干涉
@@ -35,7 +35,7 @@ function draw() {
   ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, W, H)
 
   // ===== 容器 + 水（水面固定） =====
-  const cTop = 84, cBottom = 280
+  const cTop = 112, cBottom = 280
   ctx.strokeStyle = '#94a3b8'
   ctx.lineWidth = 2
   ctx.strokeRect(80, cTop, 400, cBottom - cTop)

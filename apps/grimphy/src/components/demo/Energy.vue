@@ -52,7 +52,7 @@ function draw() {
   ctx.fill()
 
   // 能量条
-  const barX = 380, barY = 60, barW = 160, barH = 20
+  const barX = 380, barY = 95, barW = 160, barH = 20
   // 势能（橙）
   ctx.fillStyle = '#e2e8f0'
   ctx.fillRect(barX, barY, barW, barH)

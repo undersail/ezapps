@@ -36,7 +36,7 @@ function draw() {
 
   const SCALE = 60          // 每单位 f 的像素
   const lensX = w / 2       // 透镜位置
-  const axisY = h / 2
+  const axisY = h / 2 + 20
   const objH = 44           // 物体高度 px
 
   // 光轴
@@ -64,24 +64,22 @@ function draw() {
   ctx.fillText('F', fLeft - 8, axisY - 10)
   ctx.fillText('F', fRight + 4, axisY - 10)
 
-  // 凸透镜（课本标准符号：竖线 + 上下箭头表示凸面）
+  // 凸透镜（课本符号：竖线 + 上下短横，与物体箭头区分）
   ctx.strokeStyle = '#6366f1'
-  ctx.lineWidth = 3
+  ctx.lineWidth = 4
   ctx.beginPath()
   ctx.moveTo(lensX, axisY - 30)
   ctx.lineTo(lensX, axisY + 30)
   ctx.stroke()
-  // 上箭头（朝上，表示凸面向外）
+  // 上端短横（凸面示意）
   ctx.beginPath()
-  ctx.moveTo(lensX - 8, axisY - 24)
-  ctx.lineTo(lensX, axisY - 34)
-  ctx.lineTo(lensX + 8, axisY - 24)
+  ctx.moveTo(lensX - 12, axisY - 27)
+  ctx.lineTo(lensX + 12, axisY - 27)
   ctx.stroke()
-  // 下箭头（朝下）
+  // 下端短横
   ctx.beginPath()
-  ctx.moveTo(lensX - 8, axisY + 24)
-  ctx.lineTo(lensX, axisY + 34)
-  ctx.lineTo(lensX + 8, axisY + 24)
+  ctx.moveTo(lensX - 12, axisY + 27)
+  ctx.lineTo(lensX + 12, axisY + 27)
   ctx.stroke()
 
   // 物体（左侧，箭头朝上）
