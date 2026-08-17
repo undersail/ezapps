@@ -75,12 +75,19 @@ function draw() {
   ctx.font = 'bold 10px system-ui'
   ctx.fillText('A', ampX, ampY + 4)
 
-  // 电流方向箭头（回路顶部）
+  // 电流方向箭头（沿回路顶边，与导线对齐）
+  const topY = midY - 80
+  ctx.strokeStyle = '#3b82f6'
+  ctx.lineWidth = 2.5
+  ctx.beginPath()
+  ctx.moveTo(150, topY)
+  ctx.lineTo(175, topY)
+  ctx.stroke()
   ctx.fillStyle = '#3b82f6'
   ctx.beginPath()
-  ctx.moveTo(150, midY - 72); ctx.lineTo(180, midY - 82); ctx.lineTo(180, midY - 62); ctx.closePath(); ctx.fill()
+  ctx.moveTo(175, topY); ctx.lineTo(166, topY - 6); ctx.lineTo(166, topY + 6); ctx.closePath(); ctx.fill()
   ctx.font = '12px system-ui'
-  ctx.fillText('I', 120, midY - 78)
+  ctx.fillText('I', 118, topY + 4)
 
   // 数据
   // ===== 顶部信息区（白条盖住越界图形，文字专属区） =====

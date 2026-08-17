@@ -131,8 +131,9 @@ function frame(now: number) {
   } else {
     x1 += s1 * dt * 45
     x2 += s2 * dt * 45
-    if (x1 < R) { x1 = R; s1 = Math.abs(s1) }
-    if (x2 > 560 - R) { x2 = 560 - R; s2 = -Math.abs(s2) }
+    // 弹到两侧即停（不再从墙面反弹）
+    if (x1 <= R + 2) { x1 = R + 2; s1 = 0 }
+    if (x2 >= 560 - R - 2) { x2 = 560 - R - 2; s2 = 0 }
   }
   draw()
   raf = requestAnimationFrame(frame)

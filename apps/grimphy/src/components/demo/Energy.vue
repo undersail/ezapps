@@ -80,7 +80,7 @@ function draw() {
   ctx.fillRect(barX, barY2, (ke.value / 100) * barW, barH)
   ctx.fillStyle = '#1d4ed8'
   ctx.font = 'bold 12px system-ui'
-  ctx.fillText(`动能（蓝）${ke.value}%`, barX, barY2 - 6)
+  ctx.fillText(`动能 ${ke.value}%`, barX, barY2 - 6)
 
   // 数据
   ctx.fillStyle = '#334155'

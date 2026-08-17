@@ -73,13 +73,15 @@ function draw() {
     ctx.moveTo(px0, py0)
     ctx.lineTo(px0 + Math.sin(rrad * Math.PI / 180) * 120, py0 + Math.cos(rrad * Math.PI / 180) * 120)
     ctx.stroke()
-    // 角度弧
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)'
+    // 入射角弧（法线 → 入射光，左上）
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)'
+    ctx.lineWidth = 1.5
     ctx.beginPath()
-    ctx.arc(px0, py0, 34, -rad, 0)
+    ctx.arc(px0, py0, 36, -Math.PI / 2, -Math.PI / 2 + rad)
     ctx.stroke()
     ctx.fillStyle = '#b45309'
-    ctx.fillText('θ=' + angle.value + '°', px0 - 58, py0 - 34)
+    ctx.font = '12px system-ui'
+    ctx.fillText('θ=' + angle.value + '°', px0 - 62, py0 - 32)
   } else {
     // === 全反射：光从水中射向水面 ===
     // 入射光（左下 → 分界点，从水中）
@@ -94,16 +96,17 @@ function draw() {
     ctx.textAlign = 'center'
     ctx.fillText('入射光（水中）', px0 - 95, py0 + Math.cos(rad) * inLen + 16)
     if (isTotal.value) {
-      // 全反射光（左上，全部反射回水中）
+      // 全反射光（向左下，全部反射回水中！）
       ctx.strokeStyle = '#3b82f6'
       ctx.lineWidth = 3
       ctx.beginPath()
       ctx.moveTo(px0, py0)
-      ctx.lineTo(px0 - Math.sin(rad) * inLen, py0 - Math.cos(rad) * inLen)
+      ctx.lineTo(px0 - Math.sin(rad) * inLen, py0 + Math.cos(rad) * inLen)
       ctx.stroke()
       ctx.fillStyle = '#1d4ed8'
       ctx.font = 'bold 12px system-ui'
-      ctx.fillText('全反射！光全部反射回水中', px0 - 130, py0 - 60)
+      ctx.textAlign = 'center'
+      ctx.fillText('全反射！光全部反射回水中', px0 - 100, py0 + Math.cos(rad) * inLen + 16)
     } else {
       // 未超临界：光进入空气（简化）
       const rrad = (Math.asin(nWater * Math.sin(rad)) * 180) / Math.PI
@@ -132,13 +135,16 @@ function draw() {
     ctx.fillStyle = '#dc2626'
     ctx.font = '11px system-ui'
     ctx.fillText('临界角 ' + critical.value.toFixed(1) + '°', px0 - 90, py0 - 26)
-    // 入射角弧
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)'
+    // 入射角弧（法线 → 入射光，水中左侧）
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)'
+    ctx.lineWidth = 1.5
     ctx.beginPath()
-    ctx.arc(px0, py0, 34, 0, rad)
+    ctx.arc(px0, py0, 36, -Math.PI / 2, -Math.PI / 2 + rad)
     ctx.stroke()
     ctx.fillStyle = '#b45309'
-    ctx.fillText('θ=' + angle.value + '°', px0 - 44, py0 + 42)
+    ctx.font = '12px system-ui'
+    ctx.textAlign = 'left'
+    ctx.fillText('θ=' + angle.value + '°', px0 - 34, py0 - 30)
   }
 
   // ===== 顶部信息区 =====
