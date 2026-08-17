@@ -352,4 +352,28 @@ const experiments: ExperimentCard[] = [
   cursor: pointer;
 }
 .demo__btn:hover { background: #4f46e5; }
+
+.demo__tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.demo__tab {
+  flex: 1;
+  padding: 8px 0;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.demo__tab:hover { border-color: #c7d2fe; color: #4f46e5; }
+.demo__tab.on {
+  border-color: #6366f1;
+  background: #eef2ff;
+  color: #4f46e5;
+}
 </style>

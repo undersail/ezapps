@@ -36,9 +36,9 @@ function draw() {
   ctx.fillStyle = '#f8fafc'
   ctx.fillRect(0, 0, w, h)
 
-  const pivotX = w / 2, pivotY = h / 2 + 15
+  const pivotX = w / 2, pivotY = h / 2 + 40
   const rad = tilt.value * Math.PI / 180
-  const HALF = 165
+  const HALF = 190
 
   // 支点三角
   ctx.fillStyle = '#64748b'

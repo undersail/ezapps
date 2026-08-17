@@ -49,8 +49,8 @@ function draw() {
   ctx.lineTo(cx + 110, TOP)
   ctx.stroke()
 
-  // 滑轮中心（定滑轮/动滑轮均固定，仅拉力绳端随拉动移动）
-  const cy = fixed ? 185 : 165
+  // 滑轮中心（定滑轮固定；动滑轮随拉动升降，带动重物）
+  const cy = fixed ? 185 : 165 - lift
 
   // ===== 定滑轮 =====
   if (fixed) {
@@ -143,8 +143,8 @@ function draw() {
     ctx.beginPath()
     ctx.arc(cx, cy, R, 0, Math.PI)
     ctx.stroke()
-    // 拉力端（滑轮右端 → 竖直向上悬空，绳端随拉力箭头移动）
-    const pullTop = Math.max(92, TOP - 16 - lift * 2)
+    // 拉力端（滑轮右端 → 短绳头悬空，随滑轮/重物一起升降）
+    const pullTop = cy - 48
     ctx.beginPath()
     ctx.moveTo(cx + R, cy)
     ctx.lineTo(cx + R, pullTop)
@@ -165,7 +165,7 @@ function draw() {
     ctx.arc(cx, cy, 5, 0, Math.PI * 2)
     ctx.fill()
 
-    // 拉力箭头（向上，悬空端）
+    // 拉力箭头（向上，短绳头端）
     ctx.fillStyle = '#f59e0b'
     ctx.beginPath()
     ctx.moveTo(cx + R - 8, pullTop + 10)
@@ -175,7 +175,7 @@ function draw() {
     ctx.fill()
     ctx.fillStyle = '#b45309'
     ctx.font = 'bold 12px system-ui'
-    ctx.fillText('F=' + (weight.value / 2), cx + R, pullTop - 16)
+    ctx.fillText('F=' + (weight.value / 2), cx + R + 12, pullTop)
 
     // 重物（挂在滑轮下）
     ctx.fillStyle = '#ef4444'
