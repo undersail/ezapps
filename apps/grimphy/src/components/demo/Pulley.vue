@@ -41,7 +41,9 @@ function draw() {
   // 拉动位移（sin 循环：0 → +1 → 0）
   const lift = Math.sin(phase * Math.PI) * 18
   const cy = (fixed ? 185 : 205) - lift      // 动滑轮随拉动整体升降
-  const wTop = fixed ? cy + 30 + lift : cy + R + 8 + lift   // 重物位置（定滑轮：拉力下拉重物上升=lift为负时上升 —— 简化同步）
+  // 定滑轮：滑轮固定，拉力端下拉(向下)时重物上升(向上) —— 反向同步
+  const wTop = fixed ? cy + 30 - lift : cy + R + 8 + lift
+  const pullEndY = fixed ? H - 70 + lift : 0
 
   // 顶部固定横杆
   ctx.strokeStyle = '#475569'
@@ -85,8 +87,7 @@ function draw() {
     ctx.moveTo(cx - R, cy)
     ctx.lineTo(cx - R, wTop)
     ctx.stroke()
-    // 右绳（拉力端，长度随拉动变化）
-    const pullEndY = H - 70 + lift * 2
+    // 右绳（拉力端，长度随拉动变化，与重物反向同步）
     ctx.beginPath()
     ctx.moveTo(cx + R, cy)
     ctx.lineTo(cx + R, pullEndY)
@@ -138,18 +139,22 @@ function draw() {
     ctx.beginPath()
     ctx.arc(cx, cy, R, 0, Math.PI)
     ctx.stroke()
-    // 拉力绳（滑轮右侧 → 横杆上方悬空）
-    const pullTop = Math.max(96, TOP - 26 - lift * 2)   // 不低于白条区(84)
+    // 拉力绳（滑轮右侧 → 斜向右上悬空，随滑轮升降）
+    const pullTop = Math.max(96, TOP - 26 - lift * 1.5)
+    const pullEndX = cx + R + 34
     ctx.beginPath()
     ctx.moveTo(cx + R, cy)
-    ctx.lineTo(cx + R, pullTop)
+    ctx.lineTo(pullEndX, pullTop)
     ctx.stroke()
-    // 拉力箭头（向上，悬空端）
+    // 拉力箭头（斜向右上，悬空端）
+    const dx = pullEndX - (cx + R), dy = pullTop - cy
+    const dl = Math.hypot(dx, dy) || 1
+    const ux = dx / dl, uy = dy / dl
     ctx.fillStyle = '#f59e0b'
     ctx.beginPath()
-    ctx.moveTo(cx + R - 8, pullTop + 10)
-    ctx.lineTo(cx + R + 8, pullTop + 10)
-    ctx.lineTo(cx + R, pullTop - 10)
+    ctx.moveTo(pullEndX + ux * 9, pullTop + uy * 9)
+    ctx.lineTo(pullEndX - uy * 5, pullTop + ux * 5)
+    ctx.lineTo(pullEndX + uy * 5, pullTop - ux * 5)
     ctx.closePath()
     ctx.fill()
     // 重物（挂在滑轮下方，随滑轮升降）

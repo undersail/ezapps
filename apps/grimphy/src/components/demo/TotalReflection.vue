@@ -51,20 +51,40 @@ function draw() {
 
   if (mode.value === 'interface') {
     // === 界面反射：光从空气射向水面 ===
-    // 入射光（左上 → 分界点）
+    // 入射光（左上 → 分界点）+ 方向箭头
     ctx.strokeStyle = '#f59e0b'
     ctx.lineWidth = 3
+    const inSx2 = px0 - Math.sin(rad) * inLen, inSy2 = py0 - Math.cos(rad) * inLen
     ctx.beginPath()
-    ctx.moveTo(px0 - Math.sin(rad) * inLen, py0 - Math.cos(rad) * inLen)
+    ctx.moveTo(inSx2, inSy2)
     ctx.lineTo(px0, py0)
     ctx.stroke()
-    // 反射光（右上，入射角=反射角）
+    const aU2x = Math.sin(rad), aU2y = Math.cos(rad)
+    const am2x = inSx2 + (px0 - inSx2) * 0.55, am2y = inSy2 + (py0 - inSy2) * 0.55
+    ctx.fillStyle = '#b45309'
+    ctx.beginPath()
+    ctx.moveTo(am2x + aU2x * 9, am2y + aU2y * 9)
+    ctx.lineTo(am2x - aU2y * 5, am2y + aU2x * 5)
+    ctx.lineTo(am2x + aU2y * 5, am2y - aU2x * 5)
+    ctx.closePath()
+    ctx.fill()
+    // 反射光（右上，入射角=反射角）+ 方向箭头
     ctx.strokeStyle = '#dc2626'
     ctx.lineWidth = 3
+    const reSx = px0 + Math.sin(rad) * inLen, reSy = py0 - Math.cos(rad) * inLen
     ctx.beginPath()
     ctx.moveTo(px0, py0)
-    ctx.lineTo(px0 + Math.sin(rad) * inLen, py0 - Math.cos(rad) * inLen)
+    ctx.lineTo(reSx, reSy)
     ctx.stroke()
+    const rUx = Math.sin(rad), rUy = -Math.cos(rad)
+    const rmx = px0 + (reSx - px0) * 0.55, rmy = py0 + (reSy - py0) * 0.55
+    ctx.fillStyle = '#dc2626'
+    ctx.beginPath()
+    ctx.moveTo(rmx + rUx * 9, rmy + rUy * 9)
+    ctx.lineTo(rmx - rUy * 5, rmy + rUx * 5)
+    ctx.lineTo(rmx + rUy * 5, rmy - rUx * 5)
+    ctx.closePath()
+    ctx.fill()
     // 折射光（右下，进入水中，向法线靠拢）
     const rrad = (Math.asin(Math.sin(rad) / nWater) * 180) / Math.PI
     ctx.strokeStyle = '#3b82f6'
@@ -92,13 +112,14 @@ function draw() {
     ctx.moveTo(inSx, inSy)
     ctx.lineTo(px0, py0)
     ctx.stroke()
-    // 入射方向箭头（光线中部，朝分界点）
+    // 入射方向箭头（沿光线方向：指向分界点）
     const amx = inSx + (px0 - inSx) * 0.55, amy = inSy + (py0 - inSy) * 0.55
+    const aUx = Math.sin(rad), aUy = -Math.cos(rad)
     ctx.fillStyle = '#b45309'
     ctx.beginPath()
-    ctx.moveTo(amx + Math.sin(rad) * 5, amy - Math.cos(rad) * 5)
-    ctx.lineTo(amx - Math.cos(rad) * 10, amy - Math.sin(rad) * 10)
-    ctx.lineTo(amx - Math.sin(rad) * 5, amy + Math.cos(rad) * 5)
+    ctx.moveTo(amx + aUx * 9, amy + aUy * 9)
+    ctx.lineTo(amx - aUy * 5, amy + aUx * 5)
+    ctx.lineTo(amx + aUy * 5, amy - aUx * 5)
     ctx.closePath()
     ctx.fill()
     ctx.fillStyle = '#b45309'
@@ -115,11 +136,12 @@ function draw() {
       ctx.lineTo(rex, rey)
       ctx.stroke()
       const bmx = px0 + (rex - px0) * 0.55, bmy = py0 + (rey - py0) * 0.55
+      const bUx = Math.sin(rad), bUy = Math.cos(rad)
       ctx.fillStyle = '#1d4ed8'
       ctx.beginPath()
-      ctx.moveTo(bmx + Math.sin(rad) * 5, bmy + Math.cos(rad) * 5)
-      ctx.lineTo(bmx - Math.cos(rad) * 10, bmy + Math.sin(rad) * 10)
-      ctx.lineTo(bmx - Math.sin(rad) * 5, bmy - Math.cos(rad) * 5)
+      ctx.moveTo(bmx + bUx * 9, bmy + bUy * 9)
+      ctx.lineTo(bmx - bUy * 5, bmy + bUx * 5)
+      ctx.lineTo(bmx + bUy * 5, bmy - bUx * 5)
       ctx.closePath()
       ctx.fill()
       ctx.fillStyle = '#1d4ed8'

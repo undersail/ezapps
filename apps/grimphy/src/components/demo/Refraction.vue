@@ -54,14 +54,15 @@ function draw() {
   ctx.moveTo(inSx, inSy)
   ctx.lineTo(px0, py0)
   ctx.stroke()
-  // 入射方向箭头（光线中部）
+  // 入射方向箭头（沿光线方向：指向分界点）
   const inMid = 0.55
   const amx = inSx + (px0 - inSx) * inMid, amy = inSy + (py0 - inSy) * inMid
+  const aUx = Math.sin(rad), aUy = Math.cos(rad)
   ctx.fillStyle = '#b45309'
   ctx.beginPath()
-  ctx.moveTo(amx + Math.sin(rad) * 5, amy + Math.cos(rad) * 5)
-  ctx.lineTo(amx - Math.cos(rad) * 10, amy + Math.sin(rad) * 10)
-  ctx.lineTo(amx - Math.sin(rad) * 5, amy - Math.cos(rad) * 5)
+  ctx.moveTo(amx + aUx * 9, amy + aUy * 9)
+  ctx.lineTo(amx - aUy * 5, amy + aUx * 5)
+  ctx.lineTo(amx + aUy * 5, amy - aUx * 5)
   ctx.closePath()
   ctx.fill()
 
@@ -76,11 +77,12 @@ function draw() {
   ctx.lineTo(outEx, outEy)
   ctx.stroke()
   const bmx = px0 + (outEx - px0) * 0.55, bmy = py0 + (outEy - py0) * 0.55
+  const bUx = Math.sin(rrad), bUy = Math.cos(rrad)
   ctx.fillStyle = '#1d4ed8'
   ctx.beginPath()
-  ctx.moveTo(bmx + Math.sin(rrad) * 5, bmy + Math.cos(rrad) * 5)
-  ctx.lineTo(bmx - Math.cos(rrad) * 10, bmy + Math.sin(rrad) * 10)
-  ctx.lineTo(bmx - Math.sin(rrad) * 5, bmy - Math.cos(rrad) * 5)
+  ctx.moveTo(bmx + bUx * 9, bmy + bUy * 9)
+  ctx.lineTo(bmx - bUy * 5, bmy + bUx * 5)
+  ctx.lineTo(bmx + bUy * 5, bmy - bUx * 5)
   ctx.closePath()
   ctx.fill()
 
