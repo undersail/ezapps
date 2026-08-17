@@ -60,23 +60,23 @@ function draw() {
   }
 
   // 温度计（右侧）
-  const tx = 500
+  const tx = 514
   ctx.lineWidth = 3
   ctx.strokeStyle = '#94a3b8'
   ctx.beginPath()
-  ctx.moveTo(tx, 96); ctx.lineTo(tx, 252); ctx.stroke()
+  ctx.moveTo(tx, 108); ctx.lineTo(tx, 276); ctx.stroke()
   ctx.beginPath()
-  ctx.arc(tx, 262, 18, 0, Math.PI * 2)
+  ctx.arc(tx, 290, 18, 0, Math.PI * 2)
   ctx.stroke()
   // 液柱（-20 ~ 120 映射 70-240）
   const hgt = ((temp.value + 20) / 140) * 170
   ctx.strokeStyle = '#ef4444'
   ctx.lineWidth = 4
   ctx.beginPath()
-  ctx.moveTo(tx, 252 - hgt); ctx.lineTo(tx, 252); ctx.stroke()
+  ctx.moveTo(tx, 276 - hgt); ctx.lineTo(tx, 276); ctx.stroke()
   ctx.fillStyle = '#ef4444'
   ctx.beginPath()
-  ctx.arc(tx, 262, 14, 0, Math.PI * 2)
+  ctx.arc(tx, 290, 14, 0, Math.PI * 2)
   ctx.fill()
 
   // 数据

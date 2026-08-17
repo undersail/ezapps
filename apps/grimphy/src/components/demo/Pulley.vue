@@ -143,8 +143,9 @@ function draw() {
     ctx.beginPath()
     ctx.arc(cx, cy, R, 0, Math.PI)
     ctx.stroke()
-    // 拉力端（滑轮右端 → 短绳头悬空，随滑轮/重物一起升降）
-    const pullTop = cy - 48
+    // 拉力端（滑轮右端 → 短绳头悬空；绳段长 48+lift，
+    // 滑轮上升时绳段变长 → 绳总长恒定）
+    const pullTop = cy - 48 - lift
     ctx.beginPath()
     ctx.moveTo(cx + R, cy)
     ctx.lineTo(cx + R, pullTop)
