@@ -50,7 +50,7 @@ function draw() {
   ctx.stroke()
 
   // 滑轮中心（定滑轮固定；动滑轮随拉动升降，带动重物）
-  const cy = fixed ? 185 : 165 - lift
+  const cy = fixed ? 172 : 185 - lift
 
   // ===== 定滑轮 =====
   if (fixed) {
@@ -62,8 +62,8 @@ function draw() {
     ctx.lineTo(cx, cy)
     ctx.stroke()
 
-    // 重物位置（拉力下拉时上升：lift↑ → 重物上移）
-    const wTop = cy + 26 - lift
+    // 重物位置（绳加长悬挂，拉力下拉时上升：lift↑ → 重物上移）
+    const wTop = cy + 62 - lift
     const pullEnd = H - 66 + lift   // 拉力端（下拉）
 
     // 绳绕滑轮上半圈
@@ -118,10 +118,10 @@ function draw() {
     ctx.font = 'bold 12px system-ui'
     ctx.fillText('F=' + weight.value, cx + R, pullEnd + 28)
 
-    // 标注
+    // 标注（上挪，靠近支架）
     ctx.fillStyle = '#64748b'
     ctx.font = '11px system-ui'
-    ctx.fillText('支架固定（轴不动）', cx + 16, cy - 10)
+    ctx.fillText('支架固定（轴不动）', cx + 16, cy - 34)
   } else {
     // ===== 动滑轮 =====
     // 重物（滑轮下方）
@@ -185,11 +185,11 @@ function draw() {
     ctx.textAlign = 'center'
     ctx.fillText(weight.value + 'N', cx, wTop + 22)
 
-    // 标注
+    // 标注（左侧固定端）
     ctx.fillStyle = '#64748b'
     ctx.font = '11px system-ui'
     ctx.textAlign = 'left'
-    ctx.fillText('绳端固定于横杆', cx + R + 16, cy - R - 8)
+    ctx.fillText('绳端固定于横杆', cx - 90, (TOP + cy - R) / 2 - 6)
     // 受力标注（重物重力 G）
     ctx.fillStyle = '#dc2626'
     ctx.font = 'bold 12px system-ui'
@@ -227,16 +227,16 @@ onBeforeUnmount(() => cancelAnimationFrame(raf))
 
 <template>
   <div class="demo">
+    <div class="demo__tabs">
+      <button class="demo__tab" :class="{ on: pulleyType === 'fixed' }" @click="pulleyType = 'fixed'">🔩 定滑轮</button>
+      <button class="demo__tab" :class="{ on: pulleyType === 'moving' }" @click="pulleyType = 'moving'">🪝 动滑轮</button>
+    </div>
     <canvas ref="canvasRef" width="560" height="320" class="demo__canvas"></canvas>
     <div class="demo__controls">
       <label class="demo__ctl">
         <span>重物重量：{{ weight }} N</span>
         <input type="range" v-model.number="weight" min="1" max="8" step="1" />
       </label>
-      <div class="demo__tabs">
-        <button class="demo__tab" :class="{ on: pulleyType === 'fixed' }" @click="pulleyType = 'fixed'">🔩 定滑轮</button>
-        <button class="demo__tab" :class="{ on: pulleyType === 'moving' }" @click="pulleyType = 'moving'">🪝 动滑轮</button>
-      </div>
     </div>
   </div>
 </template>
