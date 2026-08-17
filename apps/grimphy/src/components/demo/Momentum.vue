@@ -14,6 +14,7 @@ let running = true
 let stopped = false
 let x1 = 110, x2 = 440
 let s1 = 0, s2 = 0
+let collideV1 = 0, collideV2 = 0   // 碰撞后瞬间速度（碰壁前，用于守恒显示）
 const R = 22
 
 function momentum() {
@@ -107,11 +108,12 @@ function draw() {
   ctx.font = '13px system-ui'
   ctx.fillStyle = '#334155'
   ctx.fillText('碰撞前：v1=' + v1.value + ' m/s  v2=' + v2.value + ' m/s', 16, 24)
-  ctx.fillText('动量守恒：' + momentum().toFixed(1) + ' = ' + (running ? '碰撞中…' : momentumAfter().toFixed(1)), 16, 44)
+  const afterMomentum = (m1.value * collideV1 + m2.value * collideV2).toFixed(1)
+  ctx.fillText('动量守恒：' + momentum().toFixed(1) + ' = ' + (running ? '碰撞中…' : afterMomentum), 16, 44)
   if (!running) {
     if (stopped) {
       ctx.fillStyle = '#64748b'
-      ctx.fillText('已停止：碰撞后 v1=' + s1.toFixed(1) + ' m/s  v2=' + s2.toFixed(1) + ' m/s ✓ 动量守恒', 16, 64)
+      ctx.fillText('已停止（碰撞后速度）：v1=' + collideV1.toFixed(1) + ' m/s  v2=' + collideV2.toFixed(1) + ' m/s ✓ 动量守恒', 16, 64)
     } else {
       ctx.fillStyle = '#059669'
       ctx.fillText('碰撞后：v1=' + s1.toFixed(1) + ' m/s  v2=' + s2.toFixed(1) + ' m/s ✓ 守恒', 16, 64)
@@ -132,6 +134,8 @@ function frame(now: number) {
       x2 += overlap / 2
       s1 = ((m1.value - m2.value) * v1.value + 2 * m2.value * v2.value) / (m1.value + m2.value)
       s2 = ((m2.value - m1.value) * v2.value + 2 * m1.value * v1.value) / (m1.value + m2.value)
+      collideV1 = s1
+      collideV2 = s2
       running = false
     }
   } else {
@@ -149,6 +153,7 @@ function frame(now: number) {
 function reset() {
   x1 = 110; x2 = 440
   s1 = 0; s2 = 0
+  collideV1 = 0; collideV2 = 0
   running = true
   stopped = false
   last = performance.now()
