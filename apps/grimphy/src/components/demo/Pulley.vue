@@ -50,7 +50,7 @@ function draw() {
   ctx.stroke()
 
   // 滑轮中心（定滑轮/动滑轮均固定，仅拉力绳端随拉动移动）
-  const cy = fixed ? 185 : 205
+  const cy = fixed ? 185 : 165
 
   // ===== 定滑轮 =====
   if (fixed) {
@@ -127,13 +127,18 @@ function draw() {
     // 重物（滑轮下方）
     const wTop = cy + R + 8
 
-    // 绳：固定端（横杆 → 滑轮左端）
+    // 绳：固定端（横杆 → 滑轮左端，短绳头）
     ctx.strokeStyle = '#b45309'
     ctx.lineWidth = 2.5
     ctx.beginPath()
     ctx.moveTo(cx - 24, TOP)
     ctx.lineTo(cx - R, cy)
     ctx.stroke()
+    // 固定端张力标注
+    ctx.fillStyle = '#b45309'
+    ctx.font = 'bold 11px system-ui'
+    ctx.textAlign = 'left'
+    ctx.fillText('T', cx - R - 16, (TOP + cy - R) / 2 + 4)
     // 绕滑轮下半圈
     ctx.beginPath()
     ctx.arc(cx, cy, R, 0, Math.PI)
@@ -185,6 +190,10 @@ function draw() {
     ctx.font = '11px system-ui'
     ctx.textAlign = 'left'
     ctx.fillText('绳端固定于横杆', cx + R + 16, cy - R - 8)
+    // 受力标注（重物重力 G）
+    ctx.fillStyle = '#dc2626'
+    ctx.font = 'bold 12px system-ui'
+    ctx.fillText('G=' + weight.value, cx + 40, wTop + 44)
   }
 
   // ===== 顶部信息区 =====
@@ -224,13 +233,10 @@ onBeforeUnmount(() => cancelAnimationFrame(raf))
         <span>重物重量：{{ weight }} N</span>
         <input type="range" v-model.number="weight" min="1" max="8" step="1" />
       </label>
-      <label class="demo__ctl">
-        <span>滑轮类型</span>
-        <select v-model="pulleyType" class="demo__select">
-          <option value="fixed">定滑轮</option>
-          <option value="moving">动滑轮</option>
-        </select>
-      </label>
+      <div class="demo__tabs">
+        <button class="demo__tab" :class="{ on: pulleyType === 'fixed' }" @click="pulleyType = 'fixed'">🔩 定滑轮</button>
+        <button class="demo__tab" :class="{ on: pulleyType === 'moving' }" @click="pulleyType = 'moving'">🪝 动滑轮</button>
+      </div>
     </div>
   </div>
 </template>

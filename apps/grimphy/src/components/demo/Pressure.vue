@@ -43,14 +43,14 @@ function drawSolid(ctx: CanvasRenderingContext2D) {
   const objX = W / 2 - objW / 2
   const objY = groundY - objH
 
-  // 压力箭头（向下）
+  // 压力箭头（从上向下压向物体）
   ctx.strokeStyle = '#ef4444'
   ctx.lineWidth = 3
   const fArrows = Math.min(force.value, 6)
   for (let i = 0; i < fArrows; i++) {
     const ax = objX + (objW / (fArrows + 1)) * (i + 1)
-    ctx.beginPath(); ctx.moveTo(ax, objY - 8); ctx.lineTo(ax, objY - 34); ctx.stroke()
-    ctx.beginPath(); ctx.moveTo(ax, objY - 34); ctx.lineTo(ax - 5, objY - 26); ctx.moveTo(ax, objY - 34); ctx.lineTo(ax + 5, objY - 26); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(ax, objY - 34); ctx.lineTo(ax, objY - 8); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(ax, objY - 8); ctx.lineTo(ax - 5, objY - 16); ctx.moveTo(ax, objY - 8); ctx.lineTo(ax + 5, objY - 16); ctx.stroke()
   }
   ctx.fillStyle = '#ef4444'
   ctx.font = 'bold 12px system-ui'
