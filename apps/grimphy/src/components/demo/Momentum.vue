@@ -11,6 +11,7 @@ const v2 = ref(-2)
 let raf = 0
 let last = 0
 let running = true
+let stopped = false
 let x1 = 110, x2 = 440
 let s1 = 0, s2 = 0
 const R = 22
@@ -108,8 +109,13 @@ function draw() {
   ctx.fillText('碰撞前：v1=' + v1.value + ' m/s  v2=' + v2.value + ' m/s', 16, 24)
   ctx.fillText('动量守恒：' + momentum().toFixed(1) + ' = ' + (running ? '碰撞中…' : momentumAfter().toFixed(1)), 16, 44)
   if (!running) {
-    ctx.fillStyle = '#059669'
-    ctx.fillText('碰撞后：v1=' + s1.toFixed(1) + ' m/s  v2=' + s2.toFixed(1) + ' m/s ✓ 守恒', 16, 64)
+    if (stopped) {
+      ctx.fillStyle = '#64748b'
+      ctx.fillText('已停止：碰撞后 v1=' + s1.toFixed(1) + ' m/s  v2=' + s2.toFixed(1) + ' m/s ✓ 动量守恒', 16, 64)
+    } else {
+      ctx.fillStyle = '#059669'
+      ctx.fillText('碰撞后：v1=' + s1.toFixed(1) + ' m/s  v2=' + s2.toFixed(1) + ' m/s ✓ 守恒', 16, 64)
+    }
   }
 }
 
@@ -134,6 +140,7 @@ function frame(now: number) {
     // 弹到两侧即停（不再从墙面反弹）
     if (x1 <= R + 2) { x1 = R + 2; s1 = 0 }
     if (x2 >= 560 - R - 2) { x2 = 560 - R - 2; s2 = 0 }
+    if (s1 === 0 && s2 === 0) stopped = true
   }
   draw()
   raf = requestAnimationFrame(frame)
@@ -143,6 +150,7 @@ function reset() {
   x1 = 110; x2 = 440
   s1 = 0; s2 = 0
   running = true
+  stopped = false
   last = performance.now()
 }
 
