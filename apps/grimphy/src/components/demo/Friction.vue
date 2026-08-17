@@ -33,11 +33,15 @@ function draw() {
   const canvas = canvasRef.value
   if (!canvas) return
   const dpr = window.devicePixelRatio || 1
-  if (canvas.width !== W * dpr || canvas.height !== H * dpr) { canvas.width = W * dpr; canvas.height = H * dpr }
-  canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
+  // 容器宽度适配：小屏等比缩小渲染分辨率（文字显示尺寸恒定）
+  const scale = Math.min(1, (canvas.parentElement?.clientWidth || 560) / 560)
+  canvas.width = Math.max(1, Math.round(560 * scale * dpr))
+  canvas.height = Math.max(1, Math.round(H * scale * dpr))
+  canvas.style.width = '100%'
+  canvas.style.height = 'auto'
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0)
   ctx.clearRect(0, 0, W, H)
   ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, W, H)
 
