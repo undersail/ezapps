@@ -62,6 +62,23 @@ function draw() {
   ctx.textAlign = 'center'
   ctx.fillText('木块', ox + 28, y - 18)
 
+  // 压力箭头（从上向下，N）
+  ctx.strokeStyle = '#7c3aed'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(ox + 28, y - 48 - 6)
+  ctx.lineTo(ox + 28, y - 48 - 28)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(ox + 28, y - 48 - 28)
+  ctx.lineTo(ox + 22, y - 48 - 20)
+  ctx.moveTo(ox + 28, y - 48 - 28)
+  ctx.lineTo(ox + 34, y - 48 - 20)
+  ctx.stroke()
+  ctx.fillStyle = '#7c3aed'
+  ctx.font = 'bold 12px system-ui'
+  ctx.fillText('N=' + press.value, ox + 28, y - 48 - 34)
+
   // 拉力箭头（右）
   ctx.strokeStyle = '#3b82f6'
   ctx.lineWidth = 3

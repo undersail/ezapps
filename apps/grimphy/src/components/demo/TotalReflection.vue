@@ -182,16 +182,16 @@ function draw() {
     ctx.fillStyle = '#dc2626'
     ctx.font = '11px system-ui'
     ctx.fillText('临界角 ' + critical.value.toFixed(1) + '°', px0 - 90, py0 - 26)
-    // 入射角弧：法线向上(-π/2) → 入射光线反方向（水中左侧）
+    // 入射角弧：法线向下(π/2) → 入射光线反方向（水中左下）
     ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)'
     ctx.lineWidth = 1.5
     ctx.beginPath()
-    ctx.arc(px0, py0, 36, -Math.PI / 2 - rad, -Math.PI / 2)
+    ctx.arc(px0, py0, 36, Math.PI / 2, Math.PI - rad)
     ctx.stroke()
     ctx.fillStyle = '#b45309'
     ctx.font = '12px system-ui'
     ctx.textAlign = 'left'
-    ctx.fillText('θ=' + angle.value + '°', px0 - 44, py0 - 30)
+    ctx.fillText('θ=' + angle.value + '°', px0 - 56, py0 + 36)
   }
 
   // ===== 顶部信息区 =====
