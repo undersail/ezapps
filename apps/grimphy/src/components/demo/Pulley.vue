@@ -49,8 +49,8 @@ function draw() {
   ctx.lineTo(cx + 110, TOP)
   ctx.stroke()
 
-  // 滑轮中心（定滑轮固定 / 动滑轮随 lift 升降）
-  const cy = fixed ? 185 : 205 - lift
+  // 滑轮中心（定滑轮/动滑轮均固定，仅拉力绳端随拉动移动）
+  const cy = fixed ? 185 : 205
 
   // ===== 定滑轮 =====
   if (fixed) {
@@ -138,8 +138,8 @@ function draw() {
     ctx.beginPath()
     ctx.arc(cx, cy, R, 0, Math.PI)
     ctx.stroke()
-    // 拉力端（滑轮右端 → 竖直向上悬空，随滑轮升降）
-    const pullTop = Math.max(92, TOP - 18 - lift)
+    // 拉力端（滑轮右端 → 竖直向上悬空，绳端随拉力箭头移动）
+    const pullTop = Math.max(92, TOP - 16 - lift * 2)
     ctx.beginPath()
     ctx.moveTo(cx + R, cy)
     ctx.lineTo(cx + R, pullTop)

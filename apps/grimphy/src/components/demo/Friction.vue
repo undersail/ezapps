@@ -62,18 +62,18 @@ function draw() {
   ctx.textAlign = 'center'
   ctx.fillText('木块', ox + 28, y - 18)
 
-  // 压力箭头（从上向下，N）
+  // 压力箭头（从上向下压向物体，N）
   ctx.strokeStyle = '#7c3aed'
   ctx.lineWidth = 3
   ctx.beginPath()
-  ctx.moveTo(ox + 28, y - 48 - 6)
-  ctx.lineTo(ox + 28, y - 48 - 28)
+  ctx.moveTo(ox + 28, y - 48 - 30)
+  ctx.lineTo(ox + 28, y - 48 - 6)
   ctx.stroke()
   ctx.beginPath()
-  ctx.moveTo(ox + 28, y - 48 - 28)
-  ctx.lineTo(ox + 22, y - 48 - 20)
-  ctx.moveTo(ox + 28, y - 48 - 28)
-  ctx.lineTo(ox + 34, y - 48 - 20)
+  ctx.moveTo(ox + 28, y - 48 - 6)
+  ctx.lineTo(ox + 22, y - 48 - 14)
+  ctx.moveTo(ox + 28, y - 48 - 6)
+  ctx.lineTo(ox + 34, y - 48 - 14)
   ctx.stroke()
   ctx.fillStyle = '#7c3aed'
   ctx.font = 'bold 12px system-ui'

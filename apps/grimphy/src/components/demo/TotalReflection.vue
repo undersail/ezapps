@@ -186,7 +186,7 @@ function draw() {
     ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)'
     ctx.lineWidth = 1.5
     ctx.beginPath()
-    ctx.arc(px0, py0, 36, Math.PI / 2, Math.PI - rad)
+    ctx.arc(px0, py0, 36, Math.PI / 2, Math.PI / 2 + rad)
     ctx.stroke()
     ctx.fillStyle = '#b45309'
     ctx.font = '12px system-ui'
