@@ -101,6 +101,7 @@ function draw() {
   ctx.moveTo(0, 80)
   ctx.lineTo(W, 80)
   ctx.stroke()
+  ctx.fillStyle = '#334155'
   ctx.textAlign = 'left'
   ctx.font = '13px system-ui'
   ctx.fillStyle = '#334155'
@@ -119,6 +120,10 @@ function frame(now: number) {
     x1 += v1.value * dt * 45
     x2 += v2.value * dt * 45
     if (x2 - x1 <= R * 2 + 2) {
+      // 位置分离到刚好接触（防止高速下穿透）
+      const overlap = (R * 2 + 2) - (x2 - x1)
+      x1 -= overlap / 2
+      x2 += overlap / 2
       s1 = ((m1.value - m2.value) * v1.value + 2 * m2.value * v2.value) / (m1.value + m2.value)
       s2 = ((m2.value - m1.value) * v2.value + 2 * m1.value * v1.value) / (m1.value + m2.value)
       running = false

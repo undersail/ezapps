@@ -144,13 +144,14 @@ function draw() {
   ctx.moveTo(0, 80)
   ctx.lineTo(W, 80)
   ctx.stroke()
+  ctx.fillStyle = '#334155'
   ctx.textAlign = 'left'
   const kind = u.value > 2 * f ? '倒立缩小实像' : u.value === 2 * f ? '等大实像' : u.value > f ? '倒立放大实像' : '正立放大虚像'
   ctx.fillText(`物距 u = ${u.value.toFixed(1)}f`, 16, 24)
   ctx.fillText(`像距 v = ${isReal.value ? v.value.toFixed(1) + 'f' : '|' + Math.abs(v.value).toFixed(1) + 'f|（同侧）'}`, 16, 44)
   ctx.fillText(`像的性质：${kind}`, 16, 64)
   if (mag.value !== 0 && mag.value !== Infinity) {
-    ctx.fillText(`放大倍数：× ${mag.value.toFixed(1)}`, 16, 84)
+    ctx.fillText(`放大倍数：× ${mag.value.toFixed(1)}`, 16, 68)
   }
 }
 

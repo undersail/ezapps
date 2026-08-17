@@ -98,6 +98,7 @@ function draw() {
   ctx.lineTo(W, 80)
   ctx.stroke()
   ctx.fillStyle = '#334155'
+  ctx.fillStyle = '#334155'
   ctx.font = '13px system-ui'
   ctx.textAlign = 'left'
   ctx.fillText(`粒子速度 v=${speed.value.toFixed(1)}  电荷：${charge.value > 0 ? '正 (+)' : '负 (−)'}`, 16, 24)

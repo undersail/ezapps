@@ -25,7 +25,7 @@ function draw() {
   // 导线（矩形回路）
   ctx.strokeStyle = '#64748b'
   ctx.lineWidth = 3
-  ctx.strokeRect(90, midY - 90, 380, 180)
+  ctx.strokeRect(90, midY - 80, 380, 160)
 
   // 电池（左侧，长线+短线）
   const batX = 140
@@ -55,10 +55,10 @@ function draw() {
   ctx.fillText('R=' + resistance.value + 'Ω', resX, midY + 34)
 
   // 电流表（底部中央）
-  const ampX = W / 2, ampY = midY + 90 + 30
+  const ampX = W / 2, ampY = midY + 74
   ctx.fillStyle = '#fff'
   ctx.beginPath()
-  ctx.arc(ampX, ampY, 26, 0, Math.PI * 2)
+  ctx.arc(ampX, ampY, 22, 0, Math.PI * 2)
   ctx.fill()
   ctx.strokeStyle = '#334155'
   ctx.lineWidth = 2
@@ -92,6 +92,7 @@ function draw() {
   ctx.moveTo(0, 80)
   ctx.lineTo(W, 80)
   ctx.stroke()
+  ctx.fillStyle = '#334155'
   ctx.textAlign = 'left'
   ctx.fillStyle = '#334155'
   ctx.font = '13px system-ui'

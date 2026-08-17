@@ -52,7 +52,7 @@ function draw() {
   ctx.fill()
 
   // 能量条
-  const barX = 380, barY = 95, barW = 160, barH = 20
+  const barX = 380, barY = 100, barW = 160, barH = 20
   // 势能（橙）
   ctx.fillStyle = '#e2e8f0'
   ctx.fillRect(barX, barY, barW, barH)
@@ -69,6 +69,7 @@ function draw() {
   ctx.moveTo(0, 80)
   ctx.lineTo(W, 80)
   ctx.stroke()
+  ctx.fillStyle = '#334155'
   ctx.textAlign = 'left'
   ctx.fillText(`势能 ${pe.value}%`, barX, barY - 6)
   // 动能（蓝）
@@ -77,7 +78,9 @@ function draw() {
   ctx.fillRect(barX, barY2, barW, barH)
   ctx.fillStyle = '#3b82f6'
   ctx.fillRect(barX, barY2, (ke.value / 100) * barW, barH)
-  ctx.fillText(`动能 ${ke.value}%`, barX, barY2 - 6)
+  ctx.fillStyle = '#1d4ed8'
+  ctx.font = 'bold 12px system-ui'
+  ctx.fillText(`动能（蓝）${ke.value}%`, barX, barY2 - 6)
 
   // 数据
   ctx.fillStyle = '#334155'

@@ -81,6 +81,7 @@ function drawSolid(ctx: CanvasRenderingContext2D) {
   ctx.moveTo(0, 80)
   ctx.lineTo(W, 80)
   ctx.stroke()
+  ctx.fillStyle = '#334155'
   ctx.textAlign = 'left'
   ctx.font = '13px system-ui'
   ctx.fillStyle = '#334155'

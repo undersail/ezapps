@@ -101,10 +101,11 @@ function draw() {
   ctx.moveTo(0, 80)
   ctx.lineTo(W, 80)
   ctx.stroke()
+  ctx.fillStyle = '#334155'
   ctx.textAlign = 'left'
-  ctx.fillText(`摆长 L = ${L.value}px`, 16, h - 54)
-  ctx.fillText(`理论周期 T = ${T.toFixed(2)}s（只与摆长有关）`, 16, h - 34)
-  ctx.fillText(`当前角度 = ${(rad * 180 / Math.PI).toFixed(1)}°`, 16, h - 14)
+  ctx.fillText(`摆长 L = ${L.value}px  初始角度 ${theta0.value}°`, 16, 24)
+  ctx.fillText(`理论周期 T = ${T.toFixed(2)}s（只与摆长有关）`, 16, 46)
+  ctx.fillText(`当前角度 = ${(rad * 180 / Math.PI).toFixed(1)}°`, 16, 68)
 }
 
 watch([L, theta0], () => { t = 0 })

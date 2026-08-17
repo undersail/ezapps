@@ -106,12 +106,13 @@ function draw() {
   ctx.moveTo(0, 80)
   ctx.lineTo(W, 80)
   ctx.stroke()
+  ctx.fillStyle = '#334155'
   ctx.textAlign = 'left'
   ctx.fillText(`左力矩 = ${F1.value} × ${d1.value} = ${F1.value * d1.value}`, 16, 24)
   ctx.fillText(`右力矩 = ${F2.value} × ${d2.value} = ${F2.value * d2.value}`, 16, 44)
   ctx.fillStyle = balance.value ? '#059669' : '#dc2626'
   ctx.font = 'bold 13px system-ui'
-  ctx.fillText(balance.value ? '⚖️ 平衡！' : (tilt.value > 0 ? '◀ 左侧下沉（左力矩大）' : '右侧下沉（右力矩大） ▶'), 16, 66)
+  ctx.fillText(balance.value ? '⚖️ 平衡！' : (tilt.value > 0 ? '▶ 右侧下沉（右力矩大）' : '◀ 左侧下沉（左力矩大）'), 16, 66)
 }
 
 watch([F1, F2, d1, d2], draw)

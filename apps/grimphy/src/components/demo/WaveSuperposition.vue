@@ -12,6 +12,8 @@ let raf = 0
 let last = 0
 let t = 0
 
+const W = 560, H = 320
+
 function frame(now: number) {
   const dt = Math.min((now - last) / 1000, 0.05)
   last = now
@@ -24,30 +26,23 @@ function draw() {
   const canvas = canvasRef.value
   if (!canvas) return
   const dpr = window.devicePixelRatio || 1
-  const W = 560, H = 320
-  if (canvas.width !== W * dpr || canvas.height !== H * dpr) {
-    canvas.width = W * dpr
-    canvas.height = H * dpr
-  }
-  canvas.style.width = W + 'px'
-  canvas.style.height = H + 'px'
+  if (canvas.width !== W * dpr || canvas.height !== H * dpr) { canvas.width = W * dpr; canvas.height = H * dpr }
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
   const ctx = canvas.getContext('2d')
   if (!ctx) return
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.clearRect(0, 0, W, H)
-  const w = W, h = H
-  ctx.fillStyle = '#f8fafc'
-  ctx.fillRect(0, 0, w, h)
+  ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, W, H)
 
-  const mid = h / 2
-  const amp = 46
+  const mid = H / 2 + 10
+  const amp = 44
   const N = 200
 
   // 中线
   ctx.strokeStyle = '#e2e8f0'
   ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.moveTo(0, mid); ctx.lineTo(w, mid)
+  ctx.moveTo(0, mid); ctx.lineTo(W, mid)
   ctx.stroke()
 
   // 波1（蓝）
@@ -55,7 +50,7 @@ function draw() {
   ctx.lineWidth = 2
   ctx.beginPath()
   for (let i = 0; i <= N; i++) {
-    const x = (i / N) * w
+    const x = (i / N) * W
     const y = mid - amp * A1.value * Math.sin(2 * Math.PI * f1.value * (i / N) * 1.8 - t * 3)
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
   }
@@ -66,7 +61,7 @@ function draw() {
   ctx.lineWidth = 2
   ctx.beginPath()
   for (let i = 0; i <= N; i++) {
-    const x = (i / N) * w
+    const x = (i / N) * W
     const y = mid - amp * A2.value * Math.sin(2 * Math.PI * f2.value * (i / N) * 1.8 - t * 3)
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
   }
@@ -77,7 +72,7 @@ function draw() {
   ctx.lineWidth = 3
   ctx.beginPath()
   for (let i = 0; i <= N; i++) {
-    const x = (i / N) * w
+    const x = (i / N) * W
     const y1 = amp * A1.value * Math.sin(2 * Math.PI * f1.value * (i / N) * 1.8 - t * 3)
     const y2 = amp * A2.value * Math.sin(2 * Math.PI * f2.value * (i / N) * 1.8 - t * 3)
     const y = mid - (y1 + y2)
@@ -85,9 +80,6 @@ function draw() {
   }
   ctx.stroke()
 
-  // 图例
-  ctx.font = '12px system-ui'
-  ctx.fillStyle = '#3b82f6'
   // ===== 顶部信息区（白条盖住越界图形，文字专属区） =====
   ctx.fillStyle = '#f8fafc'
   ctx.fillRect(0, 0, W, 80)
@@ -97,6 +89,11 @@ function draw() {
   ctx.moveTo(0, 80)
   ctx.lineTo(W, 80)
   ctx.stroke()
+  ctx.fillStyle = '#334155'
+
+  // 图例（白条后，文字最后画）
+  ctx.font = '12px system-ui'
+  ctx.fillStyle = '#3b82f6'
   ctx.fillText('— 波 1', 16, 24)
   ctx.fillStyle = '#059669'
   ctx.fillText('— 波 2', 16, 44)

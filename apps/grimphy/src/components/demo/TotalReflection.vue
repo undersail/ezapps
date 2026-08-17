@@ -32,7 +32,7 @@ function draw() {
   ctx.fillStyle = '#0284c7'
   ctx.font = '12px system-ui'
   ctx.textAlign = 'left'
-  ctx.fillText('水 n=' + nWater.toFixed(2), 20, midY + 24)
+  ctx.fillText('水 n=' + nWater.toFixed(2) + '（入射光从水中射向水面）', 20, midY + 24)
   ctx.fillStyle = '#94a3b8'
   ctx.fillText('空气 n=1', 20, midY - 10)
 

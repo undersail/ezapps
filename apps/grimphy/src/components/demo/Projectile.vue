@@ -107,10 +107,11 @@ function draw(ballX: number, ballY: number) {
   ctx.moveTo(0, 80)
   ctx.lineTo(W, 80)
   ctx.stroke()
+  ctx.fillStyle = '#334155'
   ctx.textAlign = 'left'
-  ctx.fillText(`时间 t = ${t.toFixed(1)}s`, 16, h - 54)
-  ctx.fillText(`水平距离 x = ${xm.toFixed(1)}m`, 16, h - 34)
-  ctx.fillText(`下落高度 y = ${ym.toFixed(1)}m`, 16, h - 14)
+  ctx.fillText(`时间 t = ${t.toFixed(1)}s`, 16, 24)
+  ctx.fillText(`水平距离 x = ${xm.toFixed(1)}m`, 16, 46)
+  ctx.fillText(`下落高度 y = ${ym.toFixed(1)}m`, 16, 68)
 }
 
 watch([v0, resetKey], () => {
