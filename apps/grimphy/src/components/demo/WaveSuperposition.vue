@@ -34,7 +34,7 @@ function draw() {
   ctx.clearRect(0, 0, W, H)
   ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, W, H)
 
-  const mid = H / 2 + 10
+  const mid = H / 2 + 40
   const amp = 44
   const N = 200
 

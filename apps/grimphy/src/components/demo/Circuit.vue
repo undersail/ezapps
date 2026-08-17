@@ -78,9 +78,9 @@ function draw() {
   // 电流方向箭头（回路顶部）
   ctx.fillStyle = '#3b82f6'
   ctx.beginPath()
-  ctx.moveTo(150, midY - 90); ctx.lineTo(180, midY - 100); ctx.lineTo(180, midY - 80); ctx.closePath(); ctx.fill()
+  ctx.moveTo(150, midY - 72); ctx.lineTo(180, midY - 82); ctx.lineTo(180, midY - 62); ctx.closePath(); ctx.fill()
   ctx.font = '12px system-ui'
-  ctx.fillText('I', 120, midY - 96)
+  ctx.fillText('I', 120, midY - 78)
 
   // 数据
   // ===== 顶部信息区（白条盖住越界图形，文字专属区） =====

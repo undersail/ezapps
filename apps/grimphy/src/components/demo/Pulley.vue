@@ -10,7 +10,7 @@ function draw() {
   const canvas = canvasRef.value
   if (!canvas) return
   const dpr = window.devicePixelRatio || 1
-  const W = 560, H = 300
+  const W = 560, H = 320
   if (canvas.width !== W * dpr || canvas.height !== H * dpr) {
     canvas.width = W * dpr
     canvas.height = H * dpr
@@ -27,18 +27,18 @@ function draw() {
 
   const fixed = pulleyType.value === 'fixed'
   const cx = w / 2
-  const cy = fixed ? 155 : 175   // 动滑轮位置更低
+  const cy = fixed ? 165 : 185   // 动滑轮位置更低
 
   // 绳子（滑轮上端到顶部固定点）
   ctx.strokeStyle = '#94a3b8'
   ctx.lineWidth = 2
   ctx.beginPath()
-  ctx.moveTo(cx - 28, 108)
+  ctx.moveTo(cx - 28, 112)
   ctx.lineTo(cx - 28, cy - 16)
   ctx.stroke()
   ctx.beginPath()
-  ctx.moveTo(cx - 28, 108)
-  ctx.lineTo(cx + 60, 24)
+  ctx.moveTo(cx - 28, 112)
+  ctx.lineTo(cx + 60, 112)
   ctx.stroke()
 
   // 滑轮（圆 + 槽）
@@ -53,7 +53,7 @@ function draw() {
   ctx.stroke()
 
   // 重物（下方）
-  const wY = cy + 50
+  const wY = cy + 52
   ctx.strokeStyle = '#64748b'
   ctx.lineWidth = 2
   ctx.beginPath()
@@ -73,7 +73,7 @@ function draw() {
   ctx.lineWidth = 2.5
   ctx.beginPath()
   if (fixed) {
-    ctx.moveTo(pullX, 108)
+    ctx.moveTo(pullX, 112)
     ctx.lineTo(pullX, h - 40)
   } else {
     ctx.moveTo(pullX, cy - 16)
