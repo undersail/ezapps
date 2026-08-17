@@ -84,34 +84,53 @@ function draw() {
     ctx.fillText('θ=' + angle.value + '°', px0 - 62, py0 - 32)
   } else {
     // === 全反射：光从水中射向水面 ===
-    // 入射光（左下 → 分界点，从水中）
+    // 入射光（左下 → 分界点，从水中）+ 方向箭头
     ctx.strokeStyle = '#f59e0b'
     ctx.lineWidth = 3
+    const inSx = px0 - Math.sin(rad) * inLen, inSy = py0 + Math.cos(rad) * inLen
     ctx.beginPath()
-    ctx.moveTo(px0 - Math.sin(rad) * inLen, py0 + Math.cos(rad) * inLen)
+    ctx.moveTo(inSx, inSy)
     ctx.lineTo(px0, py0)
     ctx.stroke()
+    // 入射方向箭头（光线中部，朝分界点）
+    const amx = inSx + (px0 - inSx) * 0.55, amy = inSy + (py0 - inSy) * 0.55
+    ctx.fillStyle = '#b45309'
+    ctx.beginPath()
+    ctx.moveTo(amx + Math.sin(rad) * 5, amy - Math.cos(rad) * 5)
+    ctx.lineTo(amx - Math.cos(rad) * 10, amy - Math.sin(rad) * 10)
+    ctx.lineTo(amx - Math.sin(rad) * 5, amy + Math.cos(rad) * 5)
+    ctx.closePath()
+    ctx.fill()
     ctx.fillStyle = '#b45309'
     ctx.font = '11px system-ui'
     ctx.textAlign = 'center'
     ctx.fillText('入射光（水中）', px0 - 95, py0 + Math.cos(rad) * inLen + 16)
     if (isTotal.value) {
-      // 全反射光（向右下，反射回水中！）
+      // 全反射光（向右下，反射回水中！）+ 方向箭头
       ctx.strokeStyle = '#3b82f6'
       ctx.lineWidth = 3
+      const rex = px0 + Math.sin(rad) * inLen, rey = py0 + Math.cos(rad) * inLen
       ctx.beginPath()
       ctx.moveTo(px0, py0)
-      ctx.lineTo(px0 + Math.sin(rad) * inLen, py0 + Math.cos(rad) * inLen)
+      ctx.lineTo(rex, rey)
       ctx.stroke()
+      const bmx = px0 + (rex - px0) * 0.55, bmy = py0 + (rey - py0) * 0.55
+      ctx.fillStyle = '#1d4ed8'
+      ctx.beginPath()
+      ctx.moveTo(bmx + Math.sin(rad) * 5, bmy + Math.cos(rad) * 5)
+      ctx.lineTo(bmx - Math.cos(rad) * 10, bmy + Math.sin(rad) * 10)
+      ctx.lineTo(bmx - Math.sin(rad) * 5, bmy - Math.cos(rad) * 5)
+      ctx.closePath()
+      ctx.fill()
       ctx.fillStyle = '#1d4ed8'
       ctx.font = 'bold 12px system-ui'
       ctx.textAlign = 'center'
       ctx.fillText('全反射！光全部反射回水中', px0 + 110, py0 + Math.cos(rad) * inLen + 16)
-      // 反射角弧（法线下 → 反射光）
+      // 反射角弧：法线向下(π/2) → 反射光方向（右下）
       ctx.strokeStyle = 'rgba(59, 130, 246, 0.7)'
       ctx.lineWidth = 1.5
       ctx.beginPath()
-      ctx.arc(px0, py0, 40, Math.PI / 2, Math.PI / 2 - rad)
+      ctx.arc(px0, py0, 40, Math.PI / 2 - rad, Math.PI / 2)
       ctx.stroke()
     } else {
       // 未超临界：光进入空气（简化）
@@ -141,16 +160,16 @@ function draw() {
     ctx.fillStyle = '#dc2626'
     ctx.font = '11px system-ui'
     ctx.fillText('临界角 ' + critical.value.toFixed(1) + '°', px0 - 90, py0 - 26)
-    // 入射角弧（法线 → 入射光，水中左侧）
+    // 入射角弧：法线向上(-π/2) → 入射光线反方向（水中左侧）
     ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)'
     ctx.lineWidth = 1.5
     ctx.beginPath()
-    ctx.arc(px0, py0, 36, -Math.PI / 2, -Math.PI / 2 + rad)
+    ctx.arc(px0, py0, 36, -Math.PI / 2 - rad, -Math.PI / 2)
     ctx.stroke()
     ctx.fillStyle = '#b45309'
     ctx.font = '12px system-ui'
     ctx.textAlign = 'left'
-    ctx.fillText('θ=' + angle.value + '°', px0 - 34, py0 - 30)
+    ctx.fillText('θ=' + angle.value + '°', px0 - 44, py0 - 30)
   }
 
   // ===== 顶部信息区 =====

@@ -1,13 +1,27 @@
 <script setup lang="ts">
-// 滑轮演示：定滑轮不省力（F=G，只改变方向）；动滑轮省一半力（F=G/2）
-import { ref, watch, onMounted } from 'vue'
+// 滑轮演示：定滑轮（支架固定，只改变方向 F=G）；动滑轮（省一半力 F=G/2）
+// 带拉动动画：定滑轮重物上下升降，动滑轮滑轮+重物整体升降
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const weight = ref(4)        // 重物重量（单位）
-const pulleyType = ref<'fixed' | 'moving'>('fixed')  // 定滑轮 / 动滑轮
+const pulleyType = ref<'fixed' | 'moving'>('fixed')
 
 const W = 560, H = 320
 const TOP = 100               // 顶部横杆
+
+let raf = 0
+let last = 0
+let phase = 0                 // 拉动动画相位 0-1
+
+function frame(now: number) {
+  const dt = Math.min((now - last) / 1000, 0.05)
+  last = now
+  phase += dt * 0.8           // 拉动速度
+  if (phase > 1) phase -= 1
+  draw()
+  raf = requestAnimationFrame(frame)
+}
 
 function draw() {
   const canvas = canvasRef.value
@@ -23,53 +37,59 @@ function draw() {
 
   const fixed = pulleyType.value === 'fixed'
   const cx = W / 2 - 40
-  const cy = fixed ? 180 : 200
-  const R = 22                    // 滑轮半径
+  const R = 22
+  // 拉动位移（sin 循环：0 → +1 → 0）
+  const lift = Math.sin(phase * Math.PI) * 18
+  const cy = (fixed ? 185 : 205) - lift      // 动滑轮随拉动整体升降
+  const wTop = fixed ? cy + 30 + lift : cy + R + 8 + lift   // 重物位置（定滑轮：拉力下拉重物上升=lift为负时上升 —— 简化同步）
 
   // 顶部固定横杆
   ctx.strokeStyle = '#475569'
   ctx.lineWidth = 3
   ctx.beginPath()
   ctx.moveTo(cx - 60, TOP)
-  ctx.lineTo(cx + 90, TOP)
+  ctx.lineTo(cx + 110, TOP)
   ctx.stroke()
-
-  // 滑轮（圆 + 槽）
-  ctx.fillStyle = '#64748b'
-  ctx.beginPath()
-  ctx.arc(cx, cy, R, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.strokeStyle = '#475569'
-  ctx.lineWidth = 2.5
-  ctx.beginPath()
-  ctx.arc(cx, cy, R, 0, Math.PI * 2)
-  ctx.stroke()
-  // 轴
-  ctx.fillStyle = '#94a3b8'
-  ctx.beginPath()
-  ctx.arc(cx, cy, 4, 0, Math.PI * 2)
-  ctx.fill()
-
-  // 绳子（棕色，统一线宽 2.5）
-  ctx.strokeStyle = '#b45309'
-  ctx.lineWidth = 2.5
 
   if (fixed) {
-    // ===== 定滑轮：绳绕滑轮上半圈，左端挂重物，右端向下拉 =====
+    // ===== 定滑轮：支架（横杆 → 滑轮中心）+ 绳绕上半圈 =====
+    // 支架
+    ctx.strokeStyle = '#64748b'
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.moveTo(cx, TOP)
+    ctx.lineTo(cx, cy)
+    ctx.stroke()
+    // 滑轮
+    ctx.fillStyle = '#64748b'
+    ctx.beginPath()
+    ctx.arc(cx, cy, R, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = '#475569'
+    ctx.lineWidth = 2.5
+    ctx.beginPath()
+    ctx.arc(cx, cy, R, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.fillStyle = '#94a3b8'
+    ctx.beginPath()
+    ctx.arc(cx, cy, 4, 0, Math.PI * 2)
+    ctx.fill()
     // 绳绕滑轮上半圈
+    ctx.strokeStyle = '#b45309'
+    ctx.lineWidth = 2.5
     ctx.beginPath()
     ctx.arc(cx, cy, R, Math.PI, 0)
     ctx.stroke()
-    // 左绳：从滑轮左侧垂到重物
-    const wTop = cy + 30
+    // 左绳（重物端）
     ctx.beginPath()
     ctx.moveTo(cx - R, cy)
     ctx.lineTo(cx - R, wTop)
     ctx.stroke()
-    // 右绳：从滑轮右侧垂到下方（拉力端）
+    // 右绳（拉力端，长度随拉动变化）
+    const pullEndY = H - 70 + lift * 2
     ctx.beginPath()
     ctx.moveTo(cx + R, cy)
-    ctx.lineTo(cx + R, H - 90)
+    ctx.lineTo(cx + R, pullEndY)
     ctx.stroke()
     // 重物
     ctx.fillStyle = '#ef4444'
@@ -78,61 +98,72 @@ function draw() {
     ctx.font = 'bold 14px system-ui'
     ctx.textAlign = 'center'
     ctx.fillText(weight.value + 'N', cx - R, wTop + 22)
-    // 拉力端箭头（向下）
-    const fY = H - 90
+    // 拉力箭头（向下，拉力端）
     ctx.fillStyle = '#f59e0b'
     ctx.beginPath()
-    ctx.moveTo(cx + R - 8, fY - 10)
-    ctx.lineTo(cx + R + 8, fY - 10)
-    ctx.lineTo(cx + R, fY + 10)
+    ctx.moveTo(cx + R - 8, pullEndY - 10)
+    ctx.lineTo(cx + R + 8, pullEndY - 10)
+    ctx.lineTo(cx + R, pullEndY + 10)
     ctx.closePath()
     ctx.fill()
+    // 支架标注
+    ctx.fillStyle = '#64748b'
+    ctx.font = '11px system-ui'
+    ctx.fillText('支架固定', cx + 14, cy - 8)
   } else {
-    // ===== 动滑轮：绳一端固定顶部，绕滑轮下半圈，另一端向上拉 =====
-    // 固定端绳（顶部 → 滑轮左侧）
+    // ===== 动滑轮：绳固定横杆 + 绕下半圈 + 拉力端悬空 =====
+    // 滑轮（随 lift 整体升降）
+    ctx.fillStyle = '#64748b'
+    ctx.beginPath()
+    ctx.arc(cx, cy, R, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = '#475569'
+    ctx.lineWidth = 2.5
+    ctx.beginPath()
+    ctx.arc(cx, cy, R, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.fillStyle = '#94a3b8'
+    ctx.beginPath()
+    ctx.arc(cx, cy, 4, 0, Math.PI * 2)
+    ctx.fill()
+    // 绳子
+    ctx.strokeStyle = '#b45309'
+    ctx.lineWidth = 2.5
+    // 固定端（横杆 → 滑轮左侧）
     ctx.beginPath()
     ctx.moveTo(cx - 14, TOP)
     ctx.lineTo(cx - R, cy)
     ctx.stroke()
-    // 绳绕滑轮下半圈
+    // 绕滑轮下半圈
     ctx.beginPath()
     ctx.arc(cx, cy, R, 0, Math.PI)
     ctx.stroke()
-    // 拉力绳（滑轮右侧 → 顶部 → 水平到右侧拉手）
+    // 拉力绳（滑轮右侧 → 横杆上方悬空）
+    const pullTop = Math.max(96, TOP - 26 - lift * 2)   // 不低于白条区(84)
     ctx.beginPath()
     ctx.moveTo(cx + R, cy)
-    ctx.lineTo(cx + R, TOP)
-    ctx.lineTo(cx + 90, TOP)
+    ctx.lineTo(cx + R, pullTop)
     ctx.stroke()
-    // 拉力箭头（沿水平绳段向右，示意拉绳）
-    const fX = cx + 90
+    // 拉力箭头（向上，悬空端）
     ctx.fillStyle = '#f59e0b'
     ctx.beginPath()
-    ctx.moveTo(fX - 14, TOP - 7)
-    ctx.lineTo(fX + 10, TOP - 7)
-    ctx.lineTo(fX + 10, TOP - 13)
-    ctx.lineTo(fX + 22, TOP)
-    ctx.lineTo(fX + 10, TOP + 13)
-    ctx.lineTo(fX + 10, TOP + 7)
-    ctx.lineTo(fX - 14, TOP + 7)
+    ctx.moveTo(cx + R - 8, pullTop + 10)
+    ctx.lineTo(cx + R + 8, pullTop + 10)
+    ctx.lineTo(cx + R, pullTop - 10)
     ctx.closePath()
     ctx.fill()
-    ctx.fillStyle = '#b45309'
-    ctx.font = 'bold 12px system-ui'
-    ctx.textAlign = 'center'
-    ctx.fillText('F=' + weight.value / 2, fX + 20, TOP + 24)
-    // 重物（挂在滑轮下方）
-    const wTop = cy + R + 8
+    // 重物（挂在滑轮下方，随滑轮升降）
+    const wTop2 = cy + R + 8
     ctx.fillStyle = '#ef4444'
-    ctx.fillRect(cx - 26, wTop, 52, 34)
+    ctx.fillRect(cx - 26, wTop2, 52, 34)
     ctx.fillStyle = '#fff'
     ctx.font = 'bold 14px system-ui'
     ctx.textAlign = 'center'
-    ctx.fillText(weight.value + 'N', cx, wTop + 22)
-    // 标注"滑轮随重物上升"
+    ctx.fillText(weight.value + 'N', cx, wTop2 + 22)
+    // 标注
     ctx.fillStyle = '#64748b'
     ctx.font = '11px system-ui'
-    ctx.fillText('动滑轮随重物一起动', cx, cy - R - 10)
+    ctx.fillText('动滑轮随重物一起动', cx + R + 14, cy - R - 6)
   }
 
   // ===== 顶部信息区 =====
@@ -153,14 +184,15 @@ function draw() {
   ctx.fillText('拉力 F = ' + force + ' N' + (fixed ? '（不省力）' : '（省一半力）'), 16, 24)
   ctx.fillStyle = '#334155'
   ctx.font = '13px system-ui'
-  ctx.fillText(fixed ? '定滑轮：只改变拉力方向，F = G' : '动滑轮：省一半力，F = G/2，但要多拉一倍距离', 16, 46)
+  ctx.fillText(fixed ? '定滑轮：支架固定，只改变拉力方向，F = G' : '动滑轮：绳端固定横杆，省一半力 F = G/2', 16, 46)
   ctx.fillStyle = '#059669'
   ctx.font = 'bold 13px system-ui'
   ctx.fillText(fixed ? 'F = G ✓ 不省力' : 'F = G/2 ✓ 省一半力', 16, 68)
 }
 
-watch([weight, pulleyType], draw)
-onMounted(draw)
+watch([weight, pulleyType], () => { phase = 0 })
+onMounted(() => { last = performance.now(); raf = requestAnimationFrame(frame) })
+onBeforeUnmount(() => cancelAnimationFrame(raf))
 </script>
 
 <template>

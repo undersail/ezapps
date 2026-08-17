@@ -44,40 +44,61 @@ function draw() {
   ctx.beginPath(); ctx.moveTo(px0, 70); ctx.lineTo(px0, H - 40); ctx.stroke()
   ctx.setLineDash([])
 
-  // 入射光线（左上 → 分界点）
+  // 入射光线（左上 → 分界点）+ 方向箭头
   const rad = (angle.value * Math.PI) / 180
   ctx.strokeStyle = '#f59e0b'
   ctx.lineWidth = 3
   const inLen = 105
+  const inSx = px0 - Math.sin(rad) * inLen, inSy = py0 - Math.cos(rad) * inLen
   ctx.beginPath()
-  ctx.moveTo(px0 - Math.sin(rad) * inLen, py0 - Math.cos(rad) * inLen)
+  ctx.moveTo(inSx, inSy)
   ctx.lineTo(px0, py0)
   ctx.stroke()
+  // 入射方向箭头（光线中部）
+  const inMid = 0.55
+  const amx = inSx + (px0 - inSx) * inMid, amy = inSy + (py0 - inSy) * inMid
+  ctx.fillStyle = '#b45309'
+  ctx.beginPath()
+  ctx.moveTo(amx + Math.sin(rad) * 5, amy + Math.cos(rad) * 5)
+  ctx.lineTo(amx - Math.cos(rad) * 10, amy + Math.sin(rad) * 10)
+  ctx.lineTo(amx - Math.sin(rad) * 5, amy - Math.cos(rad) * 5)
+  ctx.closePath()
+  ctx.fill()
 
-  // 折射光线（右下）
+  // 折射光线（右下）+ 方向箭头
   const rrad = (refracted.value * Math.PI) / 180
   ctx.strokeStyle = '#3b82f6'
   ctx.lineWidth = 3
   const outLen = 150
+  const outEx = px0 + Math.sin(rrad) * outLen, outEy = py0 + Math.cos(rrad) * outLen
   ctx.beginPath()
   ctx.moveTo(px0, py0)
-  ctx.lineTo(px0 + Math.sin(rrad) * outLen, py0 + Math.cos(rrad) * outLen)
+  ctx.lineTo(outEx, outEy)
   ctx.stroke()
+  const bmx = px0 + (outEx - px0) * 0.55, bmy = py0 + (outEy - py0) * 0.55
+  ctx.fillStyle = '#1d4ed8'
+  ctx.beginPath()
+  ctx.moveTo(bmx + Math.sin(rrad) * 5, bmy + Math.cos(rrad) * 5)
+  ctx.lineTo(bmx - Math.cos(rrad) * 10, bmy + Math.sin(rrad) * 10)
+  ctx.lineTo(bmx - Math.sin(rrad) * 5, bmy - Math.cos(rrad) * 5)
+  ctx.closePath()
+  ctx.fill()
 
   // 角度弧线
-  ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)'
+  // 入射角弧：法线向上(-π/2) → 入射光线反方向(法线左侧 θ)
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)'
   ctx.lineWidth = 1.5
   ctx.beginPath()
-  ctx.arc(px0, py0, 36, -rad, 0)
+  ctx.arc(px0, py0, 36, -Math.PI / 2 - rad, -Math.PI / 2)
   ctx.stroke()
   ctx.fillStyle = '#b45309'
   ctx.font = '12px system-ui'
-  ctx.fillText('θ₁=' + angle.value + '°', px0 - 70, py0 - 40)
+  ctx.fillText('θ₁=' + angle.value + '°', px0 - 62, py0 - 32)
 
   ctx.strokeStyle = 'rgba(59, 130, 246, 0.7)'
   ctx.lineWidth = 1.5
   ctx.beginPath()
-  ctx.arc(px0, py0, 44, Math.PI / 2, Math.PI / 2 - rrad)
+  ctx.arc(px0, py0, 44, Math.PI / 2 - rrad, Math.PI / 2)
   ctx.stroke()
   ctx.fillStyle = '#1d4ed8'
   ctx.font = '12px system-ui'
