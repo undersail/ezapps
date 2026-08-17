@@ -104,15 +104,23 @@ function draw() {
     ctx.lineTo(cx + R, TOP)
     ctx.lineTo(cx + 90, TOP)
     ctx.stroke()
-    // 拉力箭头（向上，在顶部水平段右侧）
+    // 拉力箭头（沿水平绳段向右，示意拉绳）
     const fX = cx + 90
     ctx.fillStyle = '#f59e0b'
     ctx.beginPath()
-    ctx.moveTo(fX - 10, TOP - 8)
-    ctx.lineTo(fX + 10, TOP - 8)
-    ctx.lineTo(fX, TOP - 26)
+    ctx.moveTo(fX - 14, TOP - 7)
+    ctx.lineTo(fX + 10, TOP - 7)
+    ctx.lineTo(fX + 10, TOP - 13)
+    ctx.lineTo(fX + 22, TOP)
+    ctx.lineTo(fX + 10, TOP + 13)
+    ctx.lineTo(fX + 10, TOP + 7)
+    ctx.lineTo(fX - 14, TOP + 7)
     ctx.closePath()
     ctx.fill()
+    ctx.fillStyle = '#b45309'
+    ctx.font = 'bold 12px system-ui'
+    ctx.textAlign = 'center'
+    ctx.fillText('F=' + weight.value / 2, fX + 20, TOP + 24)
     // 重物（挂在滑轮下方）
     const wTop = cy + R + 8
     ctx.fillStyle = '#ef4444'

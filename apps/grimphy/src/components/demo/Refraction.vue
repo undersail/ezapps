@@ -74,12 +74,14 @@ function draw() {
   ctx.font = '12px system-ui'
   ctx.fillText('θ₁=' + angle.value + '°', px0 - 70, py0 - 40)
 
-  ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)'
+  ctx.strokeStyle = 'rgba(59, 130, 246, 0.7)'
+  ctx.lineWidth = 1.5
   ctx.beginPath()
-  ctx.arc(px0, py0, 42, 0, rrad)
+  ctx.arc(px0, py0, 44, Math.PI / 2, Math.PI / 2 - rrad)
   ctx.stroke()
   ctx.fillStyle = '#1d4ed8'
-  ctx.fillText('θ₂=' + refracted.value.toFixed(1) + '°', px0 + 50, py0 + 48)
+  ctx.font = '12px system-ui'
+  ctx.fillText('θ₂=' + refracted.value.toFixed(1) + '°', px0 + 60, py0 + 52)
 
   // 数据
   ctx.fillStyle = '#334155'

@@ -96,17 +96,23 @@ function draw() {
     ctx.textAlign = 'center'
     ctx.fillText('入射光（水中）', px0 - 95, py0 + Math.cos(rad) * inLen + 16)
     if (isTotal.value) {
-      // 全反射光（向左下，全部反射回水中！）
+      // 全反射光（向右下，反射回水中！）
       ctx.strokeStyle = '#3b82f6'
       ctx.lineWidth = 3
       ctx.beginPath()
       ctx.moveTo(px0, py0)
-      ctx.lineTo(px0 - Math.sin(rad) * inLen, py0 + Math.cos(rad) * inLen)
+      ctx.lineTo(px0 + Math.sin(rad) * inLen, py0 + Math.cos(rad) * inLen)
       ctx.stroke()
       ctx.fillStyle = '#1d4ed8'
       ctx.font = 'bold 12px system-ui'
       ctx.textAlign = 'center'
-      ctx.fillText('全反射！光全部反射回水中', px0 - 100, py0 + Math.cos(rad) * inLen + 16)
+      ctx.fillText('全反射！光全部反射回水中', px0 + 110, py0 + Math.cos(rad) * inLen + 16)
+      // 反射角弧（法线下 → 反射光）
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.7)'
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.arc(px0, py0, 40, Math.PI / 2, Math.PI / 2 - rad)
+      ctx.stroke()
     } else {
       // 未超临界：光进入空气（简化）
       const rrad = (Math.asin(nWater * Math.sin(rad)) * 180) / Math.PI
