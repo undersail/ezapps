@@ -10,7 +10,7 @@
       <span class="hero__logo-dot" aria-hidden="true"></span>
       <span class="hero__logo-tag">Focus on Simple Design.</span>
     </div>
-    <p class="tag">JACK 的奇思妙想展示厅</p>
+    <p class="tag">一个码农的奇思妙想展示厅</p>
   </header>
 </template>
 
