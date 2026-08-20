@@ -53,13 +53,13 @@
 }
 .hero__logo-dot {
   position: absolute;
-  top: 10px;
-  right: 14px;
-  width: 7px;
-  height: 7px;
+  top: 12px;
+  right: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: #fbbf24;
-  box-shadow: 0 0 12px rgba(251, 191, 36, 0.85);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.9);
 }
 
 /* ===== tagline ===== */
