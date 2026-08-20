@@ -1,6 +1,6 @@
 <script setup lang="ts">
 try { fetch('https://api.ezapps.cc/api/stats/hit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app: 'ezchess' }) }).catch(() => {}) } catch { /* 忽略 */ }
-// EZChess · 经典棋类对战（M1 五子棋 MVP）
+// EZChess Arena · 一起来下棋（经典棋类对战平台）
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import * as Net from './network/api'
 import { GameWS } from './network/ws'
@@ -1378,8 +1378,8 @@ onUnmounted(() => {
     <!-- ===== 大厅 ===== -->
     <section v-if="stage === 'lobby'" class="lobby">
       <header class="hero">
-        <div class="badge">BETA · EZChess</div>
-        <h1>♟️ 棋类对战</h1>
+        <div class="badge">BETA · EZChess Arena</div>
+        <h1>♟️ 一起来下棋</h1>
         <p class="tag">经典棋类 · 在线对战 · AI 教学 · 服务端权威判棋</p>
       </header>
 
