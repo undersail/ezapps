@@ -28,13 +28,13 @@
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 1rem 2.5rem 0.75rem;
+  gap: 7px;
+  padding: 1.2rem 2.6rem 0.9rem;
   border-radius: 16px;
   background: linear-gradient(135deg, #1565c0 0%, #7c3aed 100%);
   color: white;
   font-weight: 800;
-  font-size: 1.5rem;
+  font-size: 1.85rem;
   letter-spacing: 0.18em;
   box-shadow:
     0 16px 48px rgba(21, 101, 192, 0.36),
@@ -52,13 +52,14 @@
   line-height: 1;
 }
 .hero__logo-dot {
+  position: absolute;
+  top: 10px;
+  right: 14px;
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: #fbbf24;
   box-shadow: 0 0 12px rgba(251, 191, 36, 0.85);
-  /* 让它"飘"在右上角，象征活跃 / live */
-  margin-top: -14px;
 }
 
 /* ===== tagline ===== */
