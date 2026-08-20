@@ -4,13 +4,13 @@
 
 <template>
   <header class="hero">
-    <!-- 一体化 LOGO：横向渐变卡片 + 品牌字 + 装饰点 -->
+    <!-- 一体化 LOGO：渐变卡片 + 品牌字 + 装饰点 + 标语 -->
     <div class="hero__logo" aria-label="EZAPPS">
       <span class="hero__logo-text">EZAPPS</span>
       <span class="hero__logo-dot" aria-hidden="true"></span>
+      <span class="hero__logo-tag">Focus on Simple Design</span>
     </div>
-    <p class="tag">这里是我的奇思妙想展示厅</p>
-    <p class="sub">Focus on Simple Design</p>
+    <p class="tag">JACK 的奇思妙想展示厅</p>
   </header>
 </template>
 
@@ -26,9 +26,10 @@
 .hero__logo {
   position: relative;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 1rem 2.25rem;
+  gap: 6px;
+  padding: 1rem 2.5rem 0.75rem;
   border-radius: 16px;
   background: linear-gradient(135deg, #1565c0 0%, #7c3aed 100%);
   color: white;
@@ -41,7 +42,13 @@
   margin-bottom: 1.5rem;
 }
 .hero__logo-text {
-  /* 文字颜色保持纯白，靠容器渐变出层次 */
+  line-height: 1;
+}
+.hero__logo-tag {
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.72);
   line-height: 1;
 }
 .hero__logo-dot {
@@ -58,16 +65,10 @@
 .tag {
   font-size: 1.35rem;
   color: #334155;
-  margin: 0 auto 0.5rem;
+  margin: 0 auto;
   line-height: 1.65;
   max-width: 580px;
   letter-spacing: 0.02em;
   font-weight: 600;
-}
-.sub {
-  font-size: 0.95rem;
-  color: #94a3b8;
-  margin: 0 auto;
-  letter-spacing: 0.02em;
 }
 </style>
