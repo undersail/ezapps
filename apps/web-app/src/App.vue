@@ -18,6 +18,19 @@ const appMeta: Record<string, { emoji: string; name: string }> = {
   grimphy: { emoji: '🔬', name: '物理实验室' },
 }
 const fmt = (n: number) => (n >= 10000 ? (n / 10000).toFixed(1) + 'w' : n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n))
+/** 总访问 = 首页 + 各应用页面访问量总和 */
+const statsTotal = computed(() => {
+  const home = stats.value.home || 0
+  let apps = 0
+  for (const id in appMeta) apps += stats.value[id] || 0
+  return home + apps
+})
+/** 各应用按访问量从高到低排序（dashboard 惯例） */
+const sortedApps = computed(() => {
+  return Object.entries(appMeta)
+    .map(([id, meta]) => ({ id, ...meta, count: stats.value[id] || 0 }))
+    .sort((a, b) => b.count - a.count)
+})
 onMounted(async () => {
   // 主页访问打点 + 拉取统计
   try { fetch(`${API_BASE}/api/stats/hit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app: 'home' }) }).catch(() => {}) } catch { /* 忽略 */ }
@@ -82,7 +95,7 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
             <path d="M12 17v5" />
             <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z" />
           </svg>
-          可置顶（最多 {{ MAX }} 个，超出时自动覆盖最早置顶的）。
+          可置顶（最多 {{ MAX }} 个，循环覆盖）。
         </p>
       </header>
 
@@ -104,14 +117,14 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
       <div v-if="statsLoaded" class="foot__stats" aria-label="访问统计">
         <div class="foot__stats-total">
           <span class="foot__stats-icon">👀</span>
-          <span class="foot__stats-label">总访问</span>
-          <b>{{ fmt(stats.home) }}</b>
+          <span class="foot__stats-label">总访问量</span>
+          <b>{{ fmt(statsTotal) }}</b>
         </div>
         <span class="foot__stats-sep"></span>
-        <div v-for="(meta, id) in appMeta" :key="id" class="foot__stats-item">
-          <span class="foot__stats-icon">{{ meta.emoji }}</span>
-          <span class="foot__stats-label">{{ meta.name }}</span>
-          <b>{{ fmt(stats[id] || 0) }}</b>
+        <div v-for="item in sortedApps" :key="item.id" class="foot__stats-item">
+          <span class="foot__stats-icon">{{ item.emoji }}</span>
+          <span class="foot__stats-label">{{ item.name }}</span>
+          <b>{{ fmt(item.count) }}</b>
         </div>
       </div>
 
