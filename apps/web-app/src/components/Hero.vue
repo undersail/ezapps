@@ -29,7 +29,7 @@
   flex-direction: column;
   align-items: center;
   gap: 7px;
-  padding: 1.2rem 2.6rem 0.9rem;
+  padding: 1.2rem 2rem 0.9rem;
   border-radius: 16px;
   background: linear-gradient(135deg, #1565c0 0%, #7c3aed 100%);
   color: white;
