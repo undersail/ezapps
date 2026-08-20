@@ -156,7 +156,7 @@ function onPin(e: MouseEvent) {
   color: #3730a3;
 }
 .card__body {
-  padding: 1.25rem 1.5rem 1rem;
+  padding: 0.75rem 1.5rem 1rem;
   flex-grow: 1;
 }
 .desc {
@@ -252,7 +252,7 @@ function onPin(e: MouseEvent) {
     padding: 2px 8px;
   }
   .card__body {
-    padding: 1.25rem 1rem 0.85rem;
+    padding: 0.75rem 1rem 0.85rem;
   }
   .desc {
     font-size: 0.85rem;
