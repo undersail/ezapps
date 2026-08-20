@@ -6,7 +6,6 @@ import Hero from './components/Hero.vue'
 import { usePinnedApps } from './composables/usePinnedApps'
 
 const { sortedIds, isPinned, togglePin, MAX } = usePinnedApps()
-const buildTime = new Date().toISOString()
 
 // ===== 访问统计（页脚） =====
 const API_BASE = 'https://api.ezapps.cc'
@@ -130,12 +129,6 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
         <a href="https://github.com/undersail">@undersail</a>
       </p>
 
-      <div class="foot__meta" aria-label="build metadata">
-        <span class="foot__meta-item">
-          <span class="foot__meta-label">构建时间</span>
-          <code>{{ buildTime }}</code>
-        </span>
-      </div>
     </footer>
   </div>
 </template>
@@ -302,37 +295,6 @@ const orderedApps = computed<AppEntry[]>(() => [...pinnedApps.value, ...otherApp
   color: #cbd5e1;
 }
 
-/* footer 底部技术 meta：横排、灰阶 */
-.foot__meta {
-  display: inline-flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.75rem 1.5rem;
-  margin-top: 0.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px dashed #e2e8f0;
-}
-.foot__meta-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.78rem;
-}
-.foot__meta-label {
-  color: #94a3b8;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.foot__meta code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.85em;
-  color: #64748b;
-  background: #f8fafc;
-  border: 1px solid #eef2f6;
-  padding: 3px 10px;
-  border-radius: 6px;
-}
 .foot a {
   color: #1565c0;
   text-decoration: none;
