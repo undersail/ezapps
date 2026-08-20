@@ -252,7 +252,7 @@ function onPin(e: MouseEvent) {
     padding: 2px 8px;
   }
   .card__body {
-    padding: 0 1rem 0.85rem;
+    padding: 1.25rem 1rem 0.85rem;
   }
   .desc {
     font-size: 0.85rem;
