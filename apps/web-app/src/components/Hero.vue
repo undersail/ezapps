@@ -9,7 +9,8 @@
       <span class="hero__logo-text">EZAPPS</span>
       <span class="hero__logo-dot" aria-hidden="true"></span>
     </div>
-    <p class="tag">Focus on Simple Design</p>
+    <p class="tag">这里是我的奇思妙想展示厅</p>
+    <p class="sub">Focus on Simple Design</p>
   </header>
 </template>
 
@@ -55,11 +56,18 @@
 
 /* ===== tagline ===== */
 .tag {
-  font-size: 1.05rem;
-  color: #475569;
-  margin: 0 auto;
+  font-size: 1.35rem;
+  color: #334155;
+  margin: 0 auto 0.5rem;
   line-height: 1.65;
   max-width: 580px;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+}
+.sub {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  margin: 0 auto;
   letter-spacing: 0.02em;
 }
 </style>

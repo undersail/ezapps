@@ -50,7 +50,7 @@ export const apps: AppEntry[] = [
   },
   {
     id: 'ezchess',
-    title: '棋类对战',
+    title: '一起来下棋',
     emoji: '♟️',
     tagline: 'EZChess',
     description: '经典棋类在线对战：五子棋/黑白棋/中国跳棋/中国象棋，实时对战、服务端权威判棋。',
