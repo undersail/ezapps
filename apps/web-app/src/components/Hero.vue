@@ -8,7 +8,7 @@
     <div class="hero__logo" aria-label="EZAPPS">
       <span class="hero__logo-text">EZAPPS</span>
       <span class="hero__logo-dot" aria-hidden="true"></span>
-      <span class="hero__logo-tag">Focus on Simple Design</span>
+      <span class="hero__logo-tag">Focus on Simple Design.</span>
     </div>
     <p class="tag">JACK 的奇思妙想展示厅</p>
   </header>
