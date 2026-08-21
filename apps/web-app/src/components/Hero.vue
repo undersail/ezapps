@@ -53,7 +53,7 @@
 }
 .hero__logo-dot {
   position: absolute;
-  top: 24px;
+  top: 20px;
   right: 30px;
   width: 9px;
   height: 9px;
