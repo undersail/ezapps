@@ -6,10 +6,8 @@
   <header class="hero">
     <!-- 一体化 LOGO：渐变卡片 + 品牌字 + 装饰点 + 标语 -->
     <div class="hero__logo" aria-label="EZAPPS">
-      <span class="hero__logo-row">
-        <span class="hero__logo-text">EZAPPS</span>
-        <span class="hero__logo-dot" aria-hidden="true"></span>
-      </span>
+      <span class="hero__logo-text">EZAPPS</span>
+      <span class="hero__logo-dot" aria-hidden="true"></span>
       <span class="hero__logo-tag">Focus on Simple Design.</span>
     </div>
     <p class="tag">一个码农的奇思妙想集</p>
@@ -43,11 +41,6 @@
     inset 0 -2px 0 rgba(255, 255, 255, 0.12);
   margin-bottom: 1.5rem;
 }
-.hero__logo-row {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 5px;
-}
 .hero__logo-text {
   line-height: 1;
 }
@@ -59,12 +52,14 @@
   line-height: 1;
 }
 .hero__logo-dot {
-  width: 7px;
-  height: 7px;
+  position: absolute;
+  top: 12px;
+  right: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: #fbbf24;
   box-shadow: 0 0 12px rgba(251, 191, 36, 0.9);
-  margin-top: 5px;
 }
 
 /* ===== tagline ===== */
