@@ -47,10 +47,13 @@ const pinnedApps = computed<AppEntry[]>(() => {
   return sortedIds.value.map((id) => map.get(id)).filter((a): a is AppEntry => !!a)
 })
 
-/** 未置顶的 app，保持原顺序 */
+/** 未置顶的 app，按创建时间倒序（最新在前） */
 const otherApps = computed<AppEntry[]>(() => {
   const pinnedSet = new Set(sortedIds.value)
-  return apps.filter((a) => !pinnedSet.has(a.id))
+  return apps
+    .filter((a) => !pinnedSet.has(a.id))
+    .slice()
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
 })
 
 /** 排序后的完整列表（置顶优先 + 其他在后面） */

@@ -12,11 +12,14 @@ export interface AppEntry {
   status: 'live' | 'beta' | 'coming-soon'
   path: string
   accent: string
+  /** 创建时间（ISO 日期，用于按新→旧排序） */
+  createdAt: string
 }
 
 export const apps: AppEntry[] = [
   {
     id: 'funphy',
+    createdAt: '2025-05-01',
     title: '飞飞历险记',
     emoji: '✈️',
     tagline: 'Funphy Adventure',
@@ -28,6 +31,7 @@ export const apps: AppEntry[] = [
   },
   {
     id: 'grimphy',
+    createdAt: '2026-08-18',
     title: '物理实验室',
     emoji: '🔬',
     tagline: 'Grimphy Lab',
@@ -39,6 +43,7 @@ export const apps: AppEntry[] = [
   },
   {
     id: 'funmath',
+    createdAt: '2025-08-01',
     title: '曼曼闯天涯',
     emoji: '🧮',
     tagline: 'FunMath Adventure',
@@ -50,6 +55,7 @@ export const apps: AppEntry[] = [
   },
   {
     id: 'ezchess',
+    createdAt: '2026-08-14',
     title: '一起来下棋',
     emoji: '♟️',
     tagline: 'EZChess Arena',
@@ -61,6 +67,7 @@ export const apps: AppEntry[] = [
   },
   {
     id: 'ezlife',
+    createdAt: '2026-08-21',
     title: '人生计算器',
     emoji: '⏳',
     tagline: 'EZLife Calculator',
