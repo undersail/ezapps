@@ -16,6 +16,7 @@ const appMeta: Record<string, { emoji: string; name: string }> = {
   funmath: { emoji: '🧮', name: '曼曼闯天涯' },
   ezchess: { emoji: '♟️', name: '一起来下棋' },
   grimphy: { emoji: '🔬', name: '物理实验室' },
+  ezlife: { emoji: '⏳', name: '人生计算器' },
 }
 const fmt = (n: number) => (n >= 10000 ? (n / 10000).toFixed(1) + 'w' : n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n))
 /** 总访问 = 首页 + 各应用页面访问量总和 */

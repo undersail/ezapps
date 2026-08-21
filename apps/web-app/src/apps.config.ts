@@ -59,4 +59,15 @@ export const apps: AppEntry[] = [
     path: '/ezchess/',
     accent: '#6366f1',
   },
+  {
+    id: 'ezlife',
+    title: '人生计算器',
+    emoji: '⏳',
+    tagline: 'EZLife Calculator',
+    description: '光阴有限，算算你的人生还剩多少可以虚度的时光。',
+    tags: ['人生', '时间', 'NEW'],
+    status: 'beta',
+    path: '/ezlife/',
+    accent: '#f59e0b',
+  },
 ]
